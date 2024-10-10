@@ -9,8 +9,10 @@ using UnityEngine.Serialization;
 
 public class JinGuBang : MonoBehaviour
 {
+    public static JinGuBang instance;
+    
     public LayerMask platformMask;
-    public float originalRotateSpeed;
+   
     [SerializeField] private float _rotateSpeed;
     public float elongationSpeed;
     public float maxScale;
@@ -34,9 +36,24 @@ public class JinGuBang : MonoBehaviour
     private float _colliderHeight;
     private SpriteRenderer _spriteRenderer;
     private PlayerInput _playerInput;
-   
+    private Vector2 _formMousePosition;
+    private bool _isTipsBlock;
+    private bool _isInserted;
+    private float _insertAngle;
+    private bool _isGetTargetAngle;
+    
+    
    private void Awake()
    {
+       if (instance == null)
+       {
+           instance = this;
+       }
+       else
+       {
+           Destroy(gameObject);
+       }
+       
        _rg = GetComponent<Rigidbody2D>();
        _spriteRenderer = GetComponent<SpriteRenderer>();
        _joint = GetComponent<HingeJoint2D>(); 
@@ -47,6 +64,7 @@ public class JinGuBang : MonoBehaviour
        _colliderHeight = _height;
        UpdateCollider();
        _playerInput=new PlayerInput();
+       
    }
    
    
@@ -65,6 +83,8 @@ public class JinGuBang : MonoBehaviour
    private void Update()
    {
        _anchorMoveAxis = _playerInput.GamePLay.AnchorMove.ReadValue<float>();
+       
+       TipsCheck();
        
         if (_playerInput.GamePLay.Unload.IsPressed()&&_joint.enabled)
         {
@@ -93,20 +113,32 @@ public class JinGuBang : MonoBehaviour
        if (_joint.enabled)
        {
            AnchorMove();
-           
-            FollowMouseRotate();
        }
+
+       if (_isInserted)
+       {
+           if (!_isGetTargetAngle)
+           {
+               RotateToTarget();
+           }
+           //达到目标角度后向playcontroller发送消息
+       }
+       else
+       {
+           RotateJinGuBang();
+       }
+       
+       
       
    }
    
-   void ChangeSpeedWithScaleAndAnchorPosition()
+   private void ChangeSpeedWithScaleAndAnchorPosition()
    {
-       _rotateSpeed = originalRotateSpeed  * (_joint.anchor.y+_colliderHeight);
        _moveSpeed=moveSpeed*_colliderHeight/_height;
    }
 
 
-   void AnchorMove()
+   private void AnchorMove()
    {
        
        _joint.anchor+=new Vector2(0,_anchorMoveAxis*Time.fixedDeltaTime*_moveSpeed);
@@ -120,17 +152,53 @@ public class JinGuBang : MonoBehaviour
        {
            _joint.anchor = new Vector2(0, 0);
        }
+       else
+       {
+           PlayController.instance.isOnJinGuBang = true;
+       }
+   }
+
+
+   private void RotateJinGuBang()
+   {
+       // 获取鼠标在世界中的位置
+       var mousePosition = Camera.main.ScreenToWorldPoint(_playerInput.GamePLay.JinGuBangDir.ReadValue<Vector2>());
+       mousePosition.z = 0; // 确保z轴为0，以适应2D场景
+
+       // 计算方向
+       var direction = (mousePosition - transform.position).normalized;
+
+       // 计算目标旋转
+       var angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg-90.0f;
+
+       // 平滑旋转
+       var step = _rotateSpeed * Time.fixedDeltaTime; // 每帧的旋转步长
+       var newAngle = Mathf.MoveTowardsAngle(_rg.rotation, angle, step);
+    
+       // 使用 MoveRotation 方法进行旋转
+       _rg.MoveRotation(newAngle);
    }
    
-   private void FollowMouseRotate()
+   
+   /*private void FollowMouseRotate()
    {
-       var gameObjectToMouse = _playerInput.GamePLay.JinGuBangDir.ReadValue<Vector2>() - new Vector2(Camera.main.WorldToScreenPoint(transform.position).x, Camera.main.WorldToScreenPoint(transform.position).y);
+       
+       var gameObjectToMouse = _playerInput.GamePLay.JinGuBangDir.ReadValue<Vector2>() - new Vector2(
+           Camera.main.WorldToScreenPoint(transform.position).x, Camera.main.WorldToScreenPoint(transform.position).y);
 
-       var targetAngle= wrapAngleAroundZero(Mathf.Atan2(gameObjectToMouse.y, gameObjectToMouse.x) * Mathf.Rad2Deg-90.0f);
-       
-       // Debug.Log(targetAngle);
-       
+
+       var targetAngle =
+           wrapAngleAroundZero(Mathf.Atan2(gameObjectToMouse.y, gameObjectToMouse.x) * Mathf.Rad2Deg - 90.0f);
+
+
        var currentAngle = wrapAngleAroundZero(transform.eulerAngles.z);
+
+       if (Mathf.Abs(targetAngle-currentAngle)<=0.3f)
+       {
+           return;
+       }
+
+       Debug.Log(Mathf.Abs(targetAngle-currentAngle));
        
         var torque = _rotateSpeed * Time.fixedDeltaTime;
         // I have no idea what this actually is or what to call it, but it works...
@@ -162,7 +230,6 @@ public class JinGuBang : MonoBehaviour
         
    }
    
-   
    private static float wrapAngleAroundZero(float a) 
    {
        if (a >= 0) {
@@ -174,29 +241,47 @@ public class JinGuBang : MonoBehaviour
            if (rotation > 180) rotation -= 360;
            return -rotation;
        }
-   }
+   }*/
 
+
+   private void TipsCheck()
+   {
+       var upPos=transform.up*(_colliderHeight+0.2f)+transform.position;
+       var downPos = transform.position - transform.up * 0.2f;
+
+       var upCheck = Physics2D.OverlapCircle(upPos, width / 3, platformMask);
+       var downCheck = Physics2D.OverlapCircle(downPos, width / 1.5f, platformMask);
+
+       if (upCheck&&downCheck)
+       {
+           _isTipsBlock = true;
+       }
+       else if (upCheck || downCheck)
+       {
+           PlayController.instance.isOnJinGuBang = true;
+           _isTipsBlock = false;
+       }
+       else
+       {
+           _isTipsBlock = false;
+       }
+   }
+   
     private void Elongation()
    {
         var temHeight = _colliderHeight + elongationSpeed * Time.deltaTime;
-       
-        var upPos=transform.up*(temHeight+0.2f)+transform.position;
-        var downPos = transform.position - transform.up * 0.2f;
-
-      
-
-        if (!Physics2D.OverlapCircle(upPos, width / 3, platformMask) ||
-            !Physics2D.OverlapCircle(downPos, width / 3, platformMask))
+        
+        if (_isTipsBlock||temHeight >= maxScale)
         {
-            if (temHeight <= maxScale)
-            {
-                _colliderHeight += elongationSpeed * Time.deltaTime;
-                UpdateCollider();
-               
-            }
+            return;
         }
-       
-       
+
+
+        _colliderHeight += elongationSpeed * Time.deltaTime;
+        PlayController.instance.isOnJinGuBang = true;
+        UpdateCollider();
+      
+        
    }
 
     void Shorten()
@@ -219,10 +304,11 @@ public class JinGuBang : MonoBehaviour
         _shapeGroup.Clear();
         _shapeGroup.AddCapsule(new Vector2(0,_colliderHeight),new Vector2(0,0),width/2);
         _collider.SetCustomShapes(_shapeGroup);
+        Physics2D.SyncTransforms(); 
         _spriteRenderer.size=new Vector2(_spriteRenderer.size.x,_colliderHeight);
     }
     
-    void UnloadJinGuBang()
+    private void UnloadJinGuBang()
     {
         _joint.enabled=false;
         _rg.mass = 10.0f;
@@ -232,9 +318,11 @@ public class JinGuBang : MonoBehaviour
         StartCoroutine(DelayStartCollisionWithPlayer());
 
         Cursor.visible = false;
+        
+        PlayController.instance.isOnJinGuBang = false;
     }
 
-    void EquipJinGuBang()
+    private void EquipJinGuBang()
     {
         _rg.mass = _originalMass; 
         _rg.gravityScale = _originalGravity;
@@ -242,7 +330,7 @@ public class JinGuBang : MonoBehaviour
         UpdateCollider();
         transform.localPosition = new Vector2(0f,0.5f);
         _joint.enabled = true;
-        _joint.anchor = Vector2.zero;
+        _joint.anchor = new Vector2(0.0f,0.3f);
         _joint.connectedAnchor = new Vector2(0f, 0.5f);
        
         Physics2D.IgnoreLayerCollision(3,7,true);
@@ -255,7 +343,7 @@ public class JinGuBang : MonoBehaviour
     private void OnDrawGizmos()
     {
        Gizmos.DrawWireSphere(transform.up*(_colliderHeight+0.2f)+transform.position,width/3);
-       Gizmos.DrawWireSphere(transform.position-transform.up*+0.2f,width/3);
+       Gizmos.DrawWireSphere(transform.position-transform.up*+0.2f,width/1.5f);
         
     }
 
@@ -275,6 +363,22 @@ public class JinGuBang : MonoBehaviour
     {
         _playerInput.Enable();
         _rg.freezeRotation = false;
+    }
+
+    public void IsInsert(float angle)
+    {
+        _isInserted = true;
+        _insertAngle = angle;
+    }
+
+    private void RotateToTarget()
+    {
+        _rg.MoveRotation(_insertAngle);
+        
+        if (Mathf.Abs(transform.rotation.eulerAngles.z-_insertAngle) <=Mathf.Epsilon)
+        {
+            _isGetTargetAngle = true;    
+        }
     }
 }
 

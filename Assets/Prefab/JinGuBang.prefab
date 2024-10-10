@@ -115,10 +115,10 @@ MonoBehaviour:
   platformMask:
     serializedVersion: 2
     m_Bits: 64
-  originalRotateSpeed: 60
-  _rotateSpeed: 0
+  originalRotateSpeed: 100
+  _rotateSpeed: 100
   elongationSpeed: 11
-  maxScale: 8
+  maxScale: 6
   moveSpeed: 1
   width: 0.5
 --- !u!212 &1393323417001308527

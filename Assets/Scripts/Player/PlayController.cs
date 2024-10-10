@@ -1,24 +1,44 @@
-using System;
+
 using System.Collections;
-using System.Collections.Generic;
-using System.Numerics;
-using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Serialization;
-using UnityEngine.UIElements;
 using Cursor = UnityEngine.Cursor;
 using Quaternion = UnityEngine.Quaternion;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 
+//落水
 
 public class PlayController : MonoBehaviour,ITakeDamage
 {
+    private enum PlayerState
+    {
+        Idle,
+        Running,
+        Jumping,
+        Rolling,
+        Climbing,
+        Airing,
+        Underwater,
+        TakingJinGuBang,
+    }
+    private PlayerState _currentState = PlayerState.Idle;
+    
     public static PlayController instance;//单例模式
+
+    #region AnimatorPar
+
+    private readonly int _rollHash = Animator.StringToHash("isRolling");
+    private readonly int _climbHash = Animator.StringToHash("onLadder");
+    private readonly int _airingHash = Animator.StringToHash("isAir");
+    private readonly int _underwaterHash = Animator.StringToHash("underWater");
+    private readonly int _velocityXHash = Animator.StringToHash("velocityX");
+    private readonly int _velocityYHash = Animator.StringToHash("velocityY");
+    private readonly int _onJinGuBangHash = Animator.StringToHash("onJinGuBang");
+
+    #endregion
     
     private float _horizontalMove; 
     private Vector2 _respawnPosition; 
-   // private bool _isControllable=true; 
     private Rigidbody2D _rg;
     private float _gravityScale; 
     private bool _isGrounded;
@@ -32,14 +52,20 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private CircleCollider2D _circleCollider;
     private Animator _animator;
     [HideInInspector]public bool isEquipJinGuBang;
+    [HideInInspector]public bool isOnJinGuBang;
     private bool _canBeDamaged=true;
     private PlayerInput _playerInput;
+    private bool _canRoll=true;
     
+    
+
+    #region InspectorPar
+
     [Header("Locomotion")]
     [SerializeField]private float moveSpeed;
     [SerializeField]private float jumpForce;
     [SerializeField]private float fallGravityScale;
-    [Range(0.0f, 1.0f)]
+    [Range(0.0f, 5.0f)]
     public float airControl;
 
     [Header("Property")] 
@@ -60,6 +86,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
     [SerializeField]private LayerMask jinGuBangLayer;
     public GameObject jinGuBang;
     private bool _underWater;
+
+    #endregion
 
     private void Awake()
     {
@@ -115,122 +143,330 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void Update()
     {
-        
         _horizontalMove = _playerInput.GamePLay.Move.ReadValue<Vector2>().x;
         _verticalMove = _playerInput.GamePLay.Move.ReadValue<Vector2>().y;
 
         CheckGround();
         Flip();
-
-        if ( !_isOnLadder&&!_isRolling)
-        {
-            Jump();
-        }
-
-        if (_playerInput.GamePLay.Equip.triggered&&!_isRolling)
-        {
-            jinGuBang.SetActive(!jinGuBang.activeInHierarchy);
-            Cursor.visible=jinGuBang.activeInHierarchy;
-        }
-
-        if (!isEquipJinGuBang)
-        {
-            Rolling();
-        }
-        
+        HandleState();
+        UpdateAnimator();
     }
 
-    private void FixedUpdate()
+    private void UpdateAnimator()
     {
-        if (_isOnLadder)
-        {
-            OnLadderMovement();
-        }
-        else
-        {
-            Move();
-        }
-        
+        _animator.SetFloat(_velocityXHash, Mathf.Abs(_rg.velocity.x));
+        _animator.SetFloat(_velocityYHash, _rg.velocity.y);
+
+
+        _animator.SetBool(_onJinGuBangHash, isOnJinGuBang);
     }
 
     #region Locomotion
 
-    private void Move()
+    private void HandleState()
     {
-        if (!_isGrounded)//在空中有加速度
+        switch (_currentState)
         {
-            if (_rg.velocity.x > _horizontalMove * moveSpeed)
-            {
-                _rg.velocity=new Vector2(Mathf.Max(_rg.velocity.x-moveSpeed*airControl*0.1f,_horizontalMove * moveSpeed),_rg.velocity.y);
-            }
+            case PlayerState.Idle:
+                HandleIdleState();
+                break;
 
-            else if (_rg.velocity.x < _horizontalMove * moveSpeed)
-            {
-                _rg.velocity=new Vector2(Mathf.Min(_rg.velocity.x+moveSpeed*airControl*0.1f,_horizontalMove * moveSpeed),_rg.velocity.y);
-            }
-            else
-            {
-                _rg.velocity=new Vector2(_horizontalMove * moveSpeed,_rg.velocity.y);
-            }
+            case PlayerState.Running:
+                HandleRunState();
+                break;
+
+            case PlayerState.Jumping:
+                HandleJumpState();
+                break;
+
+            case PlayerState.Climbing:
+                HandleClimbState();
+                break;
+
+            case PlayerState.Rolling:
+                HandleRollState();
+                break;
             
-        }
-        else//在地面上速度立即改变
-        {
-            _rg.velocity=new Vector2(_horizontalMove*moveSpeed,_rg.velocity.y);
+            case PlayerState.Airing:
+                HandleAirState();
+                break;
+            
+            case PlayerState.Underwater:
+                HandleUnderwaterState();
+                break;
+            
+            case PlayerState.TakingJinGuBang:
+                HandleTakingState();
+                break;
         }
     }
 
-    private void Jump()
+    private void HandleTakingState()
     {
-        if (_isGrounded&&_playerInput.GamePLay.Jump.triggered)
+        jinGuBang.SetActive(!jinGuBang.activeInHierarchy);
+        Cursor.visible = jinGuBang.activeInHierarchy;
+        _currentState = PlayerState.Idle;
+        
+        if (!jinGuBang.activeInHierarchy)
         {
-            //_respawnPosition=transform.position;//跳跃即重生更新位置
-            _rg.AddForce(Vector2.up*jumpForce,ForceMode2D.Impulse);
+            isOnJinGuBang = false;
         }
+    }
 
-        if (_rg.velocity.y < -0.1f)//下落时重力变大
+    private void HandleUnderwaterState()
+    {
+       if (!_underWater)
+       {
+           _currentState = PlayerState.Idle;
+       }
+    }
+
+    private void HandleAirState()
+    {
+        if (_underWater)
         {
-            _rg.gravityScale=fallGravityScale*_gravityScale;
+            _currentState = PlayerState.Underwater;
+            return;
+        }
+        
+        if (_isGrounded)
+        {
+            _currentState = PlayerState.Running;
+            return;
+        }
+        
+        if (_isOnLadder)
+        {
+            _currentState = PlayerState.Climbing;
+        }
+        
+        if (_playerInput.GamePLay.Equip.triggered)
+        {
+            _currentState = PlayerState.TakingJinGuBang;
+        }
+        
+        if (_rg.velocity.y < -0.1f) //下落时重力变大
+        {
+            _rg.gravityScale = fallGravityScale * _gravityScale;
         }
         else
         {
-            _rg.gravityScale=_gravityScale;
+            _rg.gravityScale = _gravityScale;
+        }
+        
+        
+        if (_rg.velocity.x > _horizontalMove * moveSpeed)
+        {
+            _rg.velocity =
+                new Vector2(Mathf.Max(_rg.velocity.x - moveSpeed * airControl * Time.deltaTime, _horizontalMove * moveSpeed),
+                    _rg.velocity.y);
+        }
+
+        else if (_rg.velocity.x < _horizontalMove * moveSpeed)
+        {
+            _rg.velocity =
+                new Vector2(Mathf.Min(_rg.velocity.x + moveSpeed * airControl * Time.deltaTime, _horizontalMove * moveSpeed),
+                    _rg.velocity.y);
         }
     }
 
-    private void Rolling()
+    private void HandleRollState()
     {
-        if (_isGrounded  && _playerInput.GamePLay.Roll.IsPressed())
+        _rg.velocity = new Vector2(_horizontalMove * moveSpeed, _rg.velocity.y);
+
+        if (jinGuBang.activeInHierarchy)
         {
-            if (!_isRolling)
-            {
-                _boxCollider.enabled = false;
-                _isRolling = true;
-                _animator.SetBool("isRolling",_isRolling);
-                _spriteRenderer.size=new Vector2(_spriteRenderer.size.x*0.7f,_spriteRenderer.size.y*0.7f);
-                if (isEquipJinGuBang)
-                {
-                     jinGuBang.SetActive(false);
-                }
-               
-            }
-            
+            _currentState = PlayerState.Idle;
+            return;
         }
-        else if (_isRolling&&_isGrounded)
+
+        if (_underWater)
         {
-            var tem=Physics2D.OverlapBox(rollingCheckPoint.position,rollingCheckSize,0.0f,LayerMask.GetMask("Platform","MovePlatform","JinGuBang"));
-            if (!tem)
+            _currentState = PlayerState.Underwater;
+            return;
+        }
+
+        if (!_isRolling)
+        {
+            _boxCollider.enabled = false;
+            _isRolling = true;
+            _animator.SetBool(_rollHash, _isRolling);
+            if (isEquipJinGuBang)
             {
-                _boxCollider.enabled = true;
-                _isRolling = false;
-                _animator.SetBool("isRolling",_isRolling);
-                _spriteRenderer.size=new Vector2(_spriteRenderer.size.x/0.7f,_spriteRenderer.size.y/0.7f);
+                jinGuBang.SetActive(false);
             }
+        }
+
+        else if (!_playerInput.GamePLay.Roll.IsPressed() && _isGrounded)
+        {
+            var tem = Physics2D.OverlapBox(rollingCheckPoint.position, rollingCheckSize, 0.0f,
+                LayerMask.GetMask("Platform", "MovePlatform", "JinGuBang"));
+
+            if (tem)
+            {
+                return;
+            }
+
+            _boxCollider.enabled = true;
+            _isRolling = false;
+            _animator.SetBool(_rollHash, _isRolling);
+            _currentState = PlayerState.Running;
         }
     }
-    
+
+    private void HandleClimbState()
+    {
+        _rg.velocity = new Vector2(_horizontalMove * moveSpeed * 0.2f, _verticalMove * ladderSpeed);
+        
+        if (_isOnLadder)
+        {
+            return;
+        }
+        
+        _currentState = PlayerState.Running;
+    }
+
+    private void HandleJumpState()
+    {
+        _rg.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
+
+        _currentState = PlayerState.Airing;
+        
+    }
+
+    private void HandleRunState()
+    {
+        _rg.velocity = new Vector2(_horizontalMove * moveSpeed, _rg.velocity.y);
+        
+        if (_underWater)
+        {
+            _currentState = PlayerState.Underwater;
+            return;
+        }
+        
+        if (_playerInput.GamePLay.Equip.triggered)
+        {
+            _currentState = PlayerState.TakingJinGuBang;
+        }
+
+        if (!_isGrounded)
+        {
+            _currentState = PlayerState.Airing;
+        }
+        
+        if (Mathf.Abs(_horizontalMove) <= 0.1f)
+        {
+            _currentState = PlayerState.Idle;
+        }
+        
+        if (_isGrounded && _playerInput.GamePLay.Jump.triggered)
+        {
+            _currentState = PlayerState.Jumping;
+        }
+
+        if (_playerInput.GamePLay.Roll.triggered)
+        {
+            _currentState = PlayerState.Rolling;
+        }
+        
+    }
+
+    private void HandleIdleState()
+    {
+        if (_underWater)
+        {
+            _currentState = PlayerState.Underwater;
+        }
+        
+        else if (_playerInput.GamePLay.Equip.triggered)
+        {
+            _currentState = PlayerState.TakingJinGuBang;
+        }
+        
+        else if (!_isGrounded)
+        {
+            _currentState = PlayerState.Airing;
+        }
+
+        else if (Mathf.Abs(_horizontalMove) >= 0.1f||Mathf.Abs(_rg.velocity.x) >= 0.01f)
+        {
+            _currentState = PlayerState.Running;
+        }
+
+        else if (_playerInput.GamePLay.Jump.triggered)
+        {
+            _currentState = PlayerState.Jumping;
+        }
+        
+        else if (_isOnLadder)
+        {
+            _currentState = PlayerState.Climbing;
+        }
+        
+        else if (_playerInput.GamePLay.Roll.triggered&&_canRoll)
+        {
+            _currentState = PlayerState.Rolling;
+        }
+        
+      
+    }
+
+
+    #region Ladder
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (!other.CompareTag("Ladder") || _isRolling)
+        {
+            return;
+        }
+
+        _canRoll = false;
+        if (!_isOnLadder)
+        {
+            if (Mathf.Abs(_verticalMove) > 0) //在地面上如果按攀爬键则进入攀爬状态，不然则继续正常移动
+            {
+                OnLadder();
+            }
+        }
+        else if (_isGrounded && Mathf.Abs(_verticalMove) == 0) //在底部时如果不攀爬则正常移动
+        {
+            LeftLadder();
+        }
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (!other.CompareTag("Ladder"))
+        {
+            return;
+        }
+        
+        _canRoll = true;
+        LeftLadder(); 
+    }
+
+    private void OnLadder()
+    {
+        _isOnLadder = true;
+        _animator.SetBool(_climbHash, _isOnLadder);
+        _rg.gravityScale = 0;
+    }
+
+    private void LeftLadder()
+    {
+        _isOnLadder = false;
+        _animator.SetBool(_climbHash, _isOnLadder);
+        _rg.gravityScale = _gravityScale;
+    }
+
+    #endregion
     private void Flip()
     {
+        if (isOnJinGuBang)
+        {
+            return;
+        }
         if (_rg.velocity.x>=0.1)
         {
             _spriteRenderer.flipX = false;
@@ -242,7 +478,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     }
 
     #endregion
-
+    
     #region SurroundingCheck
 
     private void CheckGround()
@@ -253,12 +489,13 @@ public class PlayController : MonoBehaviour,ITakeDamage
             if (Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,LayerMask.GetMask("Platform","MovePlatform","OneWayPlatform")))
             {
                 _isGrounded = true;
-                _animator.SetBool("isAir",!_isGrounded);
+                isOnJinGuBang = false;
+                _animator.SetBool(_airingHash,!_isGrounded);
             }
             else
             {
                 _isGrounded = false;
-                _animator.SetBool("isAir",!_isGrounded);
+                _animator.SetBool(_airingHash,!_isGrounded);
             }
         }
         else
@@ -266,12 +503,12 @@ public class PlayController : MonoBehaviour,ITakeDamage
              if (Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,LayerMask.GetMask("Platform","JinGuBang","MovePlatform","OneWayPlatform")))
              {
                  _isGrounded = true;
-                 _animator.SetBool("isAir",!_isGrounded);
+                 _animator.SetBool(_airingHash,!_isGrounded);
              }
              else
              {
                  _isGrounded = false;
-                 _animator.SetBool("isAir",!_isGrounded);
+                 _animator.SetBool(_airingHash,!_isGrounded);
              }
         }
 
@@ -307,6 +544,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         DisableControl();
         _underWater = true;
+        _animator.SetBool(_underwaterHash,_underWater);
         jinGuBang.SetActive(false);
         StartCoroutine(RespawnTimer(respawnTime));
     }
@@ -317,6 +555,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         transform.position = _respawnPosition;
         EnableControl();
        _underWater = false;
+       _animator.SetBool(_underwaterHash,_underWater);
     }
 
     #endregion
@@ -338,64 +577,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _rg.velocity+=Vector2.up*jumpForce;
         isEquipJinGuBang=false;
     }
-
-    #endregion
-
-    #region Ladder
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Ladder"))
-        {
-            if (!_isGrounded)
-            {
-                OnLadder();//在空中就进入攀爬状态
-            }
-        }
-    }
-
-    private void OnTriggerStay2D(Collider2D other)
-    {
-        if (other.CompareTag("Ladder")&&!_isOnLadder)
-        {
-            if (!_isGrounded)//在空中就进入攀爬状态
-            {
-                OnLadder();
-            }
-            else if (Mathf.Abs(_verticalMove)>0)//在地面上如果按攀爬键则进入攀爬状态，不然则继续正常移动
-            {
-                OnLadder();
-            }
-        }
-        else if (_isOnLadder&&other.CompareTag("Ladder")&&_isGrounded&&Mathf.Abs(_verticalMove)==0)//在底部时如果不攀爬则正常移动
-        {
-            LeftLadder();
-        }
-    }
-
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.CompareTag("Ladder"))
-        {
-            LeftLadder();//离开碰撞盒区域则离开攀爬状态
-        }
-    }
-
-    void OnLadder()
-    {
-        _isOnLadder = true;
-        _rg.gravityScale = 0;
-    }
-
-    void LeftLadder()
-    {
-        _isOnLadder = false;
-        _rg.gravityScale = _gravityScale;
-    }
-    void OnLadderMovement()
-    {
-        _rg.velocity = new Vector2(_horizontalMove*moveSpeed*0.2f, _verticalMove*ladderSpeed);
-    }
+    
 
     #endregion
     
