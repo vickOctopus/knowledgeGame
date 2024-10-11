@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Bundos.WaterSystem
@@ -41,6 +42,16 @@ namespace Bundos.WaterSystem
         public int[] triangles;
         [HideInInspector]
         Vector2[] uvs;
+
+        private float _spriteWidth;
+        private BoxCollider2D _boxCollider;
+        public float heightGrowSpeed;
+
+        private void Awake()
+        {
+            _boxCollider = GetComponent<BoxCollider2D>();
+            _spriteWidth=_boxCollider.size.x;
+        }
 
 
         private void Start()
@@ -212,6 +223,16 @@ namespace Bundos.WaterSystem
         {
             if (!interactive)
                 return;
+            if (other.CompareTag("Floating Objects"))
+                return;
+
+            if (other.CompareTag("Rock"))
+            {
+                //_boxCollider.size = new Vector2(_boxCollider.size.x+heightGrowSpeed/_spriteWidth, _boxCollider.size.y);
+                transform.localScale=new Vector3(transform.localScale.x,transform.localScale.y+heightGrowSpeed/_spriteWidth,transform.localScale.z);
+                Debug.Log("Ripple entered");
+            }
+            
 
             Rigidbody2D otherRigidbody = other.GetComponent<Rigidbody2D>();
             if (otherRigidbody != null)
@@ -227,17 +248,6 @@ namespace Bundos.WaterSystem
             }
         }
 
-        /*void OnTriggerExit2D(Collider2D other)
-        {
-            if (!interactive)
-                return;
-
-            Rigidbody2D otherRigidbody = other.GetComponent<Rigidbody2D>();
-            if (otherRigidbody != null)
-            {
-                Vector2 contactPoint = other.ClosestPoint(transform.position);
-                Ripple(contactPoint, true);
-            }
-        }*/
+       
     }
 }

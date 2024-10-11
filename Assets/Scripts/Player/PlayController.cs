@@ -317,6 +317,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private void HandleClimbState()
     {
         _rg.velocity = new Vector2(_horizontalMove * moveSpeed * 0.2f, _verticalMove * ladderSpeed);
+        _rg.gravityScale = 0.0f;
         
         if (_isOnLadder)
         {
@@ -451,6 +452,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _isOnLadder = true;
         _animator.SetBool(_climbHash, _isOnLadder);
         _rg.gravityScale = 0;
+        EventManager.instance.ClimbLadder();
     }
 
     private void LeftLadder()
@@ -458,6 +460,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _isOnLadder = false;
         _animator.SetBool(_climbHash, _isOnLadder);
         _rg.gravityScale = _gravityScale;
+        EventManager.instance.LeftLadder();
     }
 
     #endregion

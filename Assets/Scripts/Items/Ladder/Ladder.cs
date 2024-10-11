@@ -9,8 +9,8 @@ public class Ladder : MonoBehaviour
     public GameObject ladderTopColliderPrefab; // 顶部碰撞器预制体
     private Tilemap _ladderTilemap;// 梯子所在的 Tilemap
     
-    [ContextMenu("Generate Ladder top collider")]
-    private void AddLadderColliders()
+    //[ContextMenu("Generate Ladder top collider")]
+    public void AddLadderColliders()
     {
         _ladderTilemap = GetComponent<Tilemap>();
         

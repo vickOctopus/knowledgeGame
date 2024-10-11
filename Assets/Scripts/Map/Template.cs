@@ -13,7 +13,13 @@ public class Template : MonoBehaviour
     [SerializeField] private TileBase tileFrame;
     [Space] 
     [SerializeField] private Vector2Int size;
-    
+
+
+    private void Start()
+    {
+        Destroy(gameObject);
+    }
+
     [ContextMenu("Generate Template")]
     private void SetTemplate()
     {

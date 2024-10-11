@@ -92,6 +92,11 @@ public class JinGuBang : MonoBehaviour
        _anchorMoveAxis = _playerInput.GamePLay.AnchorMove.ReadValue<float>();
        
        TipsCheck();
+
+       // if (Input.GetKeyDown(KeyCode.J))
+       // {
+       //     _rg.MoveRotation(90);
+       // }
        
         if (_playerInput.GamePLay.Unload.IsPressed()&&_joint.enabled)
         {
@@ -389,13 +394,20 @@ public class JinGuBang : MonoBehaviour
     //     }
     // }
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("InsertableGround"))
-        {
-            Debug.Log(other.name);
-        }
-    }
+    // private void OnTriggerEnter2D(Collider2D other)
+    // {
+    //     if (!other.CompareTag("InsertableGround"))
+    //     {
+    //         return;
+    //     }
+    //
+    //     if (Mathf.Abs(transform.rotation.eulerAngles.z-270.0f)<=10.0f)
+    //     {
+    //         //_rg.constraints = RigidbodyConstraints2D.FreezePositionY;
+    //         _rg.MoveRotation(90);
+    //         _playerInput.Disable();
+    //     }
+    // }
 }
 
  
