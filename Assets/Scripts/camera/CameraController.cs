@@ -21,10 +21,7 @@ public class CameraController : MonoBehaviour
       DontDestroyOnLoad(gameObject);
    }
 
-   private void Start()
-   {
-      //CameraManager.Instance.OnPlayerLeftCamera += CameraMove;
-   }
+
 
    /*void CameraMove(int playerPositionIndex)
    {
@@ -50,7 +47,7 @@ public class CameraController : MonoBehaviour
 
    public void CameraStartResetPosition(float x, float y)
    {
-      transform.position=new Vector3(transform.position.x+x*64.0f,transform.position.y+y*36.0f,transform.position.z);
+      transform.position=new Vector3(transform.position.x+x*50.0f,transform.position.y+y*28.0f,transform.position.z);
    }
    
    

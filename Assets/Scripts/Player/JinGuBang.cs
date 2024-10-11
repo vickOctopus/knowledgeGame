@@ -13,7 +13,8 @@ public class JinGuBang : MonoBehaviour
     
     public LayerMask platformMask;
    
-    [SerializeField] private float _rotateSpeed;
+    [FormerlySerializedAs("_rotateSpeed")] 
+    [SerializeField] private float rotateSpeed;
     public float elongationSpeed;
     public float maxScale;
     public float moveSpeed;
@@ -23,6 +24,7 @@ public class JinGuBang : MonoBehaviour
     private float _originalMass;
     private float _originalGravity;
     private float _moveSpeed;
+    private float _originalRotationSpeed;
 
     private Rigidbody2D _rg;
     private HingeJoint2D _joint;
@@ -37,11 +39,14 @@ public class JinGuBang : MonoBehaviour
     private SpriteRenderer _spriteRenderer;
     private PlayerInput _playerInput;
     private Vector2 _formMousePosition;
+
     private bool _isTipsBlock;
-    private bool _isInserted;
+
+    // private bool _isInserted;
     private float _insertAngle;
-    private bool _isGetTargetAngle;
-    
+
+    // private bool _isGetTargetAngle;
+    private bool _hasCallPlayerAboutInsert;
     
    private void Awake()
    {
@@ -53,21 +58,23 @@ public class JinGuBang : MonoBehaviour
        {
            Destroy(gameObject);
        }
-       
+
        _rg = GetComponent<Rigidbody2D>();
        _spriteRenderer = GetComponent<SpriteRenderer>();
-       _joint = GetComponent<HingeJoint2D>(); 
+       _joint = GetComponent<HingeJoint2D>();
        _collider = GetComponent<CustomCollider2D>();
        _height = _spriteRenderer.bounds.size.y;
-       _originalMass=_rg.mass;
+       _originalMass = _rg.mass;
+       _originalRotationSpeed = rotateSpeed;
        _originalGravity = _rg.gravityScale;
        _colliderHeight = _height;
        UpdateCollider();
-       _playerInput=new PlayerInput();
+       _playerInput = new PlayerInput();
+       
        
    }
-   
-   
+
+
    private void OnEnable()
    {
        _playerInput.Enable();
@@ -106,28 +113,35 @@ public class JinGuBang : MonoBehaviour
         {
             Shorten();
         }
+
+
+        // if (!_hasCallPlayerAboutInsert&&_isGetTargetAngle)
+        // {
+        //     _rg.constraints = RigidbodyConstraints2D.FreezePositionY;
+        //      _hasCallPlayerAboutInsert = true;
+        // }
    }
 
    private void FixedUpdate()
    {
        if (_joint.enabled)
        {
-           AnchorMove();
+           AnchorMove(); 
+           RotateJinGuBang();
        }
 
-       if (_isInserted)
+       /*if (_isInserted)
        {
            if (!_isGetTargetAngle)
            {
                RotateToTarget();
            }
-           //达到目标角度后向playcontroller发送消息
-       }
-       else
-       {
-           RotateJinGuBang();
-       }
-       
+           else if (!_hasCallPlayerAboutInsert)
+           {
+               _rg.constraints = RigidbodyConstraints2D.FreezePositionY;
+               _hasCallPlayerAboutInsert = true;
+           }
+       }*/
        
       
    }
@@ -135,18 +149,18 @@ public class JinGuBang : MonoBehaviour
    private void ChangeSpeedWithScaleAndAnchorPosition()
    {
        _moveSpeed=moveSpeed*_colliderHeight/_height;
+       rotateSpeed = _originalRotationSpeed - _colliderHeight*10.0f;
    }
 
 
    private void AnchorMove()
    {
-       
-       _joint.anchor+=new Vector2(0,_anchorMoveAxis*Time.fixedDeltaTime*_moveSpeed);
-       
-       
-       if (Mathf.Abs(_joint.anchor.y)>=_colliderHeight)
+       _joint.anchor += new Vector2(0, _anchorMoveAxis * Time.fixedDeltaTime * _moveSpeed);
+
+
+       if (Mathf.Abs(_joint.anchor.y) >= _colliderHeight)
        {
-            _joint.anchor = new Vector2(0, _colliderHeight);
+           _joint.anchor = new Vector2(0, _colliderHeight);
        }
        else if (_joint.anchor.y <= 0)
        {
@@ -172,7 +186,7 @@ public class JinGuBang : MonoBehaviour
        var angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg-90.0f;
 
        // 平滑旋转
-       var step = _rotateSpeed * Time.fixedDeltaTime; // 每帧的旋转步长
+       var step = rotateSpeed * Time.fixedDeltaTime; // 每帧的旋转步长
        var newAngle = Mathf.MoveTowardsAngle(_rg.rotation, angle, step);
     
        // 使用 MoveRotation 方法进行旋转
@@ -266,118 +280,120 @@ public class JinGuBang : MonoBehaviour
            _isTipsBlock = false;
        }
    }
-   
-    private void Elongation()
+
+   private void Elongation()
    {
-        var temHeight = _colliderHeight + elongationSpeed * Time.deltaTime;
-        
-        if (_isTipsBlock||temHeight >= maxScale)
-        {
-            return;
-        }
+       var temHeight = _colliderHeight + elongationSpeed * Time.deltaTime;
 
+       if (_isTipsBlock || temHeight >= maxScale)
+       {
+           return;
+       }
 
-        _colliderHeight += elongationSpeed * Time.deltaTime;
-        PlayController.instance.isOnJinGuBang = true;
-        UpdateCollider();
-      
-        
+       _colliderHeight += elongationSpeed * Time.deltaTime;
+       PlayController.instance.isOnJinGuBang = true;
+       UpdateCollider();
    }
 
-    void Shorten()
+   private void Shorten()
    {
        //缩短
-      var temHeight = _colliderHeight - elongationSpeed*Time.deltaTime;
-      
-      if (temHeight>_height)
-      {
-          _colliderHeight-=elongationSpeed*Time.deltaTime;
-         UpdateCollider();
-         
-      }
-       
+       var temHeight = _colliderHeight - elongationSpeed * Time.deltaTime;
+
+       if (temHeight > _height)
+       {
+           _colliderHeight -= elongationSpeed * Time.deltaTime;
+           UpdateCollider();
+       }
    }
 
-
    private void UpdateCollider()
-    {
-        _shapeGroup.Clear();
-        _shapeGroup.AddCapsule(new Vector2(0,_colliderHeight),new Vector2(0,0),width/2);
-        _collider.SetCustomShapes(_shapeGroup);
-        Physics2D.SyncTransforms(); 
-        _spriteRenderer.size=new Vector2(_spriteRenderer.size.x,_colliderHeight);
-    }
-    
-    private void UnloadJinGuBang()
-    {
-        _joint.enabled=false;
-        _rg.mass = 10.0f;
-        _rg.gravityScale = 1.0f;
-        PlayController.instance.UnloadJinGuBangPlayerMove();
+   {
+       _shapeGroup.Clear();
+       _shapeGroup.AddCapsule(new Vector2(0, _colliderHeight), new Vector2(0, 0), width / 2);
+       _collider.SetCustomShapes(_shapeGroup);
+       Physics2D.SyncTransforms();
+       _spriteRenderer.size = new Vector2(_spriteRenderer.size.x, _colliderHeight);
+   }
 
-        StartCoroutine(DelayStartCollisionWithPlayer());
+   private void UnloadJinGuBang()
+   {
+       _joint.enabled = false;
+       _rg.mass = 10.0f;
+       _rg.gravityScale = 1.0f;
+       PlayController.instance.UnloadJinGuBangPlayerMove();
 
-        Cursor.visible = false;
-        
-        PlayController.instance.isOnJinGuBang = false;
-    }
+       StartCoroutine(DelayStartCollisionWithPlayer());
 
-    private void EquipJinGuBang()
+       Cursor.visible = false;
+
+       PlayController.instance.isOnJinGuBang = false;
+   }
+
+   private void EquipJinGuBang()
+   {
+       rotateSpeed = _originalRotationSpeed;
+       _rg.mass = _originalMass;
+       _rg.gravityScale = _originalGravity;
+       _colliderHeight = _height;
+       UpdateCollider();
+       transform.localPosition = new Vector2(0f, 0.5f);
+       _joint.enabled = true;
+       _joint.anchor = new Vector2(0.0f, 0.3f);
+       _joint.connectedAnchor = new Vector2(0f, 0.5f);
+
+       Physics2D.IgnoreLayerCollision(3, 7, true);
+
+       PlayController.instance.isEquipJinGuBang = true;
+
+       Cursor.visible = true;
+   }
+
+   private void OnDrawGizmos()
+   {
+       Gizmos.DrawWireSphere(transform.up * (_colliderHeight + 0.2f) + transform.position, width / 3);
+       Gizmos.DrawWireSphere(transform.position - transform.up * +0.2f, width / 1.5f);
+   }
+
+   private IEnumerator DelayStartCollisionWithPlayer()
+   {
+       yield return new WaitForSeconds(0.3f);
+       Physics2D.IgnoreLayerCollision(3, 7, false);
+   }
+
+   public void DisableControl()
+   {
+       _playerInput.Disable();
+       _rg.freezeRotation = true;
+   }
+
+   public void EnableControl()
+   {
+       _playerInput.Enable();
+       _rg.freezeRotation = false;
+   }
+
+    // public void IsInsert(float angle)
+    // {
+    //     _isInserted = true;
+    //     _insertAngle = angle;
+    // }
+    //
+    // private void RotateToTarget()
+    // {
+    //     _rg.MoveRotation(_insertAngle);
+    //     
+    //     if (Mathf.Abs(transform.rotation.eulerAngles.z-_insertAngle) <=Mathf.Epsilon)
+    //     {
+    //         _isGetTargetAngle = true;    
+    //     }
+    // }
+
+    private void OnTriggerEnter2D(Collider2D other)
     {
-        _rg.mass = _originalMass; 
-        _rg.gravityScale = _originalGravity;
-        _colliderHeight = _height;
-        UpdateCollider();
-        transform.localPosition = new Vector2(0f,0.5f);
-        _joint.enabled = true;
-        _joint.anchor = new Vector2(0.0f,0.3f);
-        _joint.connectedAnchor = new Vector2(0f, 0.5f);
-       
-        Physics2D.IgnoreLayerCollision(3,7,true);
-       
-        PlayController.instance.isEquipJinGuBang = true;
-        
-        Cursor.visible = true;
-    }
-
-    private void OnDrawGizmos()
-    {
-       Gizmos.DrawWireSphere(transform.up*(_colliderHeight+0.2f)+transform.position,width/3);
-       Gizmos.DrawWireSphere(transform.position-transform.up*+0.2f,width/1.5f);
-        
-    }
-
-    private IEnumerator DelayStartCollisionWithPlayer()
-    {
-        yield return new WaitForSeconds(0.3f);
-        Physics2D.IgnoreLayerCollision(3,7,false);
-    }
-
-    public void DisableControl()
-    {
-        _playerInput.Disable();
-        _rg.freezeRotation = true;
-    }
-
-    public void EnableControl()
-    {
-        _playerInput.Enable();
-        _rg.freezeRotation = false;
-    }
-
-    public void IsInsert(float angle)
-    {
-        _isInserted = true;
-        _insertAngle = angle;
-    }
-
-    private void RotateToTarget()
-    {
-        _rg.MoveRotation(_insertAngle);
-        
-        if (Mathf.Abs(transform.rotation.eulerAngles.z-_insertAngle) <=Mathf.Epsilon)
+        if (other.CompareTag("InsertableGround"))
         {
-            _isGetTargetAngle = true;    
+            Debug.Log(other.name);
         }
     }
 }

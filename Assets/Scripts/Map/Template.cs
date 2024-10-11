@@ -7,10 +7,9 @@ using UnityEngine.Tilemaps;
 public class Template : MonoBehaviour
 {
     private Tilemap _tilemap;
-    private int _height = 36;
-    private int _width = 64;
+    private int _height = 28;
+    private int _width = 50;
     
-    [SerializeField] private TileBase tileBase;
     [SerializeField] private TileBase tileFrame;
     [Space] 
     [SerializeField] private Vector2Int size;

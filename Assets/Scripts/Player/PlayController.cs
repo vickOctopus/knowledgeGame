@@ -577,6 +577,17 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _rg.velocity+=Vector2.up*jumpForce;
         isEquipJinGuBang=false;
     }
+
+    
+    // public void InsertJinGuBangBehavior()
+    // {
+    //
+    //     _rg.constraints = RigidbodyConstraints2D.FreezePositionY;
+    //     _playerInput.Disable();
+    //     _rg.gravityScale = 0;
+    //     Debug.Log("Jin Gu Bang");
+    //
+    // }
     
 
     #endregion
