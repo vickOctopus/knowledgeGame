@@ -4,7 +4,7 @@ using UnityEngine.Tilemaps;
 using System.Collections.Generic;
 using System.IO;
 
-public class TilemapManager : MonoBehaviour
+public class ShadowWall : MonoBehaviour
 {
     private Tilemap tilemap;
     private HashSet<Vector3Int> hiddenTiles = new HashSet<Vector3Int>(); // 记录隐藏的 Tile 位置
@@ -16,6 +16,13 @@ public class TilemapManager : MonoBehaviour
     {
          tilemap = GetComponent<Tilemap>();
          saveFilePath = Application.persistentDataPath + "/hiddenTiles.json";
+
+         if (!Directory.Exists(Application.persistentDataPath + "/hiddenTiles"))
+         {
+             Directory.CreateDirectory(Application.persistentDataPath + "/hiddenTiles");
+         }
+         
+         //Debug.Log(Application.persistentDataPath);
     }
 
     void Start()
@@ -94,9 +101,10 @@ public class TilemapManager : MonoBehaviour
         originalTiles.Clear();
 
         // 删除保存的文件
-        if (File.Exists(saveFilePath))
+        if (Directory.Exists(Application.persistentDataPath + "/hiddenTiles"))
         {
-            File.Delete(saveFilePath);
+            File.Delete(Application.persistentDataPath + "/hiddenTiles");
+            //Directory.Delete(Application.persistentDataPath + "/hiddenTiles", true);
             Debug.Log("删除隐藏状态保存文件");
         }
 
