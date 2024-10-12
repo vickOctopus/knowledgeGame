@@ -15,13 +15,14 @@ public class ShadowWall : MonoBehaviour
     private void Awake()
     {
          _tilemap = GetComponent<Tilemap>();
-         _saveFilePath = Application.persistentDataPath + "/hiddenTiles.json";
 
-         if (!Directory.Exists(Application.persistentDataPath + "/hiddenTiles"))
-         {
-             Directory.CreateDirectory(Application.persistentDataPath + "/hiddenTiles");
-         }
+         // if (!Directory.Exists(Application.persistentDataPath + "/hiddenTiles"))
+         // {
+         //     Directory.CreateDirectory(Application.persistentDataPath + "/hiddenTiles");
+         // }
          
+         // _saveFilePath = Application.persistentDataPath + "/hiddenTiles"+"/hiddenTiles.json";
+         _saveFilePath = Application.persistentDataPath +"/hiddenTiles.json";
     }
 
    private void Start()
@@ -100,11 +101,11 @@ public class ShadowWall : MonoBehaviour
         _originalTiles.Clear();
 
         // 删除保存的文件
-        if (File.Exists(Application.persistentDataPath + "/hiddenTiles.json"))
+        if (File.Exists(Application.persistentDataPath +"/hiddenTiles.json"))
         {
-            File.Delete(Application.persistentDataPath + "/hiddenTiles.json");
+            File.Delete(Application.persistentDataPath +"/hiddenTiles.json");
         }
-        
+        // File.Delete(_saveFilePath);
     }
 
     // 保存隐藏的 Tile 到文件

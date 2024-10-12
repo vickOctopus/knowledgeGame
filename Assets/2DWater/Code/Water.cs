@@ -1,4 +1,6 @@
 using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Bundos.WaterSystem
@@ -46,11 +48,14 @@ namespace Bundos.WaterSystem
         private float _spriteWidth;
         private BoxCollider2D _boxCollider;
         public float heightGrowSpeed;
+        private float _waterHeightMax;
 
         private void Awake()
         {
             _boxCollider = GetComponent<BoxCollider2D>();
             _spriteWidth=_boxCollider.size.x;
+            _waterHeightMax = transform.lossyScale.y;
+            heightGrowSpeed /=  _spriteWidth;
         }
 
 
@@ -149,6 +154,15 @@ namespace Bundos.WaterSystem
             UpdateSpringPositions();
             UpdateMeshVerticePositions();
             UpdateMesh();
+            UpdateWaterLevel();
+        }
+
+        private void UpdateWaterLevel()
+        {
+            if (transform.localScale.y<_waterHeightMax)
+            {
+                transform.localScale=new Vector3(transform.localScale.x,transform.localScale.y+heightGrowSpeed*Time.deltaTime,transform.localScale.z);
+            }
         }
 
         private void UpdateMeshVerticePositions()
@@ -219,7 +233,7 @@ namespace Bundos.WaterSystem
             springs[index].weightPosition = (sink ? Vector2.down : Vector2.up) * waveHeight;
         }
 
-        void OnTriggerEnter2D(Collider2D other)
+        private void OnTriggerEnter2D(Collider2D other)
         {
             if (!interactive)
                 return;
@@ -228,11 +242,16 @@ namespace Bundos.WaterSystem
 
             if (other.CompareTag("Rock"))
             {
-                //_boxCollider.size = new Vector2(_boxCollider.size.x+heightGrowSpeed/_spriteWidth, _boxCollider.size.y);
-                transform.localScale=new Vector3(transform.localScale.x,transform.localScale.y+heightGrowSpeed/_spriteWidth,transform.localScale.z);
-                Debug.Log("Ripple entered");
+                var rock = other.GetComponent<Rock>();
+                
+                if (rock)
+                {
+                    rock.SavePosition();
+                }
+                
+                _waterHeightMax+=heightGrowSpeed;
+               
             }
-            
 
             Rigidbody2D otherRigidbody = other.GetComponent<Rigidbody2D>();
             if (otherRigidbody != null)
@@ -248,6 +267,7 @@ namespace Bundos.WaterSystem
             }
         }
 
+      
        
     }
 }
