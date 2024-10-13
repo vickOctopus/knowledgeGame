@@ -1,0 +1,1117 @@
+fileFormatVersion: 2
+guid: 23a8f73895a2d4e62858cb0e8232519e
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 72
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 3
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_0"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 556.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bd0a54e49396c47e28cb098f3a419977
+      internalID: 669385823
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_1"
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 556.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b859c1bb7e82c4c4d8ab8e7bcd84e864
+      internalID: 741054557
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_2"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 556.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9d0635263eb8c4ad5a837e82426ef434
+      internalID: -1998102869
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_3"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 556.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 65761c47461654edfbb8a3bf16514e46
+      internalID: -1094339320
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_4"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 556.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f21950535d87c44a1bc081732537ff82
+      internalID: -929831919
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_5"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 487.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5b6361991b41648dc94cd2cb3dc83177
+      internalID: 396098367
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_6"
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 487.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5fa1668a1466d4f85a302a0c28a55943
+      internalID: 1154930003
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_7"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 487.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cf07259c954a3413fabe1cc2a2d82d2e
+      internalID: 1138169228
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_8"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 487.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 07430c6f9d94042e2bacc204795d2f11
+      internalID: 1977465388
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_9"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 487.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8c1979e357fb049abbab4504bc7d1411
+      internalID: -1839230895
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_10"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 418.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2c6e0c8240e6c437a8bf9eb2c773f48d
+      internalID: -146169824
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_11"
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 418.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b8db219903c2a4cf8b6506b30cda73d8
+      internalID: 125393999
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_12"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 418.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8abe91f03918144e78f3d51cede35955
+      internalID: -84387162
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_13"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 418.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c7d2650c44951435b8b8932612163144
+      internalID: -1348179418
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_14"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 418.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 52daef90fdce84d60941cea222eb706f
+      internalID: 1439065500
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_15"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 349.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a2f3339eb9dba4b44af0fe8ad4e93ef8
+      internalID: 434474624
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_16"
+      rect:
+        serializedVersion: 2
+        x: 124
+        y: 349
+        width: 125
+        height: 70
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f035787a36d5849e798bee099d9432bd
+      internalID: 2134109330
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_17"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 349.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9930bf1b91bf648aa854a3338960d860
+      internalID: 550213750
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_18"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 349.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 68210d9bfb11d4e6e99c59f777d2ffa5
+      internalID: 1891291056
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_19"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 349.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 05e320d7c9e5e40ecbd007d3ee35f542
+      internalID: 830198734
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_20"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 280.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: bf9026c5ff3284879a499a72829dc9e5
+      internalID: -1975333379
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_21"
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 280.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d57da7c7e31a3486c93e447d03a1fe33
+      internalID: -200049877
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_22"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 280.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5b18a3420268f4cff8389c50525d3399
+      internalID: 1039369743
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_23"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 280.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 580367ad02c2f4442bed193ca7d7bd50
+      internalID: -955686231
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_24"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 280.44446
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0cdf035f648404296826a587b910bf66
+      internalID: -951531725
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_25"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 211.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d7735863d446748bda6a58d0ae906db1
+      internalID: -445331585
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_26"
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 211.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 205f112485b914a7f8a18184dbc060b7
+      internalID: -113488404
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_27"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 211.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 511a87d2679c64c66b9a4a9d7b193386
+      internalID: -660709346
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_28"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 211.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d25fbb3fe7eaa47d5a3d3ca1861f75f7
+      internalID: -76194818
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_29"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 211.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f3d93bd38a7114106a8b1bc8ed3c5486
+      internalID: 1121033851
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_30"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 142.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a06793ec6c07c49e6bedde6ca0909a54
+      internalID: 1527714256
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_31"
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 142.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9dac42d0f1a5143fdaf5abde032e00fb
+      internalID: 242293699
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_32"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 142.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 24f633255db634d58a70ed5016829cee
+      internalID: -423584370
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_33"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 142.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a885ff46283a44173b6a13a84c47cb37
+      internalID: 1513279699
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_34"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 142.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 97e962e728e0c49dba7489319edf7182
+      internalID: -187652231
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_35"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 73.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b2353230c3f81489bb389be0e507ee0b
+      internalID: -2142625918
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_36"
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 73.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 48fd53a0651874a1a99f4a2087ffa981
+      internalID: -91509992
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_37"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 73.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d14469dd992364d56bb906b3c97d5eb7
+      internalID: 860221890
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_38"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 73.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9adac20abc57d456580ecd42691a27a3
+      internalID: 30241265
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_39"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 73.44444
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b07e89c5df12544b79f1cd17a869683a
+      internalID: 1057914675
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_40"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 4.4444427
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 89c117e456d4845bc985d63056e7095a
+      internalID: -110946556
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_41"
+      rect:
+        serializedVersion: 2
+        x: 125
+        y: 4.4444427
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 740e4d39c876b42d583b6c3332630252
+      internalID: 733143029
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_42"
+      rect:
+        serializedVersion: 2
+        x: 250
+        y: 4.4444427
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c427761198ff2488cb0640fe8f8fbafe
+      internalID: -985593615
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_43"
+      rect:
+        serializedVersion: 2
+        x: 375
+        y: 4.4444427
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: db781ed884fcb43b29c2e87ff129269a
+      internalID: 8634716
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_44"
+      rect:
+        serializedVersion: 2
+        x: 500
+        y: 4.4444427
+        width: 125.2
+        height: 69.55556
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f40372322f21445299a9bcb502221581
+      internalID: -267807372
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    physicsShape: []
+    bones: []
+    spriteID: 5e97eb03825dee720800000000000000
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    nameFileIdTable:
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_0": 669385823
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_1": 741054557
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_10": -146169824
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_11": 125393999
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_12": -84387162
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_13": -1348179418
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_14": 1439065500
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_15": 434474624
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_16": 2134109330
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_17": 550213750
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_18": 1891291056
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_19": 830198734
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_2": -1998102869
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_20": -1975333379
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_21": -200049877
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_22": 1039369743
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_23": -955686231
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_24": -951531725
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_25": -445331585
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_26": -113488404
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_27": -660709346
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_28": -76194818
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_29": 1121033851
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_3": -1094339320
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_30": 1527714256
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_31": 242293699
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_32": -423584370
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_33": 1513279699
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_34": -187652231
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_35": -2142625918
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_36": -91509992
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_37": 860221890
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_38": 30241265
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_39": 1057914675
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_4": -929831919
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_40": -110946556
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_41": 733143029
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_42": -985593615
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_43": 8634716
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_44": -267807372
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_5": 396098367
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_6": 1154930003
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_7": 1138169228
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_8": 1977465388
+      "arcade-button-set-pixel-art-style_475147-1287_\u526F\u672C_9": -1839230895
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

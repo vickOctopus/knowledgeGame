@@ -11,6 +11,8 @@ public class JinGuBang : MonoBehaviour
 {
     public static JinGuBang instance;
     
+    public LayerMask hitLayerMask;
+    
     public LayerMask platformMask;
    
     [FormerlySerializedAs("_rotateSpeed")] 
@@ -93,10 +95,6 @@ public class JinGuBang : MonoBehaviour
        
        TipsCheck();
 
-       // if (Input.GetKeyDown(KeyCode.J))
-       // {
-       //     _rg.MoveRotation(90);
-       // }
        
         if (_playerInput.GamePLay.Unload.IsPressed()&&_joint.enabled)
         {
@@ -118,13 +116,7 @@ public class JinGuBang : MonoBehaviour
         {
             Shorten();
         }
-
-
-        // if (!_hasCallPlayerAboutInsert&&_isGetTargetAngle)
-        // {
-        //     _rg.constraints = RigidbodyConstraints2D.FreezePositionY;
-        //      _hasCallPlayerAboutInsert = true;
-        // }
+        
    }
 
    private void FixedUpdate()
@@ -134,19 +126,6 @@ public class JinGuBang : MonoBehaviour
            AnchorMove(); 
            RotateJinGuBang();
        }
-
-       /*if (_isInserted)
-       {
-           if (!_isGetTargetAngle)
-           {
-               RotateToTarget();
-           }
-           else if (!_hasCallPlayerAboutInsert)
-           {
-               _rg.constraints = RigidbodyConstraints2D.FreezePositionY;
-               _hasCallPlayerAboutInsert = true;
-           }
-       }*/
        
       
    }
@@ -198,69 +177,6 @@ public class JinGuBang : MonoBehaviour
        _rg.MoveRotation(newAngle);
    }
    
-   
-   /*private void FollowMouseRotate()
-   {
-       
-       var gameObjectToMouse = _playerInput.GamePLay.JinGuBangDir.ReadValue<Vector2>() - new Vector2(
-           Camera.main.WorldToScreenPoint(transform.position).x, Camera.main.WorldToScreenPoint(transform.position).y);
-
-
-       var targetAngle =
-           wrapAngleAroundZero(Mathf.Atan2(gameObjectToMouse.y, gameObjectToMouse.x) * Mathf.Rad2Deg - 90.0f);
-
-
-       var currentAngle = wrapAngleAroundZero(transform.eulerAngles.z);
-
-       if (Mathf.Abs(targetAngle-currentAngle)<=0.3f)
-       {
-           return;
-       }
-
-       Debug.Log(Mathf.Abs(targetAngle-currentAngle));
-       
-        var torque = _rotateSpeed * Time.fixedDeltaTime;
-        // I have no idea what this actually is or what to call it, but it works...
-        var angularDelta = torque / _rg.inertia;
-        
-        // How long would it take us to stop? We need this in case we should actually be slamming on the brakes.
-        var timeRequiredToStop = Mathf.Abs(_rg.angularVelocity / angularDelta * Time.fixedDeltaTime);
-
-        // Which direction should we go? Depends on which way is faster.
-        // This doesn't factor in current speed or direction, but eh, close enough.
-        var timeUntilDestinationReachedCCW = (targetAngle - currentAngle) / Mathf.Abs(_rg.angularVelocity);
-        var timeUntilDestinationReachedCW = -timeUntilDestinationReachedCCW;
-        
-        var circleRotationTime = 360 / Mathf.Abs(_rg.angularVelocity);
-        if (timeUntilDestinationReachedCCW < 0) timeUntilDestinationReachedCCW += circleRotationTime;
-        if (timeUntilDestinationReachedCW < 0) timeUntilDestinationReachedCW += circleRotationTime;
-        var timeUntilDestination = Mathf.Min(timeUntilDestinationReachedCCW, timeUntilDestinationReachedCW);
-
-        if (timeRequiredToStop > timeUntilDestination) 
-        {
-            _rg.AddTorque(-1 * Mathf.Sign(_rg.angularVelocity) * torque);
-        } 
-        else if (timeUntilDestinationReachedCW < timeUntilDestinationReachedCCW) 
-        {
-            _rg.AddTorque(-torque);
-        } else {
-            _rg.AddTorque(torque);
-        }
-        
-   }
-   
-   private static float wrapAngleAroundZero(float a) 
-   {
-       if (a >= 0) {
-           float rotation = a % 360;
-           if (rotation > 180) rotation -= 360;
-           return rotation;
-       } else {
-           float rotation = -a % 360;
-           if (rotation > 180) rotation -= 360;
-           return -rotation;
-       }
-   }*/
 
 
    private void TipsCheck()
@@ -295,9 +211,50 @@ public class JinGuBang : MonoBehaviour
            return;
        }
 
+       float oldHeight = _colliderHeight;
        _colliderHeight += elongationSpeed * Time.deltaTime;
+
+       ApplyElongationForce(oldHeight);
+
        PlayController.instance.isOnJinGuBang = true;
        UpdateCollider();
+   }
+
+   private void ApplyElongationForce(float oldHeight)
+   {
+       Vector2 rayStart = transform.position + transform.up * oldHeight;
+       float rayLength = (_colliderHeight - oldHeight) + 0.1f;
+       Vector2 rayDirection = transform.up * rayLength;
+
+       int rayCount = 5;
+       float edgeOffset = 0.1f;
+
+       for (int i = 0; i < rayCount; i++)
+       {
+           float t = (float)i / (rayCount - 1);
+           t = Mathf.Pow(t - 0.5f, 5) * 16 + 0.5f;
+           float offsetX = Mathf.Lerp(-width / 2 + edgeOffset, width / 2 - edgeOffset, t);
+
+           Vector2 offset = transform.right * offsetX;
+           Vector2 currentRayStart = rayStart + offset;
+
+           Debug.DrawRay(currentRayStart, rayDirection, Color.red, 0.3f);
+
+           RaycastHit2D hit = Physics2D.Raycast(currentRayStart, transform.up, rayLength, hitLayerMask);
+           if (hit.collider != null)
+           {
+               Rigidbody2D hitRb = hit.collider.GetComponent<Rigidbody2D>();
+               if (hitRb != null)
+               {
+                   float centerDistance = Mathf.Abs(t - 0.5f) * 2;
+                   float forceMagnitude = elongationSpeed * 2.0f * (1 + (1 - centerDistance));
+                   Vector2 pushForce = forceMagnitude * transform.up / rayCount;
+                   hitRb.AddForceAtPosition(pushForce, hit.point, ForceMode2D.Impulse);
+
+                   Debug.DrawLine(currentRayStart, hit.point, Color.green, 0.3f);
+               }
+           }
+       }
    }
 
    private void Shorten()
@@ -378,36 +335,7 @@ public class JinGuBang : MonoBehaviour
        _rg.freezeRotation = false;
    }
 
-    // public void IsInsert(float angle)
-    // {
-    //     _isInserted = true;
-    //     _insertAngle = angle;
-    // }
-    //
-    // private void RotateToTarget()
-    // {
-    //     _rg.MoveRotation(_insertAngle);
-    //     
-    //     if (Mathf.Abs(transform.rotation.eulerAngles.z-_insertAngle) <=Mathf.Epsilon)
-    //     {
-    //         _isGetTargetAngle = true;    
-    //     }
-    // }
-
-    // private void OnTriggerEnter2D(Collider2D other)
-    // {
-    //     if (!other.CompareTag("InsertableGround"))
-    //     {
-    //         return;
-    //     }
-    //
-    //     if (Mathf.Abs(transform.rotation.eulerAngles.z-270.0f)<=10.0f)
-    //     {
-    //         //_rg.constraints = RigidbodyConstraints2D.FreezePositionY;
-    //         _rg.MoveRotation(90);
-    //         _playerInput.Disable();
-    //     }
-    // }
+   
 }
 
  

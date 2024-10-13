@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Button : MonoBehaviour
 {
-    //public Sprite ButtonDownSprite;
+    public Sprite ButtonDownSprite;
     private SpriteRenderer _spriteRenderer;
 
     private void Awake()
@@ -35,6 +35,6 @@ public class Button : MonoBehaviour
 
     void OnButtonDown()
     {
-        _spriteRenderer.color=Color.grey;
+        _spriteRenderer.sprite = ButtonDownSprite;
     }
 }

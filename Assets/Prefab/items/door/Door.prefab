@@ -99,7 +99,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 367ecf944284047709180dc4d174e5c2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  openSprite: {fileID: 0}
+  openSprite: {fileID: 1839664815, guid: 4a357a40770344d7a9f6cdfd9456e849, type: 3}
   buttonNeedNumber: 1
 --- !u!61 &3324398226769929758
 BoxCollider2D:
@@ -160,15 +160,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8302548263466546887, guid: bc0b20df70b8040eeb02876b5367f818, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.375
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8302548263466546887, guid: bc0b20df70b8040eeb02876b5367f818, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: -5.37
       objectReference: {fileID: 0}
     - target: {fileID: 8302548263466546887, guid: bc0b20df70b8040eeb02876b5367f818, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -0.26
       objectReference: {fileID: 0}
     - target: {fileID: 8302548263466546887, guid: bc0b20df70b8040eeb02876b5367f818, type: 3}
       propertyPath: m_LocalPosition.z

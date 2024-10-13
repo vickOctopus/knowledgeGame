@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3583174417560800648}
   - component: {fileID: 316833373093204072}
   - component: {fileID: -2732804279011558743}
-  m_Layer: 12
+  m_Layer: 15
   m_Name: LadderTopCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}

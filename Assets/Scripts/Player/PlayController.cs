@@ -78,6 +78,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     [SerializeField]private Vector2 groundCheckSize;
     [SerializeField]private Transform rollingCheckPoint;
     [SerializeField]private Vector2 rollingCheckSize;
+    public LayerMask canJumpLayer;
     
     [Header("Ladder")]
     [SerializeField] private float ladderSpeed;
@@ -489,7 +490,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         //Collider2D groundCheck = Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,groundLayer);
         if (isEquipJinGuBang)
         {
-            if (Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,LayerMask.GetMask("Platform","MovePlatform","OneWayPlatform")))
+            if (Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,LayerMask.GetMask("Platform","MovePlatform","OneWayPlatform","InteractObject")))
             {
                 _isGrounded = true;
                 isOnJinGuBang = false;
@@ -503,7 +504,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         }
         else
         {
-             if (Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,LayerMask.GetMask("Platform","JinGuBang","MovePlatform","OneWayPlatform")))
+             if (Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,LayerMask.GetMask("Platform","JinGuBang","MovePlatform","OneWayPlatform","InteractObject")))
              {
                  _isGrounded = true;
                  _animator.SetBool(_airingHash,!_isGrounded);

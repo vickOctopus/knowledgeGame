@@ -112,6 +112,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 02a4ad18d119f4cb988057cc668bc097, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hitLayerMask:
+    serializedVersion: 2
+    m_Bits: 9216
   platformMask:
     serializedVersion: 2
     m_Bits: 64
@@ -119,7 +122,7 @@ MonoBehaviour:
   elongationSpeed: 11
   maxScale: 6
   moveSpeed: 1
-  width: 0.5
+  width: 0.35
 --- !u!212 &1393323417001308527
 SpriteRenderer:
   m_ObjectHideFlags: 0

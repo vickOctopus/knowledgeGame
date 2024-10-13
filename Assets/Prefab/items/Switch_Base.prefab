@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5651882300640040337}
   - component: {fileID: 910920918086561722}
   - component: {fileID: 2301463200391902692}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: JinGuBangCheckBox
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -102,7 +102,7 @@ GameObject:
   - component: {fileID: 8705237943963184755}
   - component: {fileID: 3665994628575796624}
   - component: {fileID: 85589551231445917}
-  m_Layer: 10
+  m_Layer: 14
   m_Name: Switch_Level
   m_TagString: Moveable
   m_Icon: {fileID: 0}
@@ -248,7 +248,7 @@ GameObject:
   - component: {fileID: 9008599696722850709}
   - component: {fileID: 8726081267314100571}
   - component: {fileID: 5864022021929940631}
-  m_Layer: 10
+  m_Layer: 14
   m_Name: Right
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -339,7 +339,7 @@ GameObject:
   - component: {fileID: 3469357313699818885}
   - component: {fileID: 8926511386935634100}
   - component: {fileID: 5831992701084036843}
-  m_Layer: 0
+  m_Layer: 15
   m_Name: PlayerTrigger
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -430,7 +430,7 @@ GameObject:
   - component: {fileID: 8915766806955026036}
   - component: {fileID: 1225052408760343412}
   - component: {fileID: 8442320199824481257}
-  m_Layer: 10
+  m_Layer: 14
   m_Name: Switch_Base
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -563,7 +563,7 @@ GameObject:
   - component: {fileID: 9160566829532736709}
   - component: {fileID: 8670713968647064464}
   - component: {fileID: 4293955806227042813}
-  m_Layer: 10
+  m_Layer: 14
   m_Name: Left
   m_TagString: Untagged
   m_Icon: {fileID: 0}
