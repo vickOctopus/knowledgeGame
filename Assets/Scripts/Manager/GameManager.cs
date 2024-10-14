@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -39,5 +40,29 @@ public class GameManager : MonoBehaviour
     public void PlayerHpChange(int leftHp)
     {
         OnPlayerHpChange?.Invoke(leftHp);
+    }
+
+    [ContextMenu("Delete All JSON Files")]
+    public void DeleteAllJsonFiles()
+    {
+        string path = Application.persistentDataPath;
+        string[] files = Directory.GetFiles(path, "*.json");
+
+        foreach (string file in files)
+        {
+            File.Delete(file);
+            Debug.Log($"Deleted: {file}");
+        }
+
+        Debug.Log($"Deleted {files.Length} JSON files from {path}");
+    }
+
+    public void DeleteAllJsonFilesWithConfirmation()
+    {
+        if (UnityEditor.EditorUtility.DisplayDialog("Delete All JSON Files",
+            "Are you sure you want to delete all JSON files in the persistent data path?", "Yes", "No"))
+        {
+            DeleteAllJsonFiles();
+        }
     }
 }

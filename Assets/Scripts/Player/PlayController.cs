@@ -1,4 +1,3 @@
-
 using System.Collections;
 using UnityEngine;
 using Cursor = UnityEngine.Cursor;
@@ -90,6 +89,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     #endregion
 
+    private float _lastGroundCheckTime;
+    private const float GROUND_CHECK_INTERVAL = 0.1f; // 检测间隔
+    private readonly Collider2D[] _groundCheckResults = new Collider2D[1];
+    private ContactFilter2D _groundContactFilter;
+
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -140,6 +144,14 @@ public class PlayController : MonoBehaviour,ITakeDamage
             SpawnJinGuBang();
             jinGuBang.SetActive(false);
         }
+
+        // 确保在开始时只启用 BoxCollider2D
+        _boxCollider.enabled = true;
+        _circleCollider.enabled = false;
+
+        _groundContactFilter = new ContactFilter2D();
+        _groundContactFilter.SetLayerMask(canJumpLayer);
+        _groundContactFilter.useLayerMask = true;
     }
 
     private void Update()
@@ -151,6 +163,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         Flip();
         HandleState();
         UpdateAnimator();
+        UpdateIsOnJinGuBang();
     }
 
     private void UpdateAnimator()
@@ -289,30 +302,41 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
         if (!_isRolling)
         {
-            _boxCollider.enabled = false;
-            _isRolling = true;
-            _animator.SetBool(_rollHash, _isRolling);
-            if (isEquipJinGuBang)
-            {
-                jinGuBang.SetActive(false);
-            }
+            StartRolling();
         }
-
         else if (!_playerInput.GamePLay.Roll.IsPressed() && _isGrounded)
         {
-            var tem = Physics2D.OverlapBox(rollingCheckPoint.position, rollingCheckSize, 0.0f,
-                LayerMask.GetMask("Platform", "MovePlatform", "JinGuBang"));
-
-            if (tem)
-            {
-                return;
-            }
-
-            _boxCollider.enabled = true;
-            _isRolling = false;
-            _animator.SetBool(_rollHash, _isRolling);
-            _currentState = PlayerState.Running;
+            EndRolling();
         }
+    }
+
+    private void StartRolling()
+    {
+        _boxCollider.enabled = false;
+        _circleCollider.enabled = true;
+        _isRolling = true;
+        _animator.SetBool(_rollHash, _isRolling);
+        if (isEquipJinGuBang)
+        {
+            jinGuBang.SetActive(false);
+        }
+    }
+
+    private void EndRolling()
+    {
+        var tem = Physics2D.OverlapBox(rollingCheckPoint.position, rollingCheckSize, 0.0f,
+            LayerMask.GetMask("Platform", "MovePlatform", "JinGuBang"));
+
+        if (tem)
+        {
+            return;
+        }
+
+        _boxCollider.enabled = true;
+        _circleCollider.enabled = false;
+        _isRolling = false;
+        _animator.SetBool(_rollHash, _isRolling);
+        _currentState = PlayerState.Running;
     }
 
     private void HandleClimbState()
@@ -426,7 +450,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _canRoll = false;
         if (!_isOnLadder)
         {
-            if (Mathf.Abs(_verticalMove) > 0) //在地面上如果按攀爬键则进入攀爬状态，不然则继续正常移动
+            if (Mathf.Abs(_verticalMove) > 0) //在地面如果按攀爬键则进入攀爬状态，不然则继续正常移动
             {
                 OnLadder();
             }
@@ -487,37 +511,27 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void CheckGround()
     {
-        //Collider2D groundCheck = Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,groundLayer);
-        if (isEquipJinGuBang)
+        if (Time.time - _lastGroundCheckTime < GROUND_CHECK_INTERVAL)
         {
-            if (Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,LayerMask.GetMask("Platform","MovePlatform","OneWayPlatform","InteractObject")))
-            {
-                _isGrounded = true;
-                isOnJinGuBang = false;
-                _animator.SetBool(_airingHash,!_isGrounded);
-            }
-            else
-            {
-                _isGrounded = false;
-                _animator.SetBool(_airingHash,!_isGrounded);
-            }
+            return;
+        }
+
+        _lastGroundCheckTime = Time.time;
+
+        int hitCount = Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0f, _groundContactFilter, _groundCheckResults);
+        
+        if (hitCount > 0)
+        {
+            _isGrounded = !(isEquipJinGuBang && _groundCheckResults[0].gameObject.layer == LayerMask.NameToLayer("JinGuBang"));
         }
         else
         {
-             if (Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0.0f,LayerMask.GetMask("Platform","JinGuBang","MovePlatform","OneWayPlatform","InteractObject")))
-             {
-                 _isGrounded = true;
-                 _animator.SetBool(_airingHash,!_isGrounded);
-             }
-             else
-             {
-                 _isGrounded = false;
-                 _animator.SetBool(_airingHash,!_isGrounded);
-             }
+            _isGrounded = false;
         }
 
-       
+        _animator.SetBool(_airingHash, !_isGrounded);
     }
+
     private void OnDrawGizmos()
     {
         Gizmos.DrawWireCube(groundCheckPoint.position, groundCheckSize);
@@ -574,30 +588,33 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     public void SpawnJinGuBang()
     {
-        jinGuBang=Instantiate(jinGuBang,transform.position, Quaternion.identity);
+        jinGuBang = Instantiate(jinGuBang, transform.position, Quaternion.identity);
         jinGuBang.transform.SetParent(this.transform);
         jinGuBang.transform.localPosition = Vector3.zero;
         jinGuBang.GetComponent<HingeJoint2D>().connectedBody = _rg;
         jinGuBang.SetActive(true);
-       
+        
+        // 忽略玩家和金箍棒之间的碰撞
+        Physics2D.IgnoreCollision(GetComponent<Collider2D>(), jinGuBang.GetComponent<Collider2D>(), true);
+        
     }
 
     public void UnloadJinGuBangPlayerMove()
     {
-        _rg.velocity+=Vector2.up*jumpForce;
-        isEquipJinGuBang=false;
+        _rg.velocity += Vector2.up * jumpForce;
+        isEquipJinGuBang = false;
+        
+        // 启动协程来延迟恢复碰撞
+        StartCoroutine(DelayedCollisionRestore());
     }
 
-    
-    // public void InsertJinGuBangBehavior()
-    // {
-    //
-    //     _rg.constraints = RigidbodyConstraints2D.FreezePositionY;
-    //     _playerInput.Disable();
-    //     _rg.gravityScale = 0;
-    //     Debug.Log("Jin Gu Bang");
-    //
-    // }
+    private IEnumerator DelayedCollisionRestore()
+    {
+        yield return new WaitForSeconds(0.2f);
+        // 恢复玩家和金箍棒之间的碰撞
+        Physics2D.IgnoreCollision(GetComponent<Collider2D>(), jinGuBang.GetComponent<Collider2D>(), false);
+    }
+
     
 
     #endregion
@@ -663,5 +680,10 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         _playerInput.Enable();
         jinGuBang.GetComponent<JinGuBang>().EnableControl();
+    }
+
+    private void UpdateIsOnJinGuBang()
+    {
+        isOnJinGuBang = isEquipJinGuBang && !_isGrounded;
     }
 }

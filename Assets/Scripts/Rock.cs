@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -5,100 +6,145 @@ using UnityEngine;
 public class Rock : MonoBehaviour
 {
     private string savePath;
+    private Rigidbody2D rb;
+    [SerializeField] private float frictionCoefficient = 1f;
+    private bool _isInWater = false;
+
+    private const float CHECK_INTERVAL = 0.1f;
+    private float lastCheckTime;
+    private readonly RaycastHit2D[] raycastResults = new RaycastHit2D[1];
+    private ContactFilter2D contactFilter;
+
+    [System.Serializable]
+    private class RockPositions
+    {
+        public List<RockPosition> positions;
+    }
+
+    [System.Serializable]
+    private class RockPosition
+    {
+        public string name;
+        public Vector3 position;
+
+        public RockPosition(string name, Vector3 position)
+        {
+            this.name = name;
+            this.position = position;
+        }
+    }
 
     void Start()
     {
-        // 保存路径为所有 Rocks 公共的一个 JSON 文件
-        savePath = Path.Combine(Application.persistentDataPath, "rockPositions.json");
-
-        // 关卡加载时，自动加载自身位置信息
+        savePath = System.IO.Path.Combine(Application.persistentDataPath, "rockPositions.json");
         LoadPosition();
+        rb = GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody2D>();
+        }
+
+        contactFilter = new ContactFilter2D();
+        contactFilter.SetLayerMask(LayerMask.GetMask("Player"));
+        contactFilter.useLayerMask = true;
     }
 
-    // 保存自身位置信息
+    void FixedUpdate()
+    {
+        if (!_isInWater && Time.time - lastCheckTime >= CHECK_INTERVAL)
+        {
+            CheckPlayerAbove();
+            lastCheckTime = Time.time;
+        }
+    }
+
+    void CheckPlayerAbove()
+    {
+        Vector2 checkStart = (Vector2)transform.position + Vector2.up * 0.1f;
+        int hitCount = Physics2D.RaycastNonAlloc(checkStart, Vector2.up, raycastResults, 1f, contactFilter.layerMask);
+        
+        Debug.DrawRay(checkStart, Vector2.up * 1f, Color.blue, CHECK_INTERVAL);
+        
+        if (hitCount > 0 && raycastResults[0].collider.CompareTag("Player"))
+        {
+            ApplyFrictionForce(raycastResults[0].collider.gameObject);
+        }
+    }
+
+    void ApplyFrictionForce(GameObject player)
+    {
+        Rigidbody2D playerRb = player.GetComponent<Rigidbody2D>();
+        if (playerRb != null)
+        {
+            Vector2 playerVelocity = new Vector2(playerRb.velocity.x, 0);
+            Vector2 frictionForce = playerVelocity * frictionCoefficient;
+            rb.AddForce(frictionForce, ForceMode2D.Force);
+
+            Debug.DrawRay(transform.position, frictionForce, Color.red, CHECK_INTERVAL);
+            Debug.DrawRay(transform.position, Vector2.up, Color.green, CHECK_INTERVAL);
+        }
+    }
+
     public void SavePosition()
     {
-        // Debug.Log("保存位置被调用");
-
-        Dictionary<string, PositionData> allPositions = LoadAllPositions();
+        RockPositions allPositions = LoadAllPositions();
         Vector3 position = transform.position;
-        PositionData data = new PositionData(position.x, position.y, position.z);
-    
-        allPositions[gameObject.name] = data;
-
-        // Debug.Log("当前所有位置: " + JsonUtility.ToJson(new PositionDictionary { positionList = ToList(allPositions) }, true));
+        
+        int index = allPositions.positions.FindIndex(p => p.name == gameObject.name);
+        if (index != -1)
+        {
+            allPositions.positions[index] = new RockPosition(gameObject.name, position);
+        }
+        else
+        {
+            allPositions.positions.Add(new RockPosition(gameObject.name, position));
+        }
 
         SaveAllPositions(allPositions);
     }
 
-    // 加载位置信息
     public void LoadPosition()
     {
-        // Debug.Log("尝试加载位置: " + gameObject.name);
-        Dictionary<string, PositionData> allPositions = LoadAllPositions();
+        RockPositions allPositions = LoadAllPositions();
+        RockPosition myPosition = allPositions.positions.Find(p => p.name == gameObject.name);
 
-        if (allPositions != null && allPositions.ContainsKey(gameObject.name))
+        if (myPosition != null)
         {
-            PositionData data = allPositions[gameObject.name];
-            transform.position = new Vector3(data.x, data.y, data.z);
-            // Debug.Log(gameObject.name + " 的位置已恢复: " + transform.position);
+            transform.position = myPosition.position;
         }
-        // else
-        // {
-        //     Debug.LogWarning("未找到 " + gameObject.name + " 的位置数据");
-        // }
     }
 
-    // 加载所有 Rocks 的位置信息
-    private Dictionary<string, PositionData> LoadAllPositions()
+    private RockPositions LoadAllPositions()
     {
         if (File.Exists(savePath))
         {
-            try
-            {
-                string json = File.ReadAllText(savePath);
-                PositionDictionary positionDict = JsonUtility.FromJson<PositionDictionary>(json);
-                return positionDict?.ToDictionary() ?? new Dictionary<string, PositionData>(); // 处理可能为 null 的情况
-            }
-            catch (System.Exception e)
-            {
-                Debug.LogError("加载位置时发生错误: " + e.Message);
-                return new Dictionary<string, PositionData>(); // 返回空字典以防止崩溃
-            }
+            string json = File.ReadAllText(savePath);
+            RockPositions positions = JsonUtility.FromJson<RockPositions>(json);
+            return positions ?? new RockPositions { positions = new List<RockPosition>() };
         }
-        return new Dictionary<string, PositionData>(); // 如果文件不存在，返回空字典
+        return new RockPositions { positions = new List<RockPosition>() };
     }
 
-    // 保存所有 Rocks 的位置信息
-    private void SaveAllPositions(Dictionary<string, PositionData> allPositions)
+    private void SaveAllPositions(RockPositions allPositions)
     {
-        PositionDictionary positionDict = new PositionDictionary();
-        positionDict.FromDictionary(allPositions);
-        string json = JsonUtility.ToJson(positionDict, true);
-    
-        // Debug.Log("准备写入的 JSON: " + json);
-    
-        try
+        string json = JsonUtility.ToJson(allPositions, true);
+        File.WriteAllText(savePath, json);
+    }
+
+    public void EnterWater()
+    {
+        if (!_isInWater)
         {
-            File.WriteAllText(savePath, json);
-            // Debug.Log("保存成功: " + savePath);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError("保存时发生错误: " + e.Message);
+            _isInWater = true;
+            this.enabled = false;
+            SavePosition();
+            // 移除禁用渲染器和碰撞器的代码
         }
     }
 
-    // 将字典转换为列表
-    private List<KeyValuePair> ToList(Dictionary<string, PositionData> positions)
-    {
-        List<KeyValuePair> list = new List<KeyValuePair>();
-        foreach (var kvp in positions)
-        {
-            list.Add(new KeyValuePair(kvp.Key, kvp.Value));
-        }
-        return list;
-    }
+    // 移除 DestroyAfterDelay 协程
+
+    // ... 其他代码保持不变 ...
 }
 
 // 保存位置数据的类

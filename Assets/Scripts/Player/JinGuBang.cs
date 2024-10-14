@@ -62,6 +62,7 @@ public class JinGuBang : MonoBehaviour
        }
 
        _rg = GetComponent<Rigidbody2D>();
+       _rg.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
        _spriteRenderer = GetComponent<SpriteRenderer>();
        _joint = GetComponent<HingeJoint2D>();
        _collider = GetComponent<CustomCollider2D>();
@@ -141,7 +142,6 @@ public class JinGuBang : MonoBehaviour
    {
        _joint.anchor += new Vector2(0, _anchorMoveAxis * Time.fixedDeltaTime * _moveSpeed);
 
-
        if (Mathf.Abs(_joint.anchor.y) >= _colliderHeight)
        {
            _joint.anchor = new Vector2(0, _colliderHeight);
@@ -150,16 +150,17 @@ public class JinGuBang : MonoBehaviour
        {
            _joint.anchor = new Vector2(0, 0);
        }
-       else
-       {
-           PlayController.instance.isOnJinGuBang = true;
-       }
+       // 移除这里的 isOnJinGuBang 设置
+       // else
+       // {
+       //     PlayController.instance.isOnJinGuBang = true;
+       // }
    }
 
 
    private void RotateJinGuBang()
    {
-       // 获取鼠标在世界中的位置
+       // 获取鼠标界中的位置
        var mousePosition = Camera.main.ScreenToWorldPoint(_playerInput.GamePLay.JinGuBangDir.ReadValue<Vector2>());
        mousePosition.z = 0; // 确保z轴为0，以适应2D场景
 
@@ -181,25 +182,30 @@ public class JinGuBang : MonoBehaviour
 
    private void TipsCheck()
    {
-       var upPos=transform.up*(_colliderHeight+0.2f)+transform.position;
+       var upPos = transform.up * (_colliderHeight + 0.2f) + transform.position;
        var downPos = transform.position - transform.up * 0.2f;
 
        var upCheck = Physics2D.OverlapCircle(upPos, width / 3, platformMask);
        var downCheck = Physics2D.OverlapCircle(downPos, width / 1.5f, platformMask);
 
-       if (upCheck&&downCheck)
+       if (upCheck && downCheck)
        {
            _isTipsBlock = true;
-       }
-       else if (upCheck || downCheck)
-       {
-           PlayController.instance.isOnJinGuBang = true;
-           _isTipsBlock = false;
        }
        else
        {
            _isTipsBlock = false;
        }
+       // 这里的 isOnJinGuBang 设置
+       // else if (upCheck || downCheck)
+       // {
+       //     PlayController.instance.isOnJinGuBang = true;
+       //     _isTipsBlock = false;
+       // }
+       // else
+       // {
+       //     _isTipsBlock = false;
+       // }
    }
 
    private void Elongation()
@@ -214,47 +220,16 @@ public class JinGuBang : MonoBehaviour
        float oldHeight = _colliderHeight;
        _colliderHeight += elongationSpeed * Time.deltaTime;
 
-       ApplyElongationForce(oldHeight);
-
-       PlayController.instance.isOnJinGuBang = true;
-       UpdateCollider();
-   }
-
-   private void ApplyElongationForce(float oldHeight)
-   {
-       Vector2 rayStart = transform.position + transform.up * oldHeight;
-       float rayLength = (_colliderHeight - oldHeight) + 0.1f;
-       Vector2 rayDirection = transform.up * rayLength;
-
-       int rayCount = 5;
-       float edgeOffset = 0.1f;
-
-       for (int i = 0; i < rayCount; i++)
+       // 预检测
+       RaycastHit2D hit = Physics2D.Raycast(transform.position + transform.up * oldHeight, transform.up, _colliderHeight - oldHeight + 0.1f, platformMask);
+       if (hit.collider != null)
        {
-           float t = (float)i / (rayCount - 1);
-           t = Mathf.Pow(t - 0.5f, 5) * 16 + 0.5f;
-           float offsetX = Mathf.Lerp(-width / 2 + edgeOffset, width / 2 - edgeOffset, t);
-
-           Vector2 offset = transform.right * offsetX;
-           Vector2 currentRayStart = rayStart + offset;
-
-           Debug.DrawRay(currentRayStart, rayDirection, Color.red, 0.3f);
-
-           RaycastHit2D hit = Physics2D.Raycast(currentRayStart, transform.up, rayLength, hitLayerMask);
-           if (hit.collider != null)
-           {
-               Rigidbody2D hitRb = hit.collider.GetComponent<Rigidbody2D>();
-               if (hitRb != null)
-               {
-                   float centerDistance = Mathf.Abs(t - 0.5f) * 2;
-                   float forceMagnitude = elongationSpeed * 2.0f * (1 + (1 - centerDistance));
-                   Vector2 pushForce = forceMagnitude * transform.up / rayCount;
-                   hitRb.AddForceAtPosition(pushForce, hit.point, ForceMode2D.Impulse);
-
-                   Debug.DrawLine(currentRayStart, hit.point, Color.green, 0.3f);
-               }
-           }
+           // 调整伸长距离
+           _colliderHeight = hit.distance + oldHeight - 0.05f; // 留出一点空间
        }
+
+       ApplyElongationForce(oldHeight);
+       UpdateCollider();
    }
 
    private void Shorten()
@@ -272,7 +247,7 @@ public class JinGuBang : MonoBehaviour
    private void UpdateCollider()
    {
        _shapeGroup.Clear();
-       _shapeGroup.AddCapsule(new Vector2(0, _colliderHeight), new Vector2(0, 0), width / 2);
+       _shapeGroup.AddCapsule(new Vector2(0, 0), new Vector2(0, _colliderHeight), width / 2);
        _collider.SetCustomShapes(_shapeGroup);
        Physics2D.SyncTransforms();
        _spriteRenderer.size = new Vector2(_spriteRenderer.size.x, _colliderHeight);
@@ -285,7 +260,7 @@ public class JinGuBang : MonoBehaviour
        _rg.gravityScale = 1.0f;
        PlayController.instance.UnloadJinGuBangPlayerMove();
 
-       StartCoroutine(DelayStartCollisionWithPlayer());
+       // 移除立即恢复碰撞的代码，因为这将在 PlayController 中延迟处理
 
        Cursor.visible = false;
 
@@ -304,7 +279,8 @@ public class JinGuBang : MonoBehaviour
        _joint.anchor = new Vector2(0.0f, 0.3f);
        _joint.connectedAnchor = new Vector2(0f, 0.5f);
 
-       Physics2D.IgnoreLayerCollision(3, 7, true);
+       // 忽略玩家和金箍棒之间的碰撞
+       Physics2D.IgnoreCollision(GetComponent<Collider2D>(), PlayController.instance.GetComponent<Collider2D>(), true);
 
        PlayController.instance.isEquipJinGuBang = true;
 
@@ -335,7 +311,48 @@ public class JinGuBang : MonoBehaviour
        _rg.freezeRotation = false;
    }
 
-   
+   // 常量定义
+   private const int RAY_COUNT = 5;
+   private const float EDGE_OFFSET = 0.1f;
+   private const float RAY_LENGTH_EXTRA = 0.1f;
+   private const float FORCE_MULTIPLIER = 2.0f;
+
+   private readonly RaycastHit2D[] _raycastHits = new RaycastHit2D[5]; // 预分配数组
+
+   private void ApplyElongationForce(float oldHeight)
+   {
+       Vector2 rayStart = transform.position + transform.up * oldHeight;
+       float rayLength = (_colliderHeight - oldHeight) + RAY_LENGTH_EXTRA;
+       Vector2 rayDirection = transform.up * rayLength;
+
+       for (int i = 0; i < RAY_COUNT; i++)
+       {
+           float t = (float)i / (RAY_COUNT - 1);
+           t = Mathf.Pow(t - 0.5f, 5) * 16 + 0.5f;
+           float offsetX = Mathf.Lerp(-width / 2 + EDGE_OFFSET, width / 2 - EDGE_OFFSET, t);
+
+           Vector2 offset = transform.right * offsetX;
+           Vector2 currentRayStart = rayStart + offset;
+
+           Debug.DrawRay(currentRayStart, rayDirection, Color.red, 0.3f);
+
+           int hitCount = Physics2D.RaycastNonAlloc(currentRayStart, transform.up, _raycastHits, rayLength, hitLayerMask);
+           if (hitCount > 0)
+           {
+               RaycastHit2D hit = _raycastHits[0];
+               Rigidbody2D hitRb = hit.collider.GetComponent<Rigidbody2D>();
+               if (hitRb != null)
+               {
+                   float centerDistance = Mathf.Abs(t - 0.5f) * 2;
+                   float forceMagnitude = elongationSpeed * FORCE_MULTIPLIER * (1 + (1 - centerDistance));
+                   Vector2 pushForce = forceMagnitude * transform.up / RAY_COUNT;
+                   hitRb.AddForceAtPosition(pushForce, hit.point, ForceMode2D.Impulse);
+
+                   Debug.DrawLine(currentRayStart, hit.point, Color.green, 0.3f);
+               }
+           }
+       }
+   }
 }
 
  

@@ -246,11 +246,13 @@ namespace Bundos.WaterSystem
                 
                 if (rock)
                 {
-                    rock.SavePosition();
+                    rock.EnterWater(); // 调用 EnterWater 方法
+                    StartCoroutine(SaveRockPositionDelayed(rock)); // 启动延迟保存位置的协程
                 }
                 
-                _waterHeightMax+=heightGrowSpeed;
-               
+                _waterHeightMax += heightGrowSpeed;
+                
+                return;
             }
 
             Rigidbody2D otherRigidbody = other.GetComponent<Rigidbody2D>();
@@ -267,7 +269,10 @@ namespace Bundos.WaterSystem
             }
         }
 
-      
-       
+        private IEnumerator SaveRockPositionDelayed(Rock rock)
+        {
+            yield return new WaitForSeconds(5.0f); // 等待1秒
+            rock.SavePosition(); // 保存岩石位置
+        }
     }
 }

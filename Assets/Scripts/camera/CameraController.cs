@@ -47,7 +47,7 @@ public class CameraController : MonoBehaviour
 
    public void CameraStartResetPosition(float x, float y)
    {
-      transform.position=new Vector3(transform.position.x+x*50.0f,transform.position.y+y*28.0f,transform.position.z);
+      transform.position = new Vector3(transform.position.x + x * 50.0f, transform.position.y + y * 28.0f, transform.position.z);
    }
    
    
