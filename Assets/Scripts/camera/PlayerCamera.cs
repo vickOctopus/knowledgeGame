@@ -8,9 +8,13 @@ public class PlayerCamera : MonoBehaviour
     private void Start()
     {
         mainCamera = Camera.main;
+        if (mainCamera == null)
+        {
+            Debug.LogError("Main camera not found!");
+            return;
+        }
         UpdateCameraPosition();
     }
-
 
     private void OnBecameInvisible()
     {
@@ -19,7 +23,7 @@ public class PlayerCamera : MonoBehaviour
 
     private void UpdateCameraPosition()
     {
-        if (mainCamera == null)
+        if (mainCamera == null || CameraController.Instance == null)
         {
             return;
         }

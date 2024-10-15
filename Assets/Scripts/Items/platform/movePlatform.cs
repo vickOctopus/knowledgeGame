@@ -32,7 +32,6 @@ public class movePlatform : MonoBehaviour
     { 
         CheckEndsHitSomething();
         
-        
         if (_canMove)
         {
             transform.position=new Vector2(transform.position.x+direction*moveSpeed*Time.deltaTime,transform.position.y);

@@ -634,7 +634,7 @@ GameObject:
   - component: {fileID: 519420033}
   - component: {fileID: 519420029}
   - component: {fileID: 519420034}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: Main Camera
   m_TagString: MainCamera
   m_Icon: {fileID: 0}
@@ -781,7 +781,7 @@ GameObject:
   m_Component:
   - component: {fileID: 559699466}
   - component: {fileID: 559699465}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: SaveManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -908,7 +908,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &616073004
 RectTransform:
   m_ObjectHideFlags: 0
@@ -21010,26 +21010,6 @@ Tilemap:
       m_TileObjectToInstantiateIndex: 65535
       dummyAlignment: 0
       m_AllTileFlags: 1073741825
-  - first: {x: 265, y: -74, z: 0}
-    second:
-      serializedVersion: 2
-      m_TileIndex: 1
-      m_TileSpriteIndex: 1
-      m_TileMatrixIndex: 0
-      m_TileColorIndex: 0
-      m_TileObjectToInstantiateIndex: 65535
-      dummyAlignment: 0
-      m_AllTileFlags: 1073741826
-  - first: {x: 266, y: -74, z: 0}
-    second:
-      serializedVersion: 2
-      m_TileIndex: 1
-      m_TileSpriteIndex: 2
-      m_TileMatrixIndex: 0
-      m_TileColorIndex: 0
-      m_TileObjectToInstantiateIndex: 65535
-      dummyAlignment: 0
-      m_AllTileFlags: 1073741826
   - first: {x: 274, y: -74, z: 0}
     second:
       serializedVersion: 2
@@ -21190,26 +21170,6 @@ Tilemap:
       m_TileObjectToInstantiateIndex: 65535
       dummyAlignment: 0
       m_AllTileFlags: 1073741825
-  - first: {x: 265, y: -73, z: 0}
-    second:
-      serializedVersion: 2
-      m_TileIndex: 1
-      m_TileSpriteIndex: 3
-      m_TileMatrixIndex: 0
-      m_TileColorIndex: 0
-      m_TileObjectToInstantiateIndex: 65535
-      dummyAlignment: 0
-      m_AllTileFlags: 1073741826
-  - first: {x: 266, y: -73, z: 0}
-    second:
-      serializedVersion: 2
-      m_TileIndex: 1
-      m_TileSpriteIndex: 4
-      m_TileMatrixIndex: 0
-      m_TileColorIndex: 0
-      m_TileObjectToInstantiateIndex: 65535
-      dummyAlignment: 0
-      m_AllTileFlags: 1073741826
   - first: {x: 274, y: -73, z: 0}
     second:
       serializedVersion: 2
@@ -61904,21 +61864,21 @@ Tilemap:
   m_TileAssetArray:
   - m_RefCount: 6080
     m_Data: {fileID: 11400000, guid: 43356f687f2a1436ab70f004ef69bea7, type: 2}
-  - m_RefCount: 4
-    m_Data: {fileID: 11400000, guid: de5973496218b4fad969aff5e297f577, type: 2}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
   m_TileSpriteArray:
   - m_RefCount: 6080
     m_Data: {fileID: 113375, guid: 26bf1ccbf3f634e06b543d7a7ce96447, type: 3}
-  - m_RefCount: 1
-    m_Data: {fileID: -712355723, guid: 19d46963c7a71435d92f492bb2f7c701, type: 3}
-  - m_RefCount: 1
-    m_Data: {fileID: -1026196790, guid: 19d46963c7a71435d92f492bb2f7c701, type: 3}
-  - m_RefCount: 1
-    m_Data: {fileID: 1458831974, guid: 19d46963c7a71435d92f492bb2f7c701, type: 3}
-  - m_RefCount: 1
-    m_Data: {fileID: -2126234607, guid: 19d46963c7a71435d92f492bb2f7c701, type: 3}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
+  - m_RefCount: 0
+    m_Data: {fileID: 0}
   m_TileMatrixArray:
-  - m_RefCount: 6084
+  - m_RefCount: 6080
     m_Data:
       e00: 1
       e01: 0
@@ -61937,7 +61897,7 @@ Tilemap:
       e32: 0
       e33: 1
   m_TileColorArray:
-  - m_RefCount: 6084
+  - m_RefCount: 6080
     m_Data: {r: 1, g: 1, b: 1, a: 1}
   m_TileObjectToInstantiateArray: []
   m_AnimationFrameRate: 1
@@ -62240,7 +62200,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1014020355}
   - component: {fileID: 1014020354}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: EventManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -62329,7 +62289,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1220398988}
   - component: {fileID: 1220398987}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: GameManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -62375,7 +62335,7 @@ GameObject:
   - component: {fileID: 1285962501}
   - component: {fileID: 1285962500}
   - component: {fileID: 1285962502}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: EventSystem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -62452,7 +62412,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1397842603}
   - component: {fileID: 1397842602}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: UIManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -62907,7 +62867,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1928314923}
   - component: {fileID: 1928314922}
-  m_Layer: 0
+  m_Layer: 12
   m_Name: CameraManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -62957,6 +62917,10 @@ PrefabInstance:
       propertyPath: m_Mass
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 1228581438375925432, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
+      propertyPath: m_BodyType
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 1714491935192125444, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: m_LocalScale.x
       value: 2
@@ -62971,11 +62935,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1714491935192125444, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -10.6
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1714491935192125444, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -7
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 1714491935192125444, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: m_LocalPosition.z

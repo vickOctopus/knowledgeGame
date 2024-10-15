@@ -8,46 +8,44 @@ public class CameraController : MonoBehaviour
    
    public static CameraController Instance;
 
+   private ChunkManager chunkManager;
+
    private void Awake()
    {
       if (Instance == null)
       {
          Instance = this;
+         DontDestroyOnLoad(gameObject);
       }
       else
       {
          Destroy(gameObject);
       }
-      DontDestroyOnLoad(gameObject);
    }
 
+   
 
-
-   /*void CameraMove(int playerPositionIndex)
+   private void Start()
    {
-      switch (playerPositionIndex)//cameraSize是宽长的一半，当size为18时，长为64，宽为36。
+      chunkManager = FindObjectOfType<ChunkManager>();
+      if (chunkManager == null)
       {
-         case 0:
-            break;
-         case 1:
-            transform.position=new Vector3(transform.position.x+64.0f,transform.position.y,transform.position.z);
-            break;
-         case 2:
-            transform.position=new Vector3(transform.position.x-64.0f,transform.position.y,transform.position.z);
-            break;
-         case 3:
-            transform.position=new Vector3(transform.position.x,transform.position.y+36.0f,transform.position.z);
-            break;
-         case 4:
-            transform.position=new Vector3(transform.position.x,transform.position.y-36.0f,transform.position.z);
-            Debug.Log("hello");
-            break;
+         Debug.LogError("ChunkManager not found in the scene!");
       }
-   }*/
+   }
 
    public void CameraStartResetPosition(float x, float y)
    {
-      transform.position = new Vector3(transform.position.x + x * 50.0f, transform.position.y + y * 28.0f, transform.position.z);
+      transform.position = new Vector3(
+         transform.position.x + x * ChunkManager.chunkWidth,
+         transform.position.y + y * ChunkManager.chunkHeight,
+         transform.position.z
+      );
+      
+      if (chunkManager != null)
+      {
+         chunkManager.ForceUpdateChunks(transform.position);
+      }
    }
    
    
