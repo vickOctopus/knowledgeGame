@@ -61995,7 +61995,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u6309\u4E0BS\u952E\u7FFB\u6EDA"
+  m_text: "\u6309\u4E0BControl\u952E\u7FFB\u6EDA"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 49adddfb057664a8d8f5b171df6e6033, type: 2}
   m_sharedMaterial: {fileID: -6699456097390746482, guid: 49adddfb057664a8d8f5b171df6e6033, type: 2}
@@ -62103,7 +62103,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!114 &864571189
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -62935,11 +62935,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1714491935192125444, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 1.19
       objectReference: {fileID: 0}
     - target: {fileID: 1714491935192125444, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -8.32
       objectReference: {fileID: 0}
     - target: {fileID: 1714491935192125444, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: m_LocalPosition.z
@@ -62995,7 +62995,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6884887235445434091, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: canJumpLayer.m_Bits
-      value: 1984
+      value: 67520
       objectReference: {fileID: 0}
     - target: {fileID: 7322812226306412845, guid: 2b1cd343e7faf4994970abafb209d3af, type: 3}
       propertyPath: m_LocalPosition.x

@@ -1,7 +1,8 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
-using UnityEngine.Pool; // 添加这行，如果你使用的是 Unity 2020.1 或更新版本
+using UnityEngine.Pool;
 
 public class ChunkManager : MonoBehaviour
 {
@@ -24,10 +25,16 @@ public class ChunkManager : MonoBehaviour
 
     private Dictionary<Vector2Int, BoundsInt> chunkBoundsCache = new Dictionary<Vector2Int, BoundsInt>();
 
+    private Coroutine updateChunksCoroutine;
+    
+
     private void Start()
     {
         InitializeChunks();
-        UpdateVisibleChunks();
+        // 同步加载玩家周围的 chunks
+        Vector2Int playerChunk = GetChunkCoordFromWorldPos(PlayController.instance.transform.position);
+        currentChunk = playerChunk;
+        UpdateVisibleChunksImmediate();
     }
 
     private void InitializeChunks()
@@ -49,31 +56,33 @@ public class ChunkManager : MonoBehaviour
         }
     }
 
-    private void UpdateVisibleChunks()
+    // 新增的同步更新方法
+    private void UpdateVisibleChunksImmediate()
     {
-        // 使用 HashSet<Vector2Int>.Enumerator 来避免额外的内存分配
-        HashSet<Vector2Int>.Enumerator enumerator = visibleChunks.GetEnumerator();
-        while (enumerator.MoveNext())
-        {
-            Vector2Int chunk = enumerator.Current;
-            if (!IsChunkVisible(chunk))
-            {
-                SetChunkVisibility(chunk, false);
-            }
-        }
+        HashSet<Vector2Int> newVisibleChunks = new HashSet<Vector2Int>();
 
         for (int x = -loadDistance; x <= loadDistance; x++)
         {
             for (int y = -loadDistance; y <= loadDistance; y++)
             {
                 Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
+                newVisibleChunks.Add(coord);
                 if (!visibleChunks.Contains(coord))
                 {
-                    SetChunkVisibility(coord, true);
-                    visibleChunks.Add(coord);
+                    SetChunkVisibilityImmediate(coord, true);
                 }
             }
         }
+
+        foreach (Vector2Int chunk in visibleChunks)
+        {
+            if (!newVisibleChunks.Contains(chunk))
+            {
+                SetChunkVisibilityImmediate(chunk, false);
+            }
+        }
+
+        visibleChunks = newVisibleChunks;
     }
 
     private bool IsChunkVisible(Vector2Int chunk)
@@ -84,9 +93,15 @@ public class ChunkManager : MonoBehaviour
 
     private void SetChunkVisibility(Vector2Int chunkCoord, bool visible)
     {
+        StartCoroutine(SetChunkVisibilityAsync(chunkCoord, visible));
+    }
+
+    private IEnumerator SetChunkVisibilityAsync(Vector2Int chunkCoord, bool visible)
+    {
         foreach (Tilemap tilemap in managedTilemaps)
         {
             SetTilemapChunkVisibility(tilemap, chunkCoord, visible);
+            yield return null; // 让出控制权，等待下一帧
         }
 
         if (chunkObjects.TryGetValue(chunkCoord, out HashSet<GameObject> objects))
@@ -94,6 +109,7 @@ public class ChunkManager : MonoBehaviour
             foreach (GameObject obj in objects)
             {
                 SetObjectVisibility(obj, visible);
+                yield return null; // 让出控制权，等待下一帧
             }
         }
     }
@@ -153,8 +169,48 @@ public class ChunkManager : MonoBehaviour
         if (newChunk != currentChunk)
         {
             currentChunk = newChunk;
-            UpdateVisibleChunks();
+            if (updateChunksCoroutine != null)
+            {
+                StopCoroutine(updateChunksCoroutine);
+            }
+            updateChunksCoroutine = StartCoroutine(UpdateVisibleChunksAsync());
         }
+    }
+
+    private IEnumerator UpdateVisibleChunksAsync()
+    {
+        HashSet<Vector2Int> newVisibleChunks = new HashSet<Vector2Int>();
+
+        for (int x = -loadDistance; x <= loadDistance; x++)
+        {
+            for (int y = -loadDistance; y <= loadDistance; y++)
+            {
+                Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
+                newVisibleChunks.Add(coord);
+            }
+        }
+
+        // 隐藏不再可见的 chunks
+        foreach (Vector2Int chunk in visibleChunks)
+        {
+            if (!newVisibleChunks.Contains(chunk))
+            {
+                SetChunkVisibility(chunk, false);
+                yield return null; // 让出控制权，等待下一帧
+            }
+        }
+
+        // 显示新可见的 chunks
+        foreach (Vector2Int chunk in newVisibleChunks)
+        {
+            if (!visibleChunks.Contains(chunk))
+            {
+                SetChunkVisibility(chunk, true);
+                yield return null; // 让出控制权，等待下一帧
+            }
+        }
+
+        visibleChunks = newVisibleChunks;
     }
 
     private void EnableObject(GameObject obj)
@@ -209,35 +265,24 @@ public class ChunkManager : MonoBehaviour
             actionOnRelease: set => set.Clear()
         );
 
-        // 如果使用较旧版本的 Unity，初始化 SimpleObjectPool
-        // chunkObjectSetPool = new SimpleObjectPool<HashSet<GameObject>>(
-        //     () => new HashSet<GameObject>(),
-        //     set => set.Clear()
-        // );
+        
+    }
+
+    // 新增的同步设置 chunk 可见性的方法
+    private void SetChunkVisibilityImmediate(Vector2Int chunkCoord, bool visible)
+    {
+        foreach (Tilemap tilemap in managedTilemaps)
+        {
+            SetTilemapChunkVisibility(tilemap, chunkCoord, visible);
+        }
+
+        if (chunkObjects.TryGetValue(chunkCoord, out HashSet<GameObject> objects))
+        {
+            foreach (GameObject obj in objects)
+            {
+                SetObjectVisibility(obj, visible);
+            }
+        }
     }
 }
 
-// 如果使用较旧版本的 Unity，添加这个简单的对象池实现
-// public class SimpleObjectPool<T>
-// {
-//     private readonly System.Func<T> createFunc;
-//     private readonly System.Action<T> actionOnRelease;
-//     private readonly Stack<T> pool = new Stack<T>();
-// 
-//     public SimpleObjectPool(System.Func<T> createFunc, System.Action<T> actionOnRelease)
-//     {
-//         this.createFunc = createFunc;
-//         this.actionOnRelease = actionOnRelease;
-//     }
-// 
-//     public T Get()
-//     {
-//         return pool.Count > 0 ? pool.Pop() : createFunc();
-//     }
-// 
-//     public void Release(T item)
-//     {
-//         actionOnRelease(item);
-//         pool.Push(item);
-//     }
-// }

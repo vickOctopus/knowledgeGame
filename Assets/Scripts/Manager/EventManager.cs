@@ -9,6 +9,8 @@ public class EventManager : MonoBehaviour
 
     public event Action OnClimbLadder;
     public event Action OnLeftLadder;
+
+    public event Action<Vector3> OnButtonShadowWallDown;
     
     private void Awake()
     {
@@ -31,6 +33,11 @@ public class EventManager : MonoBehaviour
     public void LeftLadder()
     {
         OnLeftLadder?.Invoke();
+    }
+
+    public void ButtonShadowWallDown(Vector3 pos)
+    {
+        OnButtonShadowWallDown?.Invoke(pos);
     }
     
     

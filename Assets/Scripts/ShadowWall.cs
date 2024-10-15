@@ -6,7 +6,7 @@ using System.Linq; // 添加这行
 
 public class ShadowWall : MonoBehaviour
 {
-    [SerializeField] private string _saveFileName = "hiddenTiles.json";
+    [SerializeField]private string _saveFileName = "hiddenTiles.json";
     private string _saveFilePath;
 
     private Tilemap _tilemap;
@@ -20,10 +20,17 @@ public class ShadowWall : MonoBehaviour
         _saveFilePath = Path.Combine(Application.persistentDataPath, _saveFileName);
     }
 
-   private void Start()
+    private void Start()
     {
-        // 加载之前隐藏的 Tile
-        LoadHiddenTiles();
+        // 只在非编辑器模式下加载隐藏的 Tile
+        if (!Application.isEditor)
+        {
+            LoadHiddenTiles();
+        }
+
+
+        EventManager.instance.OnButtonShadowWallDown += HideTileAndNeighbors;
+
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -32,18 +39,20 @@ public class ShadowWall : MonoBehaviour
         {
             // 获取玩家的位置
             Vector3 playerPosition = other.transform.position;
+            
 
-            // 将玩家的世界坐标转换为 Tilemap 坐标
-            Vector3Int tilePosition = _tilemap.WorldToCell(playerPosition);
-
-            HideTileAndNeighbors(tilePosition);
+            HideTileAndNeighbors(playerPosition);
             
         }
     }
 
     // 当玩家与某个 Tile 发生碰撞时调用这个函数
-    private void HideTileAndNeighbors(Vector3Int startTilePosition)
+    private void HideTileAndNeighbors(Vector3 playerPosition)
     {
+        
+        // 将玩家的世界坐标转换为 Tilemap 坐标
+        Vector3Int startTilePosition = _tilemap.WorldToCell(playerPosition);
+        
         Queue<Vector3Int> tileQueue = new Queue<Vector3Int>();
         tileQueue.Enqueue(startTilePosition);
 
@@ -95,42 +104,54 @@ public class ShadowWall : MonoBehaviour
     // 保存隐藏的 Tile 到文件
     private void SaveHiddenTiles()
     {
-        string json = JsonUtility.ToJson(new TileDataList(_hiddenTiles));
-        File.WriteAllText(_saveFilePath, json);
+        // 只在非编辑器模式下保存隐藏的 Tile
+        if (!Application.isEditor)
+        {
+            string json = JsonUtility.ToJson(new TileDataList(_hiddenTiles));
+            File.WriteAllText(_saveFilePath, json);
+        }
     }
 
     // 从文件加载隐藏的 Tile 状态
     private void LoadHiddenTiles()
     {
-        try
+        // 只在非编辑器模式下加载隐藏的 Tile
+        if (!Application.isEditor)
         {
-            if (File.Exists(_saveFilePath))
+            try
             {
-                var json = File.ReadAllText(_saveFilePath);
-                TileDataList data = JsonUtility.FromJson<TileDataList>(json);
-
-                foreach (Vector3IntSerializable tilePosition in data.hiddenTiles)
+                if (File.Exists(_saveFilePath))
                 {
-                    Vector3Int pos = tilePosition.ToVector3Int();
-                    if (!_originalTiles.ContainsKey(pos))
+                    var json = File.ReadAllText(_saveFilePath);
+                    TileDataList data = JsonUtility.FromJson<TileDataList>(json);
+
+                    foreach (Vector3IntSerializable tilePosition in data.hiddenTiles)
                     {
-                        _originalTiles[pos] = _tilemap.GetTile(pos);
+                        Vector3Int pos = tilePosition.ToVector3Int();
+                        if (!_originalTiles.ContainsKey(pos))
+                        {
+                            _originalTiles[pos] = _tilemap.GetTile(pos);
+                        }
+                        _tilemap.SetTile(pos, null);
+                        _hiddenTiles.Add(pos);
                     }
-                    _tilemap.SetTile(pos, null);
-                    _hiddenTiles.Add(pos);
                 }
             }
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogError($"加载隐藏瓦片时出错：{e.Message}");
+            catch (System.Exception e)
+            {
+                Debug.LogError($"加载隐藏瓦片时出错：{e.Message}");
+            }
         }
     }
 
     // 游戏退出时自动保存
     private void OnApplicationQuit()
     {
-        SaveHiddenTiles();
+        // 只在非编辑器模式下自动保存
+        if (!Application.isEditor)
+        {
+            SaveHiddenTiles();
+        }
     }
 }
 

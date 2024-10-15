@@ -51,18 +51,35 @@ public class GameManager : MonoBehaviour
         foreach (string file in files)
         {
             File.Delete(file);
-            Debug.Log($"Deleted: {file}");
+            Debug.Log($"已删除: {file}");
         }
 
-        Debug.Log($"Deleted {files.Length} JSON files from {path}");
+        Debug.Log($"已从 {path} 删除 {files.Length} 个 JSON 文件");
     }
 
     public void DeleteAllJsonFilesWithConfirmation()
     {
-        if (UnityEditor.EditorUtility.DisplayDialog("Delete All JSON Files",
-            "Are you sure you want to delete all JSON files in the persistent data path?", "Yes", "No"))
+        #if UNITY_EDITOR
+        if (UnityEditor.EditorUtility.DisplayDialog("删除所有 JSON 文件",
+            "你确定要删除持久化数据路径中的所有 JSON 文件吗？", "是", "否"))
         {
             DeleteAllJsonFiles();
         }
+        #else
+        // 在运行时，直接删除文件或显示自定义确认对话框
+        if (ConfirmDeletion())
+        {
+            DeleteAllJsonFiles();
+        }
+        #endif
+    }
+
+    private bool ConfirmDeletion()
+    {
+        // 在这里实现运行时的确认逻辑
+        // 例如，可以使用 UI 显示一个确认对话框
+        // 或者直接返回 true 如果你想在运行时始终允许删除
+        Debug.Log("请确认是否删除所有 JSON 文件");
+        return false; // 默认返回 false，防止意外删除
     }
 }

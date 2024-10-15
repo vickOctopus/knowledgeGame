@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Diary : MonoBehaviour,ISceneInteraction
+public class Diary : MonoBehaviour
 {
    
     public int diaryId;
@@ -13,6 +13,10 @@ public class Diary : MonoBehaviour,ISceneInteraction
 
     private void Awake()
     {
+        if (Application.isEditor)
+        {
+            return;
+        }
         if (!PlayerPrefs.HasKey(name))
         {
             PlayerPrefs.SetInt(name, 0);
@@ -35,10 +39,26 @@ public class Diary : MonoBehaviour,ISceneInteraction
          transform.position=new Vector2(transform.position.x,_originalPosY+newYPosition);
     }
 
-    public void Interact()
+
+    private void OnTriggerEnter2D(Collider2D other)
     {
+        if (other.CompareTag("Player"))
+        {
+            StartCoroutine(DelayDisappear());
+            
+            if (!Application.isEditor)
+            {
+                  PlayerPrefs.SetInt(name, 1);
+            }
+          
+            
+        }
+    }
+
+   private IEnumerator DelayDisappear()
+    {
+        yield return new WaitForSeconds(0.5f);
         UIManager.instance.OpenDiary(diaryId);
-        PlayerPrefs.SetInt(name, 1);
         Destroy(gameObject);
     }
 }
