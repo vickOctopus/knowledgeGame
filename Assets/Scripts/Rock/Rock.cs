@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
-public class Rock : MonoBehaviour, ISaveable
+public class Rock : MonoBehaviour
 {
     private Rigidbody2D rb;
     [SerializeField] private float frictionCoefficient = 1f;

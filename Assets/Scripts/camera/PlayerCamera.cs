@@ -1,24 +1,36 @@
-using System;
 using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
 {
     private Camera mainCamera;
+    [SerializeField] private float checkInterval = 0.1f; // 检查间隔时间
 
     private void Start()
     {
         mainCamera = Camera.main;
         if (mainCamera == null)
         {
-            Debug.LogError("Main camera not found!");
+            Debug.LogError("主相机未找到！");
             return;
         }
-        UpdateCameraPosition();
+
+        InvokeRepeating(nameof(CheckPlayerVisibility), 0f, checkInterval);
     }
 
-    private void OnBecameInvisible()
+    private void CheckPlayerVisibility()
     {
-        UpdateCameraPosition();
+        if (!IsPlayerInCameraView())
+        {
+            UpdateCameraPosition();
+        }
+    }
+
+    private bool IsPlayerInCameraView()
+    {
+        Vector3 viewportPosition = mainCamera.WorldToViewportPoint(transform.position);
+        return viewportPosition.x >= 0 && viewportPosition.x <= 1 &&
+               viewportPosition.y >= 0 && viewportPosition.y <= 1 &&
+               viewportPosition.z > 0;
     }
 
     private void UpdateCameraPosition()

@@ -2,7 +2,6 @@ using UnityEngine;
 
 public interface ISaveable
 {
-    
-    void Save();
-    void Load();
+    void Save(int slotIndex);
+    void Load(int slotIndex);
 }

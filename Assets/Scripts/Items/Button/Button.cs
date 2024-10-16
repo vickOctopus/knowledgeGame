@@ -25,7 +25,7 @@ public class Button : MonoBehaviour, ISaveable
 
     private void Start()
     {
-        Load();
+        Load(0); // 默认加载第一个存档槽，你可以根据需要修改这里
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -33,7 +33,7 @@ public class Button : MonoBehaviour, ISaveable
         if (!_buttonData.isPressed)
         {
             ButtonDown();
-            //Save();
+            Save(0); // 默认保存到第一个存档槽，你可以根据需要修改这里
         }
     }
 
@@ -44,33 +44,46 @@ public class Button : MonoBehaviour, ISaveable
         OnButtonDown.Invoke();
     }
 
-    public void Save()
+    public void Save(int slotIndex)
     {
         string json = JsonConvert.SerializeObject(_buttonData, Formatting.Indented);
-        File.WriteAllText(GetSavePath(), json);
+        string saveFilePath = SaveManager.GetSavePath(slotIndex, $"{gameObject.name}_data.json");
+        
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(saveFilePath));
+            File.WriteAllText(saveFilePath, json);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"保存按钮数据时出错：{e.Message}");
+        }
     }
 
-    public void Load()
+    public void Load(int slotIndex)
     {
-        string path = GetSavePath();
-        if (File.Exists(path))
+        string saveFilePath = SaveManager.GetSavePath(slotIndex, $"{gameObject.name}_data.json");
+        
+        if (File.Exists(saveFilePath))
         {
-            string json = File.ReadAllText(path);
-            _buttonData = JsonConvert.DeserializeObject<ButtonData>(json);
-            if (_buttonData.isPressed)
+            try
             {
-                ButtonDown();
+                string json = File.ReadAllText(saveFilePath);
+                _buttonData = JsonConvert.DeserializeObject<ButtonData>(json);
+                if (_buttonData.isPressed)
+                {
+                    ButtonDown();
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"加载按钮数据时出错：{e.Message}");
+                _buttonData = new ButtonData();
             }
         }
-    }
-
-    private string GetSavePath()
-    {
-        string directory = Path.Combine(Application.persistentDataPath, "ButtonData");
-        if (!Directory.Exists(directory))
+        else
         {
-            Directory.CreateDirectory(directory);
+            _buttonData = new ButtonData();
         }
-        return Path.Combine(directory, $"{gameObject.name}_data.json");
     }
 }

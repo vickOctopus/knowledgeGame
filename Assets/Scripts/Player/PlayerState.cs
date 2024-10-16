@@ -13,20 +13,21 @@ public class PlayerSaveData
 
 public class PlayerState : MonoBehaviour, ISaveable
 {
-    private string saveFilePath;
     private PlayerSaveData playerSaveData;
 
     private void Awake()
     {
-        saveFilePath = Path.Combine(Application.persistentDataPath, "playerData.json");
         playerSaveData = new PlayerSaveData();
-        Debug.Log(saveFilePath);
     }
 
-    public void Save()
+    private void Start()
     {
-        if (Application.isEditor) return;
+        Load(PlayerPrefs.GetInt("CurrentSlotIndex"));
+    }
 
+    public void Save(int slotIndex)
+    {
+       // if (Application.isEditor) return;
         if (PlayController.instance == null) return;
 
         playerSaveData.currentHp = PlayController.instance.currentHp;
@@ -35,21 +36,25 @@ public class PlayerState : MonoBehaviour, ISaveable
         playerSaveData.respawnPointY = transform.position.y;
 
         string jsonData = JsonUtility.ToJson(playerSaveData);
+        string saveFilePath = SaveManager.GetSavePath(slotIndex, "playerData.json");
+        
         try
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(saveFilePath));
             File.WriteAllText(saveFilePath, jsonData);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            // 在这里可以添加错误处理逻辑，如果需要的话
+            Debug.LogError($"保存玩家数据时出错：{e.Message}");
         }
     }
 
-    public void Load()
+    public void Load(int slotIndex)
     {
-        if (Application.isEditor) return;
-
+        //if (Application.isEditor) return;
         if (PlayController.instance == null) return;
+
+        string saveFilePath = SaveManager.GetSavePath(slotIndex, "playerData.json");
 
         if (File.Exists(saveFilePath))
         {
@@ -63,15 +68,15 @@ public class PlayerState : MonoBehaviour, ISaveable
                     PlayController.instance.currentHp = playerSaveData.currentHp;
                     PlayController.instance.maxHp = playerSaveData.maxHp;
                     transform.position = new Vector2(playerSaveData.respawnPointX, playerSaveData.respawnPointY);
-                    Debug.Log(saveFilePath);
                 }
                 else
                 {
                     SetDefaultValues();
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
+                Debug.LogError($"加载玩家数据时出错：{e.Message}");
                 SetDefaultValues();
             }
         }

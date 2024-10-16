@@ -25,9 +25,14 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(SetCursorCoroutine());
+       
         Screen.SetResolution(1920, 1080, true);
         // PlayerPrefs.DeleteAll();
+    }
+
+    public void StartGame()
+    {
+         StartCoroutine(SetCursorCoroutine());
     }
 
     private IEnumerator SetCursorCoroutine()

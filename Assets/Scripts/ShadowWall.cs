@@ -3,6 +3,7 @@ using UnityEngine.Tilemaps;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System; // 添加这行来引入 Exception 类
 
 public class ShadowWall : MonoBehaviour, ISaveable
 {
@@ -16,12 +17,11 @@ public class ShadowWall : MonoBehaviour, ISaveable
     private void Awake()
     {
         _tilemap = GetComponent<Tilemap>();
-        _saveFilePath = Path.Combine(Application.persistentDataPath, _saveFileName);
     }
 
     private void Start()
     {
-        //LoadHiddenTiles();
+        Load(PlayerPrefs.GetInt("CurrentSlotIndex"));
         EventManager.instance.OnButtonShadowWallDown += HideTileAndNeighbors;
     }
 
@@ -82,14 +82,16 @@ public class ShadowWall : MonoBehaviour, ISaveable
         }
     }
 
-    private void SaveHiddenTiles()
+    private void SaveHiddenTiles(int slotIndex)
     {
         string json = JsonUtility.ToJson(new TileDataList(_hiddenTiles));
+        _saveFilePath = SaveManager.GetSavePath(slotIndex, _saveFileName);
         File.WriteAllText(_saveFilePath, json);
     }
 
-    private void LoadHiddenTiles()
+    private void LoadHiddenTiles(int slotIndex)
     {
+        _saveFilePath = SaveManager.GetSavePath(slotIndex, _saveFileName);
         if (File.Exists(_saveFilePath))
         {
             try
@@ -108,26 +110,21 @@ public class ShadowWall : MonoBehaviour, ISaveable
                     _hiddenTiles.Add(pos);
                 }
             }
-            catch (System.Exception e)
+            catch (Exception e)
             {
                 Debug.LogError($"加载隐藏瓦片时出错：{e.Message}");
             }
         }
     }
 
-    public void PrepareForSave()
+    public void Save(int slotIndex)
     {
-        // 如果需要，可以在这里进行保存前的准备工作
+        SaveHiddenTiles(slotIndex);
     }
 
-    public void Save()
+    public void Load(int slotIndex)
     {
-        SaveHiddenTiles();
-    }
-
-    public void Load()
-    {
-        LoadHiddenTiles();
+        LoadHiddenTiles(slotIndex);
     }
 }
 

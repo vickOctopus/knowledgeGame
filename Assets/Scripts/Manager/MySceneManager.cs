@@ -25,17 +25,33 @@ public class MySceneManager : MonoBehaviour
     private void Start()
     {
         LoadSceneIfNotLoaded("PersistentScene");
-        LoadSceneIfNotLoaded("Room_01");
-       
     }
 
-    private void LoadSceneIfNotLoaded(string sceneName)
+    public void StartGame()
+    {
+        StartCoroutine(StartGameCoroutine());
+    }
+
+    private IEnumerator StartGameCoroutine()
+    {
+        // 加载 PersistentScene 和 Room_01
+        // AsyncOperation persistentSceneLoad = LoadSceneIfNotLoaded("PersistentScene");
+        AsyncOperation room01Load = LoadSceneIfNotLoaded("Room_01");
+
+        // 等待两个场景都加载完成
+        yield return new WaitUntil(() => room01Load.isDone);
+
+        // 卸载 MainScene
+        yield return SceneManager.UnloadSceneAsync("MainScene");
+    }
+
+    private AsyncOperation LoadSceneIfNotLoaded(string sceneName)
     {
         if (!IsSceneLoaded(sceneName))
         {
-            SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+            return SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
         }
-       
+        return null;
     }
 
     private bool IsSceneLoaded(string sceneName)
