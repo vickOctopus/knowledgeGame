@@ -30,7 +30,7 @@ public class CameraController : MonoBehaviour
       chunkManager = FindObjectOfType<ChunkManager>();
       if (chunkManager == null)
       {
-         Debug.LogError("ChunkManager not found in the scene!");
+         Debug.Log("ChunkManager not found in the scene!");
       }
    }
 
@@ -45,6 +45,7 @@ public class CameraController : MonoBehaviour
       if (chunkManager != null)
       {
          chunkManager.ForceUpdateChunks(transform.position);
+         Debug.Log("Force Update Chunks");
       }
    }
    

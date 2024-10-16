@@ -17,16 +17,11 @@ public class ChunkManager : MonoBehaviour
     private HashSet<Vector2Int> visibleChunks = new HashSet<Vector2Int>();
     private Vector2Int currentChunk;
 
-    // 如果使用 Unity 2020.1 或更新版本，使用内置的 ObjectPool
     private ObjectPool<HashSet<GameObject>> chunkObjectSetPool;
-
-    // 如果使用较旧版本的 Unity，使用自定义的 SimpleObjectPool
-    // private SimpleObjectPool<HashSet<GameObject>> chunkObjectSetPool;
 
     private Dictionary<Vector2Int, BoundsInt> chunkBoundsCache = new Dictionary<Vector2Int, BoundsInt>();
 
     private Coroutine updateChunksCoroutine;
-    
 
     private void Start()
     {
@@ -59,6 +54,7 @@ public class ChunkManager : MonoBehaviour
     // 新增的同步更新方法
     private void UpdateVisibleChunksImmediate()
     {
+       
         HashSet<Vector2Int> newVisibleChunks = new HashSet<Vector2Int>();
 
         for (int x = -loadDistance; x <= loadDistance; x++)
@@ -259,13 +255,10 @@ public class ChunkManager : MonoBehaviour
 
     private void Awake()
     {
-        // 如果使用 Unity 2020.1 或更新版本，初始化 ObjectPool
         chunkObjectSetPool = new ObjectPool<HashSet<GameObject>>(
             createFunc: () => new HashSet<GameObject>(),
             actionOnRelease: set => set.Clear()
         );
-
-        
     }
 
     // 新增的同步设置 chunk 可见性的方法
@@ -285,4 +278,3 @@ public class ChunkManager : MonoBehaviour
         }
     }
 }
-

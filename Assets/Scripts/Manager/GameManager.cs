@@ -26,6 +26,7 @@ public class GameManager : MonoBehaviour
     {
         Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
         Cursor.visible = false;
+        Screen.SetResolution(1920, 1080, true);
     }
 
     public event Action<int> OnSwitchChange; 
