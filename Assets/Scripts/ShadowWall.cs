@@ -2,17 +2,16 @@ using UnityEngine;
 using UnityEngine.Tilemaps;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq; // 添加这行
+using System.Linq;
 
-public class ShadowWall : MonoBehaviour
+public class ShadowWall : MonoBehaviour, ISaveable
 {
-    [SerializeField]private string _saveFileName = "hiddenTiles.json";
+    [SerializeField] private string _saveFileName = "hiddenTiles.json";
     private string _saveFilePath;
 
     private Tilemap _tilemap;
-    private HashSet<Vector3Int> _hiddenTiles = new HashSet<Vector3Int>(); // 记录隐藏的 Tile 位置
-    private Dictionary<Vector3Int, TileBase> _originalTiles = new Dictionary<Vector3Int, TileBase>(); // 原始 Tile
-
+    private HashSet<Vector3Int> _hiddenTiles = new HashSet<Vector3Int>();
+    private Dictionary<Vector3Int, TileBase> _originalTiles = new Dictionary<Vector3Int, TileBase>();
 
     private void Awake()
     {
@@ -22,35 +21,21 @@ public class ShadowWall : MonoBehaviour
 
     private void Start()
     {
-        // 只在非编辑器模式下加载隐藏的 Tile
-        if (!Application.isEditor)
-        {
-            LoadHiddenTiles();
-        }
-
-
+        //LoadHiddenTiles();
         EventManager.instance.OnButtonShadowWallDown += HideTileAndNeighbors;
-
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Player"))
         {
-            // 获取玩家的位置
             Vector3 playerPosition = other.transform.position;
-            
-
             HideTileAndNeighbors(playerPosition);
-            
         }
     }
 
-    // 当玩家与某个 Tile 发生碰撞时调用这个函数
     private void HideTileAndNeighbors(Vector3 playerPosition)
     {
-        
-        // 将玩家的世界坐标转换为 Tilemap 坐标
         Vector3Int startTilePosition = _tilemap.WorldToCell(playerPosition);
         
         Queue<Vector3Int> tileQueue = new Queue<Vector3Int>();
@@ -79,62 +64,48 @@ public class ShadowWall : MonoBehaviour
                 }
             }
         }
-
-        SaveHiddenTiles();
     }
 
-    // 还原所有隐藏的 Tile
     public void RestoreHiddenTiles()
     {
         foreach (var kvp in _originalTiles)
         {
-            _tilemap.SetTile(kvp.Key, kvp.Value); // 恢复 Tile
+            _tilemap.SetTile(kvp.Key, kvp.Value);
         }
 
         _hiddenTiles.Clear();
         _originalTiles.Clear();
 
-        // 删除保存的文件
         if (File.Exists(_saveFilePath))
         {
             File.Delete(_saveFilePath);
         }
     }
 
-    // 保存隐藏的 Tile 到文件
     private void SaveHiddenTiles()
     {
-        // 只在非编辑器模式下保存隐藏的 Tile
-        if (!Application.isEditor)
-        {
-            string json = JsonUtility.ToJson(new TileDataList(_hiddenTiles));
-            File.WriteAllText(_saveFilePath, json);
-        }
+        string json = JsonUtility.ToJson(new TileDataList(_hiddenTiles));
+        File.WriteAllText(_saveFilePath, json);
     }
 
-    // 从文件加载隐藏的 Tile 状态
     private void LoadHiddenTiles()
     {
-        // 只在非编辑器模式下加载隐藏的 Tile
-        if (!Application.isEditor)
+        if (File.Exists(_saveFilePath))
         {
             try
             {
-                if (File.Exists(_saveFilePath))
-                {
-                    var json = File.ReadAllText(_saveFilePath);
-                    TileDataList data = JsonUtility.FromJson<TileDataList>(json);
+                var json = File.ReadAllText(_saveFilePath);
+                TileDataList data = JsonUtility.FromJson<TileDataList>(json);
 
-                    foreach (Vector3IntSerializable tilePosition in data.hiddenTiles)
+                foreach (Vector3IntSerializable tilePosition in data.hiddenTiles)
+                {
+                    Vector3Int pos = tilePosition.ToVector3Int();
+                    if (!_originalTiles.ContainsKey(pos))
                     {
-                        Vector3Int pos = tilePosition.ToVector3Int();
-                        if (!_originalTiles.ContainsKey(pos))
-                        {
-                            _originalTiles[pos] = _tilemap.GetTile(pos);
-                        }
-                        _tilemap.SetTile(pos, null);
-                        _hiddenTiles.Add(pos);
+                        _originalTiles[pos] = _tilemap.GetTile(pos);
                     }
+                    _tilemap.SetTile(pos, null);
+                    _hiddenTiles.Add(pos);
                 }
             }
             catch (System.Exception e)
@@ -144,18 +115,23 @@ public class ShadowWall : MonoBehaviour
         }
     }
 
-    // 游戏退出时自动保存
-    private void OnApplicationQuit()
+    public void PrepareForSave()
     {
-        // 只在非编辑器模式下自动保存
-        if (!Application.isEditor)
-        {
-            SaveHiddenTiles();
-        }
+        // 如果需要，可以在这里进行保存前的准备工作
+    }
+
+    public void Save()
+    {
+        SaveHiddenTiles();
+    }
+
+    public void Load()
+    {
+        LoadHiddenTiles();
     }
 }
 
-// 用于保存 Vector3Int 数组到 JSON
+// 用于序列化 Vector3Int 的类
 [System.Serializable]
 public class Vector3IntSerializable
 {

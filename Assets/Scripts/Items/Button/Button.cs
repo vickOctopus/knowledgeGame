@@ -1,59 +1,76 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Events;
+using System.IO;
+using Newtonsoft.Json;
 
-public class Button : MonoBehaviour
+[Serializable]
+public class ButtonData
+{
+    public bool isPressed;
+}
+
+public class Button : MonoBehaviour, ISaveable
 {
     public Sprite ButtonDownSprite;
+    public UnityEvent OnButtonDown;
     private SpriteRenderer _spriteRenderer;
+    private ButtonData _buttonData;
 
-    public void Awake()
+    private void Awake()
     {
         _spriteRenderer = GetComponent<SpriteRenderer>();
-        
-        
+        _buttonData = new ButtonData();
     }
 
-
-    public void Start()
+    private void Start()
     {
-        
-        if (Application.isEditor)
+        Load();
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (!_buttonData.isPressed)
         {
-            return;
-        }
-        
-        if (!PlayerPrefs.HasKey(name + transform.parent.name))
-        {
-            PlayerPrefs.SetInt(name + transform.parent.name, 0);
-        }
-        else if (PlayerPrefs.GetInt(name + transform.parent.name) == 1)
-        {
-            OnButtonDown();
+            ButtonDown();
+            //Save();
         }
     }
 
-    public void OnTriggerEnter2D(Collider2D other)
+    public virtual void ButtonDown()
     {
-        if (!Application.isEditor)
+        _buttonData.isPressed = true;
+        _spriteRenderer.sprite = ButtonDownSprite;
+        OnButtonDown.Invoke();
+    }
+
+    public void Save()
+    {
+        string json = JsonConvert.SerializeObject(_buttonData, Formatting.Indented);
+        File.WriteAllText(GetSavePath(), json);
+    }
+
+    public void Load()
+    {
+        string path = GetSavePath();
+        if (File.Exists(path))
         {
-            if (PlayerPrefs.GetInt(name + transform.parent.name) == 0)
+            string json = File.ReadAllText(path);
+            _buttonData = JsonConvert.DeserializeObject<ButtonData>(json);
+            if (_buttonData.isPressed)
             {
-                OnButtonDown();
-                PlayerPrefs.SetInt(this.name + transform.parent.name, 1);
+                ButtonDown();
             }
         }
-        
-        else
-        {
-            OnButtonDown();
-        }
     }
 
-    public virtual void OnButtonDown()
+    private string GetSavePath()
     {
-        _spriteRenderer.sprite = ButtonDownSprite;
-        SendMessageUpwards("ButtonDown");
+        string directory = Path.Combine(Application.persistentDataPath, "ButtonData");
+        if (!Directory.Exists(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+        return Path.Combine(directory, $"{gameObject.name}_data.json");
     }
 }

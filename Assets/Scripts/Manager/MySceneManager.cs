@@ -35,10 +35,7 @@ public class MySceneManager : MonoBehaviour
         {
             SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
         }
-        else
-        {
-            Debug.Log($"场景 {sceneName} 已经加载,跳过加载过程。");
-        }
+       
     }
 
     private bool IsSceneLoaded(string sceneName)

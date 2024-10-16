@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -24,9 +25,26 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        StartCoroutine(SetCursorCoroutine());
+        Screen.SetResolution(1920, 1080, true);
+        // PlayerPrefs.DeleteAll();
+    }
+
+    private IEnumerator SetCursorCoroutine()
+    {
+        yield return new WaitForEndOfFrame();
         Cursor.SetCursor(cursorTexture, Vector2.zero, CursorMode.Auto);
         Cursor.visible = false;
-        Screen.SetResolution(1920, 1080, true);
+        StartCoroutine(EnsureCursorHidden());
+    }
+
+    private IEnumerator EnsureCursorHidden()
+    {
+        while (Cursor.visible)
+        {
+            Cursor.visible = false;
+            yield return new WaitForSeconds(0.1f);
+        }
     }
 
     public event Action<int> OnSwitchChange; 
@@ -62,7 +80,7 @@ public class GameManager : MonoBehaviour
     {
         #if UNITY_EDITOR
         if (UnityEditor.EditorUtility.DisplayDialog("删除所有 JSON 文件",
-            "你确定要删除持久化数据路径中的所有 JSON 文件吗？", "是", "否"))
+            "你确定要删除持久化数据路径中的所有 JSON 文件吗？", "是", "��"))
         {
             DeleteAllJsonFiles();
         }

@@ -9,5 +9,4 @@ public class PlayerData : ScriptableObject
     public int currentHp;
     public int maxHp;
     public Vector2 respawnPoint;
-    public bool hasGetJinGuBang;
 }

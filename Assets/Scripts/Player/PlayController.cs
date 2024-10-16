@@ -1,11 +1,10 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Cursor = UnityEngine.Cursor;
 using Quaternion = UnityEngine.Quaternion;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
-
-//落水
 
 public class PlayController : MonoBehaviour,ITakeDamage
 {
@@ -43,7 +42,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private bool _isGrounded;
     private float _verticalMove; 
     private bool _isOnLadder; 
-    private int _currentHp;
+    [HideInInspector][FormerlySerializedAs("_currentHp")] public int currentHp;
     private Vector2 _archivePosition;
     private SpriteRenderer _spriteRenderer;
     private bool _isRolling;
@@ -69,7 +68,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     [Header("Property")] 
     [SerializeField]private PlayerData playerData;
-    [SerializeField] private int MAXhp;
+    public int maxHp;
     
     [Header("Check")]
     [SerializeField]private Transform groundCheckPoint;
@@ -129,22 +128,24 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         _gravityScale = _rg.gravityScale;
         _respawnPosition = transform.position;
-        
-        Physics2D.IgnoreCollision(_boxCollider,_circleCollider,true);
-        
+
+        Physics2D.IgnoreCollision(_boxCollider, _circleCollider, true);
+
         //读取当前血量
-        _currentHp = playerData.currentHp;
-        GameManager.instance.PlayerHpChange(_currentHp);
+        //currentHp = playerData.currentHp;
+        //GameManager.instance.PlayerHpChange(currentHp);
         //HpChange();
 
         StartCoroutine(RespawnPositionRecord()); //启动重生位置检测定时器
 
-        if (playerData.hasGetJinGuBang) //启动游戏时检测是否获得了金箍棒，获得了便生成
-        {
-            SpawnJinGuBang();
-            jinGuBang.SetActive(false);
-        }
-
+        // if (playerData.hasGetJinGuBang) //启动游戏时检测是否获得了金箍棒，获得了便生成
+        // {
+        //     
+        // }
+        SpawnJinGuBang();
+        jinGuBang.SetActive(false);
+        
+        
         // 确保在开始时只启用 BoxCollider2D
         _boxCollider.enabled = true;
         _circleCollider.enabled = false;
@@ -601,7 +602,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     public void UnloadJinGuBangPlayerMove()
     {
-        _rg.velocity += Vector2.up * jumpForce;
+        _rg.velocity += Vector2.up * jumpForce * 0.5f;
         isEquipJinGuBang = false;
         
         // 启动协程来延迟恢复碰撞
@@ -628,10 +629,10 @@ public class PlayController : MonoBehaviour,ITakeDamage
             _canBeDamaged = false;
             StartCoroutine(CanBeDamaged());
             
-            _currentHp -= damage;
+            currentHp -= damage;
             HpChange();
 
-            if (_currentHp == 0)
+            if (currentHp == 0)
             {
                 PlayerDead();
             }
@@ -649,22 +650,22 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _canBeDamaged = true;
     }
 
-    private void HpChange()
+    public void HpChange()
     {
-        GameManager.instance.PlayerHpChange(_currentHp);
-        playerData.currentHp=_currentHp;
+        GameManager.instance.PlayerHpChange(currentHp);
+        //playerData.currentHp=currentHp;
     }
 
     private void PlayerDead()
     {
-        transform.position = playerData.respawnPoint;
-        _currentHp = playerData.maxHp;
+        SaveManager.instance.LoadGame();
+        currentHp = maxHp;
         HpChange();
     }
 
     public void Recover(int recoverHp)
     {
-        _currentHp += recoverHp;
+        currentHp += recoverHp;
         HpChange();
     }
 
@@ -686,4 +687,6 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         isOnJinGuBang = isEquipJinGuBang && !_isGrounded;
     }
+
+    
 }

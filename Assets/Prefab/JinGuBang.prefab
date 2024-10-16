@@ -120,7 +120,7 @@ MonoBehaviour:
     m_Bits: 64
   rotateSpeed: 200
   elongationSpeed: 11
-  maxScale: 6
+  maxScale: 7
   moveSpeed: 1
   width: 0.35
 --- !u!212 &1393323417001308527

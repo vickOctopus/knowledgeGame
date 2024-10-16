@@ -23,13 +23,25 @@ public class ChunkManager : MonoBehaviour
 
     private Coroutine updateChunksCoroutine;
 
+    private void Awake()
+    {
+        chunkObjectSetPool = new ObjectPool<HashSet<GameObject>>(
+            createFunc: () => new HashSet<GameObject>(),
+            actionOnRelease: set => set.Clear()
+        );
+    }
+
     private void Start()
     {
         InitializeChunks();
-        // 同步加载玩家周围的 chunks
         Vector2Int playerChunk = GetChunkCoordFromWorldPos(PlayController.instance.transform.position);
         currentChunk = playerChunk;
         UpdateVisibleChunksImmediate();
+
+        if (CameraController.Instance != null && CameraController.Instance.chunkManager == null)
+        {
+            CameraController.Instance.chunkManager = this;
+        }
     }
 
     private void InitializeChunks()
@@ -112,6 +124,12 @@ public class ChunkManager : MonoBehaviour
 
     private void SetTilemapChunkVisibility(Tilemap tilemap, Vector2Int chunkCoord, bool visible)
     {
+        if (tilemap == null)
+        {
+            Debug.LogWarning("Tilemap is null in SetTilemapChunkVisibility");
+            return;
+        }
+
         if (!chunkBoundsCache.TryGetValue(chunkCoord, out BoundsInt bounds))
         {
             Vector3Int chunkOrigin = new Vector3Int(
@@ -126,8 +144,16 @@ public class ChunkManager : MonoBehaviour
         // 使用缓存的 bounds
         foreach (Vector3Int pos in bounds.allPositionsWithin)
         {
-            tilemap.SetTileFlags(pos, TileFlags.None);
-            tilemap.SetColor(pos, visible ? Color.white : Color.clear);
+            if (tilemap != null)
+            {
+                tilemap.SetTileFlags(pos, TileFlags.None);
+                tilemap.SetColor(pos, visible ? Color.white : Color.clear);
+            }
+            else
+            {
+                Debug.LogWarning("Tilemap became null during SetTilemapChunkVisibility");
+                return;
+            }
         }
     }
 
@@ -183,26 +209,20 @@ public class ChunkManager : MonoBehaviour
             {
                 Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
                 newVisibleChunks.Add(coord);
+                if (!visibleChunks.Contains(coord))
+                {
+                    SetChunkVisibilityImmediate(coord, true);
+                    yield return null;
+                }
             }
         }
 
-        // 隐藏不再可见的 chunks
         foreach (Vector2Int chunk in visibleChunks)
         {
             if (!newVisibleChunks.Contains(chunk))
             {
-                SetChunkVisibility(chunk, false);
-                yield return null; // 让出控制权，等待下一帧
-            }
-        }
-
-        // 显示新可见的 chunks
-        foreach (Vector2Int chunk in newVisibleChunks)
-        {
-            if (!visibleChunks.Contains(chunk))
-            {
-                SetChunkVisibility(chunk, true);
-                yield return null; // 让出控制权，等待下一帧
+                SetChunkVisibilityImmediate(chunk, false);
+                yield return null;
             }
         }
 
@@ -253,12 +273,9 @@ public class ChunkManager : MonoBehaviour
         }
     }
 
-    private void Awake()
+    private void OnApplicationQuit()
     {
-        chunkObjectSetPool = new ObjectPool<HashSet<GameObject>>(
-            createFunc: () => new HashSet<GameObject>(),
-            actionOnRelease: set => set.Clear()
-        );
+        // 如果需要，这里可以添加额外的清理代码
     }
 
     // 新增的同步设置 chunk 可见性的方法
@@ -266,7 +283,14 @@ public class ChunkManager : MonoBehaviour
     {
         foreach (Tilemap tilemap in managedTilemaps)
         {
-            SetTilemapChunkVisibility(tilemap, chunkCoord, visible);
+            if (tilemap != null)
+            {
+                SetTilemapChunkVisibility(tilemap, chunkCoord, visible);
+            }
+            else
+            {
+                Debug.LogWarning("A managed Tilemap is null in SetChunkVisibilityImmediate");
+            }
         }
 
         if (chunkObjects.TryGetValue(chunkCoord, out HashSet<GameObject> objects))

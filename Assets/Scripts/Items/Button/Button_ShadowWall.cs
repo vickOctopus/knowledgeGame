@@ -6,10 +6,14 @@ public class Button_ShadowWall : Button
 {
     
     public Transform shadowWallTriggerPos;
-    public override void OnButtonDown()
+    
+    
+    public override void ButtonDown()
     {
-        base.OnButtonDown();
+        base.ButtonDown();
         
         EventManager.instance.ButtonShadowWallDown(shadowWallTriggerPos.position);
     }
+    
+    
 }

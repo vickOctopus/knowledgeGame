@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class JinGuBang_Chest : MonoBehaviour,ISceneInteraction
+public class JinGuBang_Chest : MonoBehaviour
 {
     public PlayerData playerData;
     public Sprite ChestOpenedSprite;
@@ -15,26 +15,26 @@ public class JinGuBang_Chest : MonoBehaviour,ISceneInteraction
         _spriteRenderer = GetComponent<SpriteRenderer>();
     }
 
-    private void Start()
-    {
-        if (playerData.hasGetJinGuBang)
-        {
-            _spriteRenderer.sprite = ChestOpenedSprite;
-        }
-    }
-
-    public void Interact()
-    {
-        if (!playerData.hasGetJinGuBang)
-        {
-            playerData.hasGetJinGuBang = true;
-            OpenChest();
-        }
-    }
-
-    private void OpenChest()
-    {
-        PlayController.instance.SpawnJinGuBang();
-        _spriteRenderer.sprite = ChestOpenedSprite;
-    }
+    // private void Start()
+    // {
+    //     if (playerData.hasGetJinGuBang)
+    //     {
+    //         _spriteRenderer.sprite = ChestOpenedSprite;
+    //     }
+    // }
+    //
+    // public void Interact()
+    // {
+    //     if (!playerData.hasGetJinGuBang)
+    //     {
+    //         playerData.hasGetJinGuBang = true;
+    //         OpenChest();
+    //     }
+    // }
+    //
+    // private void OpenChest()
+    // {
+    //     PlayController.instance.SpawnJinGuBang();
+    //     _spriteRenderer.sprite = ChestOpenedSprite;
+    // }
 }

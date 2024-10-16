@@ -1,8 +1,5 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEditor;
 
 namespace Bundos.WaterSystem
 {
@@ -46,18 +43,10 @@ namespace Bundos.WaterSystem
         [HideInInspector]
         Vector2[] uvs;
 
-        private float _spriteWidth;
-        private BoxCollider2D _boxCollider;
-        public float heightGrowSpeed;
-        private float _waterHeightMax;
-
-        private void Awake()
-        {
-            _boxCollider = GetComponent<BoxCollider2D>();
-            _spriteWidth=_boxCollider.size.x;
-            _waterHeightMax = transform.lossyScale.y;
-            heightGrowSpeed /=  _spriteWidth;
-        }
+        private float maxHeight;
+        public float growthRate;
+        private float width;
+        private float rockInWater;
 
 
         private void Start()
@@ -65,6 +54,9 @@ namespace Bundos.WaterSystem
             Initialize();
             InitializeSprings();
             CreateShape();
+            
+            width=GetComponent<BoxCollider2D>().bounds.size.x;
+            maxHeight = GetComponent<BoxCollider2D>().bounds.size.y;
         }
 
         public void Initialize()
@@ -155,15 +147,6 @@ namespace Bundos.WaterSystem
             UpdateSpringPositions();
             UpdateMeshVerticePositions();
             UpdateMesh();
-            UpdateWaterLevel();
-        }
-
-        private void UpdateWaterLevel()
-        {
-            if (transform.localScale.y<_waterHeightMax)
-            {
-                transform.localScale=new Vector3(transform.localScale.x,transform.localScale.y+heightGrowSpeed*Time.deltaTime,transform.localScale.z);
-            }
         }
 
         private void UpdateMeshVerticePositions()
@@ -234,26 +217,24 @@ namespace Bundos.WaterSystem
             springs[index].weightPosition = (sink ? Vector2.down : Vector2.up) * waveHeight;
         }
 
-        private void OnTriggerEnter2D(Collider2D other)
+        void OnTriggerEnter2D(Collider2D other)
         {
             if (!interactive)
                 return;
-            if (other.CompareTag("Floating Objects"))
-                return;
+
+            if (other.gameObject.CompareTag("Player"))
+            {
+                 PlayController.instance.Respawn(0.5f);
+            }
 
             if (other.CompareTag("Rock"))
             {
                 var rock = other.GetComponent<Rock>();
-                
-                if (rock)
-                {
-                    rock.EnterWater(); // 调用 EnterWater 方法
-                    StartCoroutine(SaveRockPositionDelayed(rock)); // 启动延迟保存位置的协程
-                }
-                
-                _waterHeightMax += heightGrowSpeed;
-                
-                return;
+                rock.EnterWater();
+                maxHeight += growthRate / width;
+                rockInWater++;
+                StopAllCoroutines();
+                StartCoroutine(GrowLevel());
             }
 
             Rigidbody2D otherRigidbody = other.GetComponent<Rigidbody2D>();
@@ -263,17 +244,31 @@ namespace Bundos.WaterSystem
 
                 Ripple(contactPoint, false);
             }
-
-            if (other.CompareTag("Player"))
-            {
-                PlayController.instance.Respawn(1.0f);
-            }
         }
 
-        private IEnumerator SaveRockPositionDelayed(Rock rock)
+        private IEnumerator GrowLevel()
         {
-            yield return new WaitForSeconds(5.0f); // 等待1秒
-            rock.SavePosition(); // 保存岩石位置
+            while (transform.localScale.y < maxHeight)
+            {
+                transform.localScale = new Vector3(transform.localScale.x,
+                    transform.localScale.y + growthRate / width * Time.deltaTime*rockInWater, transform.localScale.z);
+                yield return new WaitForSeconds(Time.deltaTime);
+            }
+
+            rockInWater = 0;
         }
+
+        // void OnTriggerExit2D(Collider2D other)
+        // {
+        //     if (!interactive)
+        //         return;
+        //
+        //     Rigidbody2D otherRigidbody = other.GetComponent<Rigidbody2D>();
+        //     if (otherRigidbody != null)
+        //     {
+        //         Vector2 contactPoint = other.ClosestPoint(transform.position);
+        //         Ripple(contactPoint, true);
+        //     }
+        // }
     }
 }

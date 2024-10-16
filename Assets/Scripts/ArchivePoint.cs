@@ -8,5 +8,6 @@ public class ArchivePoint : MonoBehaviour,ISceneInteraction
     {
         UIManager.instance.ShowSaveUI();
         SaveManager.instance.GetRespawnPosition(transform.position);
+        Cursor.visible = true;
     }
 }

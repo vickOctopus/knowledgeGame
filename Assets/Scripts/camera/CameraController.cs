@@ -8,7 +8,8 @@ public class CameraController : MonoBehaviour
    
    public static CameraController Instance;
 
-   private ChunkManager chunkManager;
+   // 将 chunkManager 改为 public
+   public ChunkManager chunkManager;
 
    private void Awake()
    {
@@ -20,32 +21,46 @@ public class CameraController : MonoBehaviour
       else
       {
          Destroy(gameObject);
+         return;
       }
-   }
 
-   
+      FindChunkManager();
+   }
 
    private void Start()
    {
-      chunkManager = FindObjectOfType<ChunkManager>();
       if (chunkManager == null)
       {
-         Debug.Log("ChunkManager not found in the scene!");
+         FindChunkManager();
       }
+   }
+
+   private void FindChunkManager()
+   {
+      chunkManager = FindObjectOfType<ChunkManager>();
    }
 
    public void CameraStartResetPosition(float x, float y)
    {
-      transform.position = new Vector3(
+      Vector3 newPosition = new Vector3(
          transform.position.x + x * ChunkManager.chunkWidth,
          transform.position.y + y * ChunkManager.chunkHeight,
          transform.position.z
       );
       
+      transform.position = newPosition;
+      
       if (chunkManager != null)
       {
-         chunkManager.ForceUpdateChunks(transform.position);
-         Debug.Log("Force Update Chunks");
+         chunkManager.ForceUpdateChunks(newPosition);
+      }
+      else
+      {
+         FindChunkManager();
+         if (chunkManager != null)
+         {
+            chunkManager.ForceUpdateChunks(newPosition);
+         }
       }
    }
    
