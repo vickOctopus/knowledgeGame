@@ -28,6 +28,7 @@ public class GameManager : MonoBehaviour
        
         Screen.SetResolution(1920, 1080, true);
         StartCoroutine(SetCursorCoroutine());
+        ChunkManager.Instance.InitializeChunks(PlayController.instance.transform.position);
         // PlayerPrefs.DeleteAll();
     }
 
