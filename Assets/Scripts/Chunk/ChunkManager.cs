@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.Tilemaps;
 
 public class ChunkManager : MonoBehaviour
 {
@@ -15,6 +16,8 @@ public class ChunkManager : MonoBehaviour
     private Dictionary<Vector2Int, AsyncOperationHandle<GameObject>> loadedChunks = new Dictionary<Vector2Int, AsyncOperationHandle<GameObject>>();
     private HashSet<Vector2Int> visibleChunks = new HashSet<Vector2Int>();
     private Vector2Int currentChunk;
+    private HashSet<Vector2Int> chunksBeingLoaded = new HashSet<Vector2Int>();
+    private bool isInitializing = false;
 
     private void Awake()
     {
@@ -22,26 +25,26 @@ public class ChunkManager : MonoBehaviour
         {
             Instance = this;
             DontDestroyOnLoad(gameObject);
-            Debug.Log("ChunkManager initialized");
+            CheckAddressablesStatus();
         }
         else
         {
-            Debug.Log("Duplicate ChunkManager found, destroying");
             Destroy(gameObject);
         }
     }
 
     public void InitializeChunks(Vector3 playerPosition)
     {
+        if (isInitializing) return;
+        isInitializing = true;
         currentChunk = GetChunkCoordFromWorldPos(playerPosition);
-        Debug.Log($"Initializing chunks. Player position: {playerPosition}, Current chunk: {currentChunk}");
         StartCoroutine(UpdateVisibleChunksAsync());
     }
 
     public void ForceUpdateChunks(Vector3 cameraPosition)
     {
+        if (isInitializing) return;
         Vector2Int newChunk = GetChunkCoordFromWorldPos(cameraPosition);
-        Debug.Log($"Forcing chunk update. Camera position: {cameraPosition}, New chunk: {newChunk}, Current chunk: {currentChunk}");
         if (newChunk != currentChunk)
         {
             currentChunk = newChunk;
@@ -51,7 +54,6 @@ public class ChunkManager : MonoBehaviour
 
     private IEnumerator UpdateVisibleChunksAsync()
     {
-        Debug.Log("Starting UpdateVisibleChunksAsync");
         HashSet<Vector2Int> newVisibleChunks = new HashSet<Vector2Int>();
 
         for (int x = -loadDistance; x <= loadDistance; x++)
@@ -60,9 +62,8 @@ public class ChunkManager : MonoBehaviour
             {
                 Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
                 newVisibleChunks.Add(coord);
-                if (!visibleChunks.Contains(coord))
+                if (!visibleChunks.Contains(coord) && !loadedChunks.ContainsKey(coord) && !chunksBeingLoaded.Contains(coord))
                 {
-                    Debug.Log($"Loading new chunk: {coord}");
                     yield return LoadChunkAsync(coord);
                 }
             }
@@ -72,39 +73,52 @@ public class ChunkManager : MonoBehaviour
         {
             if (!newVisibleChunks.Contains(chunk))
             {
-                Debug.Log($"Unloading chunk: {chunk}");
                 UnloadChunk(chunk);
             }
         }
 
         visibleChunks = newVisibleChunks;
-        Debug.Log($"UpdateVisibleChunksAsync completed. Visible chunks: {string.Join(", ", visibleChunks)}");
+        isInitializing = false;
     }
 
     private IEnumerator LoadChunkAsync(Vector2Int chunkCoord)
     {
-        if (!loadedChunks.ContainsKey(chunkCoord))
+        if (!loadedChunks.ContainsKey(chunkCoord) && !chunksBeingLoaded.Contains(chunkCoord))
         {
+            chunksBeingLoaded.Add(chunkCoord);
             string chunkAddress = $"Chunk_{chunkCoord.x}_{chunkCoord.y}";
-            Debug.Log($"Attempting to load chunk: {chunkAddress}");
-            AsyncOperationHandle<GameObject> loadOperation = Addressables.InstantiateAsync(chunkAddress, 
-                new Vector3(chunkCoord.x * chunkWidth, chunkCoord.y * chunkHeight, 0), 
-                Quaternion.identity, transform);
-            yield return loadOperation;
+            
+            int retryCount = 0;
+            const int maxRetries = 3;
+            
+            while (retryCount < maxRetries)
+            {
+                Vector3 chunkPosition = new Vector3(chunkCoord.x * chunkWidth, chunkCoord.y * chunkHeight, 0);
+                AsyncOperationHandle<GameObject> loadOperation = Addressables.InstantiateAsync(chunkAddress, chunkPosition, Quaternion.identity, transform);
+                yield return loadOperation;
 
-            if (loadOperation.Status == AsyncOperationStatus.Succeeded)
-            {
-                loadedChunks[chunkCoord] = loadOperation;
-                Debug.Log($"Successfully loaded chunk: {chunkAddress}");
+                if (loadOperation.Status == AsyncOperationStatus.Succeeded)
+                {
+                    GameObject chunkObject = loadOperation.Result;
+                    chunkObject.transform.position = chunkPosition;
+                    loadedChunks[chunkCoord] = loadOperation;
+                    
+                    chunksBeingLoaded.Remove(chunkCoord);
+                    yield break;
+                }
+                else
+                {
+                    Addressables.Release(loadOperation);
+                    retryCount++;
+                    
+                    if (retryCount < maxRetries)
+                    {
+                        yield return new WaitForSeconds(1f);
+                    }
+                }
             }
-            else
-            {
-                Debug.LogError($"Failed to load chunk at {chunkCoord}. Status: {loadOperation.Status}");
-            }
-        }
-        else
-        {
-            Debug.Log($"Chunk already loaded: {chunkCoord}");
+            
+            chunksBeingLoaded.Remove(chunkCoord);
         }
     }
 
@@ -112,13 +126,8 @@ public class ChunkManager : MonoBehaviour
     {
         if (loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<GameObject> loadOperation))
         {
-            Debug.Log($"Unloading chunk: {chunkCoord}");
             Addressables.ReleaseInstance(loadOperation);
             loadedChunks.Remove(chunkCoord);
-        }
-        else
-        {
-            Debug.LogWarning($"Attempted to unload non-existent chunk: {chunkCoord}");
         }
     }
 
@@ -128,19 +137,24 @@ public class ChunkManager : MonoBehaviour
             Mathf.FloorToInt(worldPos.x / chunkWidth),
             Mathf.FloorToInt(worldPos.y / chunkHeight)
         );
-        Debug.Log($"World position {worldPos} corresponds to chunk coordinate {chunkCoord}");
         return chunkCoord;
     }
 
     public void UnloadAllChunks()
     {
-        Debug.Log("Unloading all chunks");
         foreach (var loadOperation in loadedChunks.Values)
         {
-            Addressables.ReleaseInstance(loadOperation);
+            if (loadOperation.IsValid())
+            {
+                Addressables.ReleaseInstance(loadOperation);
+            }
         }
         loadedChunks.Clear();
         visibleChunks.Clear();
-        Debug.Log("All chunks unloaded");
+    }
+
+    private void CheckAddressablesStatus()
+    {
+        Addressables.GetDownloadSizeAsync("Chunk_0_0").Completed += (op) => { };
     }
 }
