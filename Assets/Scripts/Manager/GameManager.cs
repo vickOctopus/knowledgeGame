@@ -27,10 +27,11 @@ public class GameManager : MonoBehaviour
     {
        
         Screen.SetResolution(1920, 1080, true);
+        StartCoroutine(SetCursorCoroutine());
         // PlayerPrefs.DeleteAll();
     }
 
-    public void StartGame()
+    public void StartGame()//由mainmenu调用
     {
          StartCoroutine(SetCursorCoroutine());
     }

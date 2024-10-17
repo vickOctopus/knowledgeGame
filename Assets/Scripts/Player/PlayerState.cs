@@ -23,6 +23,7 @@ public class PlayerState : MonoBehaviour, ISaveable
     private void Start()
     {
         Load(PlayerPrefs.GetInt("CurrentSlotIndex"));
+     
     }
 
     public void Save(int slotIndex)
@@ -50,8 +51,9 @@ public class PlayerState : MonoBehaviour, ISaveable
     }
 
     public void Load(int slotIndex)
-    {
-        //if (Application.isEditor) return;
+    { 
+        if (Application.isEditor) return;//编辑模式不读取，方便测试
+        
         if (PlayController.instance == null) return;
 
         string saveFilePath = SaveManager.GetSavePath(slotIndex, "playerData.json");

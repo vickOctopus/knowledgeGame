@@ -31,6 +31,7 @@ public class SaveManager : MonoBehaviour
     private void Start()
     {
         GameStart();//加上mainscene后由mainmenu调用
+        // Debug.Log(Application.persistentDataPath);
     }
 
     public void GameStart()
@@ -86,7 +87,7 @@ public class SaveManager : MonoBehaviour
             saveable.Load(slotIndex);
         }
 
-        Debug.Log($"已从槽位 {slotIndex} 加载游戏");
+        // Debug.Log($"已从槽位 {slotIndex} 加载游戏");
     }
 
     public bool DoesSaveExist(int slotIndex)
