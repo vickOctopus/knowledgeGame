@@ -13,11 +13,13 @@ public class ChunkManager : MonoBehaviour
     public const int chunkHeight = 28;
     public int loadDistance = 1;
 
-    private Dictionary<Vector2Int, AsyncOperationHandle<GameObject>> loadedChunks = new Dictionary<Vector2Int, AsyncOperationHandle<GameObject>>();
+    private Dictionary<Vector2Int, AsyncOperationHandle<ChunkData>> loadedChunks = new Dictionary<Vector2Int, AsyncOperationHandle<ChunkData>>();
     private HashSet<Vector2Int> visibleChunks = new HashSet<Vector2Int>();
     private Vector2Int currentChunk;
     private HashSet<Vector2Int> chunksBeingLoaded = new HashSet<Vector2Int>();
     private bool isInitializing = false;
+
+    [SerializeField] private GameObject levelGrid;
 
     private void Awake()
     {
@@ -33,11 +35,18 @@ public class ChunkManager : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        InitializeChunks(PlayController.instance.transform.position);
+    }
+
     public void InitializeChunks(Vector3 playerPosition)
     {
         if (isInitializing) return;
         isInitializing = true;
+
         currentChunk = GetChunkCoordFromWorldPos(playerPosition);
+
         StartCoroutine(UpdateVisibleChunksAsync());
     }
 
@@ -86,47 +95,108 @@ public class ChunkManager : MonoBehaviour
         if (!loadedChunks.ContainsKey(chunkCoord) && !chunksBeingLoaded.Contains(chunkCoord))
         {
             chunksBeingLoaded.Add(chunkCoord);
-            string chunkAddress = $"Chunk_{chunkCoord.x}_{chunkCoord.y}";
-            
-            int retryCount = 0;
-            const int maxRetries = 3;
-            
-            while (retryCount < maxRetries)
-            {
-                Vector3 chunkPosition = new Vector3(chunkCoord.x * chunkWidth, chunkCoord.y * chunkHeight, 0);
-                AsyncOperationHandle<GameObject> loadOperation = Addressables.InstantiateAsync(chunkAddress, chunkPosition, Quaternion.identity, transform);
-                yield return loadOperation;
+            string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
 
-                if (loadOperation.Status == AsyncOperationStatus.Succeeded)
+            AsyncOperationHandle<ChunkData> loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
+            yield return loadOperation;
+
+            if (loadOperation.Status == AsyncOperationStatus.Succeeded)
+            {
+                ChunkData chunkData = loadOperation.Result;
+
+                if (levelGrid == null)
                 {
-                    GameObject chunkObject = loadOperation.Result;
-                    chunkObject.transform.position = chunkPosition;
-                    loadedChunks[chunkCoord] = loadOperation;
-                    
+                    Debug.LogError("LevelGrid is not assigned.");
                     chunksBeingLoaded.Remove(chunkCoord);
                     yield break;
                 }
-                else
+
+                foreach (var layerData in chunkData.tilemapLayers)
                 {
-                    Addressables.Release(loadOperation);
-                    retryCount++;
-                    
-                    if (retryCount < maxRetries)
+                    Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
+                    if (tilemapTransform == null)
                     {
-                        yield return new WaitForSeconds(1f);
+                        Debug.LogError($"{layerData.layerName} not found in LevelGrid.");
+                        continue;
+                    }
+
+                    Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
+                    if (tilemap == null)
+                    {
+                        Debug.LogError($"Tilemap component not found on {layerData.layerName}.");
+                        continue;
+                    }
+
+                    foreach (var tileData in layerData.tiles)
+                    {
+                        Vector3Int globalPos = new Vector3Int(
+                            tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
+                            tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
+                            tileData.position.z
+                        );
+                        tilemap.SetTile(globalPos, tileData.tile);
+                        tilemap.SetColor(globalPos, tileData.color);
+                        tilemap.SetColliderType(globalPos, tileData.colliderType);
                     }
                 }
+
+                foreach (var objectData in chunkData.objects)
+                {
+                    GameObject prefab = Resources.Load<GameObject>(objectData.prefabName);
+                    if (prefab != null)
+                    {
+                        GameObject obj = Instantiate(prefab, levelGrid.transform);
+                        obj.transform.localPosition = objectData.position;
+                        obj.transform.rotation = objectData.rotation;
+                        obj.transform.localScale = objectData.scale;
+                    }
+                }
+
+                loadedChunks[chunkCoord] = loadOperation;
+                chunksBeingLoaded.Remove(chunkCoord);
             }
-            
-            chunksBeingLoaded.Remove(chunkCoord);
+            else
+            {
+                Addressables.Release(loadOperation);
+                chunksBeingLoaded.Remove(chunkCoord);
+            }
         }
     }
 
     private void UnloadChunk(Vector2Int chunkCoord)
     {
-        if (loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<GameObject> loadOperation))
+        if (loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<ChunkData> loadOperation))
         {
-            Addressables.ReleaseInstance(loadOperation);
+            foreach (var layerData in loadOperation.Result.tilemapLayers)
+            {
+                Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
+                if (tilemapTransform != null)
+                {
+                    Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
+                    if (tilemap != null)
+                    {
+                        foreach (var tileData in layerData.tiles)
+                        {
+                            Vector3Int globalPos = new Vector3Int(
+                                tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
+                                tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
+                                tileData.position.z
+                            );
+                            tilemap.SetTile(globalPos, null);
+                        }
+                    }
+                }
+            }
+
+            foreach (Transform child in levelGrid.transform)
+            {
+                if (child.name.StartsWith($"Chunk_{chunkCoord.x}_{chunkCoord.y}"))
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+
+            Addressables.Release(loadOperation);
             loadedChunks.Remove(chunkCoord);
         }
     }
@@ -134,8 +204,8 @@ public class ChunkManager : MonoBehaviour
     private Vector2Int GetChunkCoordFromWorldPos(Vector3 worldPos)
     {
         Vector2Int chunkCoord = new Vector2Int(
-            Mathf.FloorToInt(worldPos.x / chunkWidth),
-            Mathf.FloorToInt(worldPos.y / chunkHeight)
+            Mathf.FloorToInt((worldPos.x + chunkWidth / 2) / chunkWidth),
+            Mathf.FloorToInt((worldPos.y + chunkHeight / 2) / chunkHeight)
         );
         return chunkCoord;
     }
@@ -155,6 +225,17 @@ public class ChunkManager : MonoBehaviour
 
     private void CheckAddressablesStatus()
     {
-        Addressables.GetDownloadSizeAsync("Chunk_0_0").Completed += (op) => { };
+        string testKey = "ChunkData_0_0";
+        Addressables.GetDownloadSizeAsync(testKey).Completed += (op) => 
+        {
+            if (op.Status == AsyncOperationStatus.Succeeded)
+            {
+                Debug.Log($"Download size for {testKey}: {op.Result}");
+            }
+            else
+            {
+                Debug.LogError($"Failed to get download size for {testKey}: {op.OperationException}");
+            }
+        };
     }
 }

@@ -131,28 +131,19 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
         Physics2D.IgnoreCollision(_boxCollider, _circleCollider, true);
 
-        //读取当前血量
-        //currentHp = playerData.currentHp;
-        //GameManager.instance.PlayerHpChange(currentHp);
-        //HpChange();
+        StartCoroutine(RespawnPositionRecord());
 
-        StartCoroutine(RespawnPositionRecord()); //启动重生位置检测定时器
-
-        // if (playerData.hasGetJinGuBang) //启动游戏时检测是否获得了金箍棒，获得了便生成
-        // {
-        //     
-        // }
         SpawnJinGuBang();
         jinGuBang.SetActive(false);
-        
-        
-        // 确保在开始时只启用 BoxCollider2D
+
         _boxCollider.enabled = true;
         _circleCollider.enabled = false;
 
         _groundContactFilter = new ContactFilter2D();
         _groundContactFilter.SetLayerMask(canJumpLayer);
         _groundContactFilter.useLayerMask = true;
+
+        
     }
 
     private void Update()
