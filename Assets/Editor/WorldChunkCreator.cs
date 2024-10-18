@@ -154,7 +154,7 @@ public class WorldChunkCreator : EditorWindow
 
             TilemapLayerData layerData = new TilemapLayerData
             {
-                layerName = sourceTilemap.name, // 存储Tilemap的名称
+                layerName = sourceTilemap.name, // 存储Tilemap的名
                 sortingOrder = sourceRenderer.sortingOrder,
                 tiles = new List<TileData>()
             };
@@ -199,13 +199,39 @@ public class WorldChunkCreator : EditorWindow
             Vector3Int childPosInt = Vector3Int.FloorToInt(child.position);
             if (chunkBoundsInt.Contains(childPosInt))
             {
+                string prefabAssetPath = AssetDatabase.GetAssetPath(PrefabUtility.GetCorrespondingObjectFromSource(child.gameObject));
+                if (string.IsNullOrEmpty(prefabAssetPath))
+                {
+                    Debug.LogError($"Prefab asset path is null or empty for {child.name}");
+                    continue;
+                }
+
                 chunkData.objects.Add(new ObjectData
                 {
-                    position = child.position - chunkWorldPosition,
+                    position = child.position - chunkWorldPosition + new Vector3(chunkWidth / 2, chunkHeight / 2, 0), // 修正相对位置
                     rotation = child.rotation,
                     scale = child.localScale,
-                    prefabName = child.name
+                    prefabName = prefabAssetPath // 使用Prefab的路径作为地址
                 });
+
+                // 将Prefab添加到Addressables
+                var addressableSettings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+                if (addressableSettings != null)
+                {
+                    var guid = AssetDatabase.AssetPathToGUID(prefabAssetPath);
+                    if (string.IsNullOrEmpty(guid))
+                    {
+                        Debug.LogError($"GUID is null or empty for {prefabAssetPath}");
+                        continue;
+                    }
+
+                    var entry = addressableSettings.CreateOrMoveEntry(guid, addressableSettings.DefaultGroup);
+                    entry.address = prefabAssetPath; // 使用路径作为地址
+                }
+                else
+                {
+                    Debug.LogError("Addressable settings are not available.");
+                }
             }
         }
 

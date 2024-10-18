@@ -122,6 +122,18 @@ public class ChunkManager : MonoBehaviour
                     yield break;
                 }
 
+                // 创建父物体
+                GameObject chunkParent = null;
+                if (chunkData.objects.Count > 0)
+                {
+                    chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+                    chunkParent.transform.position = new Vector3(
+                        chunkCoord.x * chunkWidth,
+                        chunkCoord.y * chunkHeight,
+                        0
+                    );
+                }
+
                 foreach (var layerData in chunkData.tilemapLayers)
                 {
                     Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
@@ -153,14 +165,27 @@ public class ChunkManager : MonoBehaviour
 
                 foreach (var objectData in chunkData.objects)
                 {
-                    GameObject prefab = Resources.Load<GameObject>(objectData.prefabName);
-                    if (prefab != null)
+                    // 使用Addressables加载Prefab
+                    Addressables.LoadAssetAsync<GameObject>(objectData.prefabName).Completed += handle =>
                     {
-                        GameObject obj = Instantiate(prefab, levelGrid.transform);
-                        obj.transform.localPosition = objectData.position;
-                        obj.transform.rotation = objectData.rotation;
-                        obj.transform.localScale = objectData.scale;
-                    }
+                        if (handle.Status == AsyncOperationStatus.Succeeded)
+                        {
+                            GameObject prefab = handle.Result;
+                            GameObject obj = Instantiate(prefab, chunkParent != null ? chunkParent.transform : null);
+                            // 设置游戏物体的世界位置
+                            obj.transform.position = objectData.position + new Vector3(
+                                chunkCoord.x * chunkWidth - chunkWidth / 2,
+                                chunkCoord.y * chunkHeight - chunkHeight / 2,
+                                0
+                            ); // 修正偏移
+                            obj.transform.rotation = objectData.rotation;
+                            obj.transform.localScale = objectData.scale;
+                        }
+                        else
+                        {
+                            Debug.LogError($"Failed to load prefab from path {objectData.prefabName} using Addressables.");
+                        }
+                    };
                 }
 
                 loadedChunks[chunkCoord] = loadOperation;
@@ -199,12 +224,11 @@ public class ChunkManager : MonoBehaviour
                 }
             }
 
-            foreach (Transform child in levelGrid.transform)
+            // 销毁与Chunk相关的父物体
+            GameObject chunkParent = GameObject.Find($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+            if (chunkParent != null)
             {
-                if (child.name.StartsWith($"Chunk_{chunkCoord.x}_{chunkCoord.y}"))
-                {
-                    Destroy(child.gameObject);
-                }
+                Destroy(chunkParent);
             }
 
             Addressables.Release(loadOperation);
@@ -270,6 +294,19 @@ public class ChunkManager : MonoBehaviour
                     return;
                 }
 
+                // 只有在Chunk内有游戏物体时才创建父物体
+                GameObject chunkParent = null;
+                if (chunkData.objects.Count > 0)
+                {
+                    chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+                    // 设置父物体的位置为Chunk的中心点
+                    chunkParent.transform.position = new Vector3(
+                        chunkCoord.x * chunkWidth,
+                        chunkCoord.y * chunkHeight,
+                        0
+                    );
+                }
+
                 foreach (var layerData in chunkData.tilemapLayers)
                 {
                     Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
@@ -301,14 +338,27 @@ public class ChunkManager : MonoBehaviour
 
                 foreach (var objectData in chunkData.objects)
                 {
-                    GameObject prefab = Resources.Load<GameObject>(objectData.prefabName);
-                    if (prefab != null)
+                    // 使用Addressables加载Prefab
+                    Addressables.LoadAssetAsync<GameObject>(objectData.prefabName).Completed += handle =>
                     {
-                        GameObject obj = Instantiate(prefab, levelGrid.transform);
-                        obj.transform.localPosition = objectData.position;
-                        obj.transform.rotation = objectData.rotation;
-                        obj.transform.localScale = objectData.scale;
-                    }
+                        if (handle.Status == AsyncOperationStatus.Succeeded)
+                        {
+                            GameObject prefab = handle.Result;
+                            GameObject obj = Instantiate(prefab, chunkParent != null ? chunkParent.transform : null);
+                            // 设置游戏物体的世界位置
+                            obj.transform.position = objectData.position + new Vector3(
+                                chunkCoord.x * chunkWidth - chunkWidth / 2,
+                                chunkCoord.y * chunkHeight - chunkHeight / 2,
+                                0
+                            ); // 修正偏移
+                            obj.transform.rotation = objectData.rotation;
+                            obj.transform.localScale = objectData.scale;
+                        }
+                        else
+                        {
+                            Debug.LogError($"Failed to load prefab from path {objectData.prefabName} using Addressables.");
+                        }
+                    };
                 }
 
                 loadedChunks[chunkCoord] = loadOperation;
