@@ -47,6 +47,17 @@ public class ChunkManager : MonoBehaviour
 
         currentChunk = GetChunkCoordFromWorldPos(playerPosition);
 
+        // 同步加载玩家所在的Chunk及其周围的Chunk
+        for (int x = -loadDistance; x <= loadDistance; x++)
+        {
+            for (int y = -loadDistance; y <= loadDistance; y++)
+            {
+                Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
+                LoadChunkSync(coord);
+            }
+        }
+
+        // 开始异步加载其他Chunk
         StartCoroutine(UpdateVisibleChunksAsync());
     }
 
@@ -237,5 +248,75 @@ public class ChunkManager : MonoBehaviour
                 Debug.LogError($"Failed to get download size for {testKey}: {op.OperationException}");
             }
         };
+    }
+
+    private void LoadChunkSync(Vector2Int chunkCoord)
+    {
+        if (!loadedChunks.ContainsKey(chunkCoord))
+        {
+            string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
+
+            // 同步加载ChunkData
+            var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
+            loadOperation.WaitForCompletion();
+
+            if (loadOperation.Status == AsyncOperationStatus.Succeeded)
+            {
+                ChunkData chunkData = loadOperation.Result;
+
+                if (levelGrid == null)
+                {
+                    Debug.LogError("LevelGrid is not assigned.");
+                    return;
+                }
+
+                foreach (var layerData in chunkData.tilemapLayers)
+                {
+                    Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
+                    if (tilemapTransform == null)
+                    {
+                        Debug.LogError($"{layerData.layerName} not found in LevelGrid.");
+                        continue;
+                    }
+
+                    Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
+                    if (tilemap == null)
+                    {
+                        Debug.LogError($"Tilemap component not found on {layerData.layerName}.");
+                        continue;
+                    }
+
+                    foreach (var tileData in layerData.tiles)
+                    {
+                        Vector3Int globalPos = new Vector3Int(
+                            tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
+                            tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
+                            tileData.position.z
+                        );
+                        tilemap.SetTile(globalPos, tileData.tile);
+                        tilemap.SetColor(globalPos, tileData.color);
+                        tilemap.SetColliderType(globalPos, tileData.colliderType);
+                    }
+                }
+
+                foreach (var objectData in chunkData.objects)
+                {
+                    GameObject prefab = Resources.Load<GameObject>(objectData.prefabName);
+                    if (prefab != null)
+                    {
+                        GameObject obj = Instantiate(prefab, levelGrid.transform);
+                        obj.transform.localPosition = objectData.position;
+                        obj.transform.rotation = objectData.rotation;
+                        obj.transform.localScale = objectData.scale;
+                    }
+                }
+
+                loadedChunks[chunkCoord] = loadOperation;
+            }
+            else
+            {
+                Addressables.Release(loadOperation);
+            }
+        }
     }
 }
