@@ -7,6 +7,7 @@ using UnityEngine.Tilemaps;
 public class Ladder : MonoBehaviour
 {
     public GameObject ladderTopColliderPrefab; // 顶部碰撞器预制体
+    public GameObject ladderTopCollider;
     private Tilemap _ladderTilemap;// 梯子所在的 Tilemap
     
     //[ContextMenu("Generate Ladder top collider")]
@@ -14,13 +15,13 @@ public class Ladder : MonoBehaviour
     {
         _ladderTilemap = GetComponent<Tilemap>();
         
-        // 遍历删除每个子物体
-        for (var i = transform.childCount - 1; i >= 0; i--)
+        // 删除现有的子物体
+        for (var i = ladderTopCollider.transform.childCount - 1; i >= 0; i--)
         {
-            DestroyImmediate(transform.GetChild(i).gameObject);
+            DestroyImmediate(ladderTopCollider.transform.GetChild(i).gameObject);
         }
 
-        // 遍历整个 Tilemap 的边界
+        // 遍历 Tilemap
         for (var x = _ladderTilemap.cellBounds.xMin; x < _ladderTilemap.cellBounds.xMax; x++)
         {
             var ladderEndY = -1;
@@ -46,7 +47,7 @@ public class Ladder : MonoBehaviour
                 // 在梯子的顶部和底部生成碰撞体
                 var tem = Instantiate(ladderTopColliderPrefab, new Vector2(topPosition.x + 0.5f, topPosition.y),
                     Quaternion.identity);
-                tem.transform.SetParent(_ladderTilemap.transform);
+                tem.transform.SetParent(ladderTopCollider.transform);
             }
         }
     }

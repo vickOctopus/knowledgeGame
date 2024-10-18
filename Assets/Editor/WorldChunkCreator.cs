@@ -119,7 +119,6 @@ public class WorldChunkCreator : EditorWindow
         GameObject chunkObject = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}");
         chunkObject.AddComponent<Grid>();
 
-        // 将Chunk的中心点设置为正确的位置
         Vector3 chunkWorldPosition = new Vector3(
             chunkCoord.x * chunkWidth,
             chunkCoord.y * chunkHeight,
@@ -154,7 +153,7 @@ public class WorldChunkCreator : EditorWindow
 
             TilemapLayerData layerData = new TilemapLayerData
             {
-                layerName = sourceTilemap.name, // 存储Tilemap的名
+                layerName = sourceTilemap.name,
                 sortingOrder = sourceRenderer.sortingOrder,
                 tiles = new List<TileData>()
             };
@@ -183,59 +182,86 @@ public class WorldChunkCreator : EditorWindow
                             color = tileColor,
                             colliderType = colliderType
                         });
-
-                        Debug.Log($"Adding tile at local position: {localPos}, tile: {tile.name}, color: {tileColor}, colliderType: {colliderType}");
                     }
                 }
             }
 
-            chunkData.tilemapLayers.Add(layerData);
+            if (layerData.tiles.Count > 0)
+            {
+                chunkData.tilemapLayers.Add(layerData);
+                // Debug.Log($"Added Tilemap layer {layerData.layerName} with {layerData.tiles.Count} tiles to ChunkData {chunkCoord}");
+            }
+            else
+            {
+                // Debug.LogWarning($"No tiles found for Tilemap layer {layerData.layerName} in ChunkData {chunkCoord}");
+            }
         }
 
         foreach (Transform child in worldRoot.GetComponentsInChildren<Transform>())
         {
             if (child == null || child.GetComponent<Tilemap>() != null) continue;
 
-            Vector3Int childPosInt = Vector3Int.FloorToInt(child.position);
+            // 检查子物体是否是预制体实例的根对象
+            GameObject prefabRoot = PrefabUtility.GetNearestPrefabInstanceRoot(child.gameObject);
+            if (prefabRoot != child.gameObject)
+            {
+                Debug.LogWarning($"Skipping {child.name} because it is a child of a prefab instance. PrefabRoot: {prefabRoot}, Child: {child.gameObject}");
+                continue;
+            }
+
+            // 确保 z 轴被忽略
+            Vector3Int childPosInt = new Vector3Int(Mathf.FloorToInt(child.position.x), Mathf.FloorToInt(child.position.y), 0);
+
+            // 使用已声明的 chunkBoundsInt
             if (chunkBoundsInt.Contains(childPosInt))
             {
                 string prefabAssetPath = AssetDatabase.GetAssetPath(PrefabUtility.GetCorrespondingObjectFromSource(child.gameObject));
                 if (string.IsNullOrEmpty(prefabAssetPath))
                 {
-                    Debug.LogError($"Prefab asset path is null or empty for {child.name}");
+                    Debug.LogWarning($"Prefab asset path is null or empty for {child.name}. Skipping this object.");
                     continue;
                 }
 
+                PrefabInstanceStatus prefabStatus = PrefabUtility.GetPrefabInstanceStatus(child.gameObject);
+                if (prefabStatus != PrefabInstanceStatus.Connected)
+                {
+                    Debug.LogWarning($"GameObject {child.name} is not connected to a Prefab instance. Status: {prefabStatus}");
+                    continue;
+                }
+
+                Debug.Log($"Storing GameObject {child.name} with Prefab path: {prefabAssetPath} and Prefab status: {prefabStatus}");
+
                 chunkData.objects.Add(new ObjectData
                 {
-                    position = child.position - chunkWorldPosition + new Vector3(chunkWidth / 2, chunkHeight / 2, 0), // 修正相对位置
+                    position = child.position - chunkWorldPosition + new Vector3(chunkWidth / 2, chunkHeight / 2, 0),
                     rotation = child.rotation,
                     scale = child.localScale,
-                    prefabName = prefabAssetPath // 使用Prefab的路径作为地址
+                    prefabName = prefabAssetPath
                 });
 
-                // 将Prefab添加到Addressables
                 var addressableSettings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
                 if (addressableSettings != null)
                 {
                     var guid = AssetDatabase.AssetPathToGUID(prefabAssetPath);
                     if (string.IsNullOrEmpty(guid))
                     {
-                        Debug.LogError($"GUID is null or empty for {prefabAssetPath}");
+                        Debug.LogWarning($"GUID is null or empty for {prefabAssetPath}. Skipping this object.");
                         continue;
                     }
 
                     var entry = addressableSettings.CreateOrMoveEntry(guid, addressableSettings.DefaultGroup);
-                    entry.address = prefabAssetPath; // 使用路径作为地址
+                    entry.address = prefabAssetPath;
                 }
                 else
                 {
                     Debug.LogError("Addressable settings are not available.");
                 }
             }
+            else
+            {
+                Debug.LogWarning($"Skipping {child.name} because it is outside the chunk bounds. Position: {childPosInt}, Bounds: {chunkBoundsInt}");
+            }
         }
-
-        Debug.Log($"Creating ChunkData for chunk {chunkCoord} with {chunkData.tilemapLayers.Count} tilemap layers and {chunkData.objects.Count} objects.");
 
         string assetPath = $"{directoryPath}/ChunkData_{chunkCoord.x}_{chunkCoord.y}.asset";
         AssetDatabase.CreateAsset(chunkData, assetPath);

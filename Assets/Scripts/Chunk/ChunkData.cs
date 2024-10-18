@@ -13,11 +13,11 @@ public class ChunkData : ScriptableObject, ISaveable
     {
         if (tilemapLayers != null)
         {
-            Debug.Log($"ChunkData {chunkCoord} loaded with {tilemapLayers.Count} tilemap layers.");
+            // Debug.Log($"ChunkData {chunkCoord} loaded with {tilemapLayers.Count} tilemap layers.");
         }
         else
         {
-            Debug.LogWarning($"ChunkData {chunkCoord} loaded, but tilemapLayers list is null.");
+            // Debug.LogWarning($"ChunkData {chunkCoord} loaded, but tilemapLayers list is null.");
         }
     }
 

@@ -47,7 +47,6 @@ public class ChunkManager : MonoBehaviour
 
         currentChunk = GetChunkCoordFromWorldPos(playerPosition);
 
-        // 同步加载玩家所在的Chunk及其周围的Chunk
         for (int x = -loadDistance; x <= loadDistance; x++)
         {
             for (int y = -loadDistance; y <= loadDistance; y++)
@@ -57,7 +56,6 @@ public class ChunkManager : MonoBehaviour
             }
         }
 
-        // 开始异步加载其他Chunk
         StartCoroutine(UpdateVisibleChunksAsync());
     }
 
@@ -122,7 +120,6 @@ public class ChunkManager : MonoBehaviour
                     yield break;
                 }
 
-                // 创建父物体
                 GameObject chunkParent = null;
                 if (chunkData.objects.Count > 0)
                 {
@@ -139,14 +136,14 @@ public class ChunkManager : MonoBehaviour
                     Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
                     if (tilemapTransform == null)
                     {
-                        Debug.LogError($"{layerData.layerName} not found in LevelGrid.");
+                        // Debug.LogError($"{layerData.layerName} not found in LevelGrid.");
                         continue;
                     }
 
                     Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
                     if (tilemap == null)
                     {
-                        Debug.LogError($"Tilemap component not found on {layerData.layerName}.");
+                        // Debug.LogError($"Tilemap component not found on {layerData.layerName}.");
                         continue;
                     }
 
@@ -165,19 +162,17 @@ public class ChunkManager : MonoBehaviour
 
                 foreach (var objectData in chunkData.objects)
                 {
-                    // 使用Addressables加载Prefab
                     Addressables.LoadAssetAsync<GameObject>(objectData.prefabName).Completed += handle =>
                     {
                         if (handle.Status == AsyncOperationStatus.Succeeded)
                         {
                             GameObject prefab = handle.Result;
                             GameObject obj = Instantiate(prefab, chunkParent != null ? chunkParent.transform : null);
-                            // 设置游戏物体的世界位置
                             obj.transform.position = objectData.position + new Vector3(
                                 chunkCoord.x * chunkWidth - chunkWidth / 2,
                                 chunkCoord.y * chunkHeight - chunkHeight / 2,
                                 0
-                            ); // 修正偏移
+                            );
                             obj.transform.rotation = objectData.rotation;
                             obj.transform.localScale = objectData.scale;
                         }
@@ -224,7 +219,6 @@ public class ChunkManager : MonoBehaviour
                 }
             }
 
-            // 销毁与Chunk相关的父物体
             GameObject chunkParent = GameObject.Find($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
             if (chunkParent != null)
             {
@@ -265,7 +259,7 @@ public class ChunkManager : MonoBehaviour
         {
             if (op.Status == AsyncOperationStatus.Succeeded)
             {
-                Debug.Log($"Download size for {testKey}: {op.Result}");
+                // Debug.Log($"Download size for {testKey}: {op.Result}");
             }
             else
             {
@@ -280,7 +274,6 @@ public class ChunkManager : MonoBehaviour
         {
             string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
 
-            // 同步加载ChunkData
             var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
             loadOperation.WaitForCompletion();
 
@@ -294,12 +287,10 @@ public class ChunkManager : MonoBehaviour
                     return;
                 }
 
-                // 只有在Chunk内有游戏物体时才创建父物体
                 GameObject chunkParent = null;
                 if (chunkData.objects.Count > 0)
                 {
                     chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
-                    // 设置父物体的位置为Chunk的中心点
                     chunkParent.transform.position = new Vector3(
                         chunkCoord.x * chunkWidth,
                         chunkCoord.y * chunkHeight,
@@ -312,14 +303,14 @@ public class ChunkManager : MonoBehaviour
                     Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
                     if (tilemapTransform == null)
                     {
-                        Debug.LogError($"{layerData.layerName} not found in LevelGrid.");
+                        // Debug.LogError($"{layerData.layerName} not found in LevelGrid.");
                         continue;
                     }
 
                     Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
                     if (tilemap == null)
                     {
-                        Debug.LogError($"Tilemap component not found on {layerData.layerName}.");
+                        // Debug.LogError($"Tilemap component not found on {layerData.layerName}.");
                         continue;
                     }
 
@@ -338,19 +329,17 @@ public class ChunkManager : MonoBehaviour
 
                 foreach (var objectData in chunkData.objects)
                 {
-                    // 使用Addressables加载Prefab
                     Addressables.LoadAssetAsync<GameObject>(objectData.prefabName).Completed += handle =>
                     {
                         if (handle.Status == AsyncOperationStatus.Succeeded)
                         {
                             GameObject prefab = handle.Result;
                             GameObject obj = Instantiate(prefab, chunkParent != null ? chunkParent.transform : null);
-                            // 设置游戏物体的世界位置
                             obj.transform.position = objectData.position + new Vector3(
                                 chunkCoord.x * chunkWidth - chunkWidth / 2,
                                 chunkCoord.y * chunkHeight - chunkHeight / 2,
                                 0
-                            ); // 修正偏移
+                            );
                             obj.transform.rotation = objectData.rotation;
                             obj.transform.localScale = objectData.scale;
                         }
