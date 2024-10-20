@@ -37,6 +37,7 @@ public class Diary : MonoBehaviour
     {
          var newYPosition = Mathf.Sin(Time.time * speed) * height;
          transform.position=new Vector2(transform.position.x,_originalPosY+newYPosition);
+        
     }
 
 
