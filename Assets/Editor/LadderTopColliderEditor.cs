@@ -13,9 +13,17 @@ public class LadderTopColliderEditor : Editor
         
         Ladder ladder = (Ladder)target;
 
-        if (GUILayout.Button("Add Top Collider"))
+        if (GUILayout.Button("生成梯子顶部碰撞器"))
         {
-            ladder.AddLadderColliders();
+            var instantiatedObjects = ladder.InstantiateEditorObjects();
+            if (instantiatedObjects.Count > 0)
+            {
+                Debug.Log($"已生成 {instantiatedObjects.Count} 个梯子顶部碰撞器");
+            }
+            else
+            {
+                Debug.Log("没有生成梯子顶部碰撞器");
+            }
         }
     }
 }

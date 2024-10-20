@@ -164,6 +164,37 @@ public class WorldChunkCreator : MonoBehaviour
             }
         }
 
+        // 处理实现 IEditorInstantiatedObject 接口的对象
+        IEditorInstantiatedObject[] editorInstantiatedObjects = GetComponentsInChildren<IEditorInstantiatedObject>();
+        foreach (IEditorInstantiatedObject obj in editorInstantiatedObjects)
+        {
+            List<EditorInstantiatedObjectInfo> objectInfos = obj.InstantiateEditorObjects();
+            foreach (EditorInstantiatedObjectInfo info in objectInfos)
+            {
+                if (chunkBoundsInt.Contains(Vector3Int.FloorToInt(info.position)))
+                {
+                    chunkData.objects.Add(new ObjectData
+                    {
+                        position = info.position - chunkWorldPosition + new Vector3(chunkWidth / 2, chunkHeight / 2, 0),
+                        rotation = info.rotation,
+                        scale = info.scale,
+                        prefabName = info.prefabPath
+                    });
+
+                    var addressableSettings = AddressableAssetSettingsDefaultObject.Settings;
+                    if (addressableSettings != null)
+                    {
+                        var guid = AssetDatabase.AssetPathToGUID(info.prefabPath);
+                        if (!string.IsNullOrEmpty(guid))
+                        {
+                            var entry = addressableSettings.CreateOrMoveEntry(guid, addressableSettings.DefaultGroup);
+                            entry.address = info.prefabPath;
+                        }
+                    }
+                }
+            }
+        }
+
         foreach (Transform child in GetComponentsInChildren<Transform>())
         {
             if (child == null || child.GetComponent<Tilemap>() != null) continue;
