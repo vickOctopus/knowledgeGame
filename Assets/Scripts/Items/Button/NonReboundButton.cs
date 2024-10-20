@@ -8,9 +8,6 @@ public class NonReboundButton : MonoBehaviour
    
     private Sprite upSprite;
     public Sprite downSprite;
-    public UnityEvent buttonPressedEvent;
-    public UnityEvent buttonReleasedEvent;
-
     private BoxCollider2D boxCollider;
 
     private void Awake()
@@ -23,7 +20,8 @@ public class NonReboundButton : MonoBehaviour
     private void OnTriggerEnter2D(Collider2D collision)
     {
             spriteRenderer.sprite = downSprite;
-            buttonPressedEvent.Invoke();
+            
+            SendMessageUpwards("OnButtonDown");
           
     }
 
@@ -31,8 +29,8 @@ public class NonReboundButton : MonoBehaviour
     {
         if (!IsAnyBodyInTrigger())
         {
-            buttonReleasedEvent.Invoke();
             spriteRenderer.sprite = upSprite;
+            SendMessageUpwards("OnButtonUp");
         }
     }
 

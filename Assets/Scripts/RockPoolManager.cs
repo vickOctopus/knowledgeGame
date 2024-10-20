@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RockPoolManager : MonoBehaviour
+public class RockPoolManager : MonoBehaviour,IButton
 {
     [SerializeField] private GameObject rockPrefab;
     [SerializeField] private int poolSize = 20;
@@ -176,5 +176,15 @@ public class RockPoolManager : MonoBehaviour
             Gizmos.DrawWireCube(accelerationAreaCenter.position, accelerationAreaSize);
             Gizmos.DrawRay(accelerationAreaCenter.position, GetAccelerationVector() * 2);
         }
+    }
+
+    public void OnButtonDown()
+    {
+        StartSpawning();
+    }
+
+    public void OnButtonUp()
+    {
+        StopSpawning();
     }
 }
