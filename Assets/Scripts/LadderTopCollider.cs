@@ -19,6 +19,12 @@ public class LadderTopCollider : MonoBehaviour
        EventManager.instance.OnLeftLadder += DisableCollider;
     }
 
+    private void OnDisable()
+    {
+        EventManager.instance.OnClimbLadder -= EnableCollider;
+        EventManager.instance.OnLeftLadder -= DisableCollider;
+    }
+
     void EnableCollider()
     {
         _platformCollider.enabled = true;
