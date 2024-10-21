@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -97,12 +98,16 @@ public class ChunkManager : MonoBehaviour
                 newVisibleChunks.Add(coord);
                 if (!visibleChunks.Contains(coord) && !loadedChunks.ContainsKey(coord) && !chunksBeingLoaded.Contains(coord))
                 {
-                    chunksToLoad.Add(coord);
+                    // 在这里添加检查，确保区块存在
+                    if (await ChunkExistsAsync(coord))
+                    {
+                        chunksToLoad.Add(coord);
+                    }
                 }
             }
         }
 
-        // 按照到当前区块的距离排序
+        // 按照到当前区块的距离��序
         chunksToLoad.Sort((a, b) => 
             Vector2Int.Distance(a, currentChunk).CompareTo(Vector2Int.Distance(b, currentChunk)));
 
@@ -149,43 +154,51 @@ public class ChunkManager : MonoBehaviour
             chunksBeingLoaded.Add(chunkCoord);
             string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
 
-            var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
-            await loadOperation.Task;
-
-            if (loadOperation.Status == AsyncOperationStatus.Succeeded)
+            try
             {
-                ChunkData chunkData = loadOperation.Result;
-
-                if (chunkData == null || levelGrid == null)
+                if (await ChunkExistsAsync(chunkCoord))
                 {
-                    Debug.LogError($"加载区块失败: {chunkCoord}");
-                    chunksBeingLoaded.Remove(chunkCoord);
-                    Addressables.Release(loadOperation);
-                    return;
+                    var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
+                    await loadOperation.Task;
+
+                    if (loadOperation.Status == AsyncOperationStatus.Succeeded && loadOperation.Result != null)
+                    {
+                        ChunkData chunkData = loadOperation.Result;
+
+                        if (chunkData == null || levelGrid == null)
+                        {
+                            Addressables.Release(loadOperation);
+                            return;
+                        }
+
+                        GameObject chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+                        chunkParent.transform.position = new Vector3(
+                            chunkCoord.x * chunkWidth,
+                            chunkCoord.y * chunkHeight,
+                            0
+                        );
+
+                        await InstantiateTilesAsync(chunkData, chunkCoord);
+                        await InstantiateObjectsAsync(chunkData, chunkParent, chunkCoord);
+
+                        loadedChunks[chunkCoord] = loadOperation;
+
+                        AddToCache(chunkCoord, chunkData);
+                    }
+                    else
+                    {
+                        Addressables.Release(loadOperation);
+                    }
                 }
-
-                GameObject chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
-                chunkParent.transform.position = new Vector3(
-                    chunkCoord.x * chunkWidth,
-                    chunkCoord.y * chunkHeight,
-                    0
-                );
-
-                await InstantiateTilesAsync(chunkData, chunkCoord);
-                await InstantiateObjectsAsync(chunkData, chunkParent, chunkCoord);
-
-                loadedChunks[chunkCoord] = loadOperation;
-
-                // 更新缓存
-                AddToCache(chunkCoord, chunkData);
             }
-            else
+            catch (Exception e)
             {
-                Debug.LogError($"加载区块失败: {chunkCoord}, 错误: {loadOperation.OperationException}");
-                Addressables.Release(loadOperation);
+                Debug.LogError($"加载区块时发生错误: {chunkCoord}, 错误: {e.Message}");
             }
-
-            chunksBeingLoaded.Remove(chunkCoord);
+            finally
+            {
+                chunksBeingLoaded.Remove(chunkCoord);
+            }
         }
     }
 
@@ -463,89 +476,114 @@ public class ChunkManager : MonoBehaviour
         {
             string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
 
-            var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
-            loadOperation.WaitForCompletion();
-
-            if (loadOperation.Status == AsyncOperationStatus.Succeeded)
+            try
             {
-                ChunkData chunkData = loadOperation.Result;
+                var checkOperation = Addressables.LoadResourceLocationsAsync(chunkDataAddress);
+                checkOperation.WaitForCompletion();
+                bool exists = checkOperation.Result != null && checkOperation.Result.Count > 0;
+                Addressables.Release(checkOperation);
 
-                if (levelGrid == null)
+                if (exists)
                 {
-                    Debug.LogError("LevelGrid is not assigned.");
-                    return;
-                }
+                    var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
+                    loadOperation.WaitForCompletion();
 
-                GameObject chunkParent = null;
-                if (chunkData.objects.Count > 0)
-                {
-                    chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
-                    chunkParent.transform.position = new Vector3(
-                        chunkCoord.x * chunkWidth,
-                        chunkCoord.y * chunkHeight,
-                        0
-                    );
-                }
-
-                foreach (var layerData in chunkData.tilemapLayers)
-                {
-                    Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
-                    if (tilemapTransform == null)
+                    if (loadOperation.Status == AsyncOperationStatus.Succeeded && loadOperation.Result != null)
                     {
-                        // Debug.LogError($"{layerData.layerName} not found in LevelGrid.");
-                        continue;
-                    }
+                        ChunkData chunkData = loadOperation.Result;
 
-                    Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
-                    if (tilemap == null)
-                    {
-                        // Debug.LogError($"Tilemap component not found on {layerData.layerName}.");
-                        continue;
-                    }
-
-                    foreach (var tileData in layerData.tiles)
-                    {
-                        Vector3Int globalPos = new Vector3Int(
-                            tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
-                            tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
-                            tileData.position.z
-                        );
-                        tilemap.SetTile(globalPos, tileData.tile);
-                        tilemap.SetColor(globalPos, tileData.color);
-                        tilemap.SetColliderType(globalPos, tileData.colliderType);
-                    }
-                }
-
-                foreach (var objectData in chunkData.objects)
-                {
-                    Addressables.LoadAssetAsync<GameObject>(objectData.prefabName).Completed += handle =>
-                    {
-                        if (handle.Status == AsyncOperationStatus.Succeeded)
+                        if (levelGrid == null)
                         {
-                            GameObject prefab = handle.Result;
-                            GameObject obj = Instantiate(prefab, chunkParent != null ? chunkParent.transform : null);
-                            obj.transform.position = objectData.position + new Vector3(
-                                chunkCoord.x * chunkWidth - chunkWidth / 2,
-                                chunkCoord.y * chunkHeight - chunkHeight / 2,
+                            Debug.LogError("LevelGrid is not assigned.");
+                            return;
+                        }
+
+                        GameObject chunkParent = null;
+                        if (chunkData.objects.Count > 0)
+                        {
+                            chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+                            chunkParent.transform.position = new Vector3(
+                                chunkCoord.x * chunkWidth,
+                                chunkCoord.y * chunkHeight,
                                 0
                             );
-                            obj.transform.rotation = objectData.rotation;
-                            obj.transform.localScale = objectData.scale;
                         }
-                        else
-                        {
-                            Debug.LogError($"Failed to load prefab from path {objectData.prefabName} using Addressables.");
-                        }
-                    };
-                }
 
-                loadedChunks[chunkCoord] = loadOperation;
+                        foreach (var layerData in chunkData.tilemapLayers)
+                        {
+                            Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
+                            if (tilemapTransform == null)
+                            {
+                                // Debug.LogError($"{layerData.layerName} not found in LevelGrid.");
+                                continue;
+                            }
+
+                            Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
+                            if (tilemap == null)
+                            {
+                                // Debug.LogError($"Tilemap component not found on {layerData.layerName}.");
+                                continue;
+                            }
+
+                            foreach (var tileData in layerData.tiles)
+                            {
+                                Vector3Int globalPos = new Vector3Int(
+                                    tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
+                                    tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
+                                    tileData.position.z
+                                );
+                                tilemap.SetTile(globalPos, tileData.tile);
+                                tilemap.SetColor(globalPos, tileData.color);
+                                tilemap.SetColliderType(globalPos, tileData.colliderType);
+                            }
+                        }
+
+                        foreach (var objectData in chunkData.objects)
+                        {
+                            Addressables.LoadAssetAsync<GameObject>(objectData.prefabName).Completed += handle =>
+                            {
+                                if (handle.Status == AsyncOperationStatus.Succeeded)
+                                {
+                                    GameObject prefab = handle.Result;
+                                    GameObject obj = Instantiate(prefab, chunkParent != null ? chunkParent.transform : null);
+                                    obj.transform.position = objectData.position + new Vector3(
+                                        chunkCoord.x * chunkWidth - chunkWidth / 2,
+                                        chunkCoord.y * chunkHeight - chunkHeight / 2,
+                                        0
+                                    );
+                                    obj.transform.rotation = objectData.rotation;
+                                    obj.transform.localScale = objectData.scale;
+                                }
+                                else
+                                {
+                                    Debug.LogError($"Failed to load prefab from path {objectData.prefabName} using Addressables.");
+                                }
+                            };
+                        }
+
+                        loadedChunks[chunkCoord] = loadOperation;
+                    }
+                    else
+                    {
+                        Addressables.Release(loadOperation);
+                    }
+                }
             }
-            else
+            catch (Exception e)
             {
-                Addressables.Release(loadOperation);
+                Debug.LogError($"同步加载区块时发生错误: {chunkCoord}, 错误: {e.Message}");
             }
         }
+    }
+
+    private async Task<bool> ChunkExistsAsync(Vector2Int chunkCoord)
+    {
+        string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
+        var loadOperation = Addressables.LoadResourceLocationsAsync(chunkDataAddress);
+        await loadOperation.Task;
+        bool exists = loadOperation.Result != null && loadOperation.Result.Count > 0;
+        Addressables.Release(loadOperation);
+        return exists;
     }
 
     private void CleanUpUnusedResources()
