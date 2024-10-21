@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
 using UnityEngine.Tilemaps;
+using System.Threading.Tasks;
 
 public class ChunkManager : MonoBehaviour
 {
@@ -52,7 +53,7 @@ public class ChunkManager : MonoBehaviour
         InitializeChunks(PlayController.instance.transform.position);
     }
 
-    public void InitializeChunks(Vector3 playerPosition)
+    public async void InitializeChunks(Vector3 playerPosition)
     {
         if (isInitializing) return;
         isInitializing = true;
@@ -68,21 +69,21 @@ public class ChunkManager : MonoBehaviour
             }
         }
 
-        StartCoroutine(UpdateVisibleChunksAsync());
+        await UpdateVisibleChunksAsync();
     }
 
-    public void ForceUpdateChunks(Vector3 cameraPosition)
+    public async void ForceUpdateChunks(Vector3 cameraPosition)
     {
         if (isInitializing) return;
         Vector2Int newChunk = GetChunkCoordFromWorldPos(cameraPosition);
         if (newChunk != currentChunk)
         {
             currentChunk = newChunk;
-            StartCoroutine(UpdateVisibleChunksAsync());
+            await UpdateVisibleChunksAsync();
         }
     }
 
-    private IEnumerator UpdateVisibleChunksAsync()
+    private async Task UpdateVisibleChunksAsync()
     {
         HashSet<Vector2Int> newVisibleChunks = new HashSet<Vector2Int>();
         List<Vector2Int> chunksToLoad = new List<Vector2Int>();
@@ -109,8 +110,8 @@ public class ChunkManager : MonoBehaviour
             loadQueue.Enqueue(coord);
         }
 
-        // 等待 ProcessLoadQueue 完成
-        yield return StartCoroutine(ProcessLoadQueue());
+        // 等待 ProcessLoadQueueAsync 完成
+        await ProcessLoadQueueAsync();
 
         foreach (Vector2Int chunk in visibleChunks)
         {
@@ -122,26 +123,23 @@ public class ChunkManager : MonoBehaviour
 
         visibleChunks = newVisibleChunks;
         isInitializing = false;
-
-        // 添加这一行来解决错误
-        yield break;
     }
 
-    private IEnumerator ProcessLoadQueue()
+    private async Task ProcessLoadQueueAsync()
     {
         while (loadQueue.Count > 0)
         {
             while (currentLoads < MAX_CONCURRENT_LOADS && loadQueue.Count > 0)
             {
                 Vector2Int coord = loadQueue.Dequeue();
-                StartCoroutine(LoadChunkAsync(coord));
+                await LoadChunkAsync(coord);
                 currentLoads++;
             }
-            yield return null;
+            await Task.Yield();
         }
     }
 
-    private IEnumerator LoadChunkAsync(Vector2Int chunkCoord)
+    private async Task LoadChunkAsync(Vector2Int chunkCoord)
     {
         if (!loadedChunks.ContainsKey(chunkCoord) && !chunksBeingLoaded.Contains(chunkCoord))
         {
@@ -150,8 +148,8 @@ public class ChunkManager : MonoBehaviour
 
             Debug.Log($"开始加载区块: {chunkCoord}");
 
-            AsyncOperationHandle<ChunkData> loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
-            yield return loadOperation;
+            var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
+            await loadOperation.Task; // 确保这里使用的是 loadOperation.Task
 
             if (loadOperation.Status == AsyncOperationStatus.Succeeded)
             {
@@ -163,7 +161,7 @@ public class ChunkManager : MonoBehaviour
                     chunksBeingLoaded.Remove(chunkCoord);
                     Addressables.Release(loadOperation);
                     currentLoads--;
-                    yield break;
+                    return;
                 }
 
                 GameObject chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
@@ -173,8 +171,8 @@ public class ChunkManager : MonoBehaviour
                     0
                 );
 
-                yield return StartCoroutine(InstantiateTilesAsync(chunkData, chunkCoord));
-                yield return StartCoroutine(InstantiateObjectsAsync(chunkData, chunkParent, chunkCoord));
+                await InstantiateTilesAsync(chunkData, chunkCoord);
+                await InstantiateObjectsAsync(chunkData, chunkParent, chunkCoord);
 
                 loadedChunks[chunkCoord] = loadOperation;
                 Debug.Log($"区块加载完成: {chunkCoord}");
@@ -190,7 +188,7 @@ public class ChunkManager : MonoBehaviour
         }
     }
 
-    private IEnumerator InstantiateTilesAsync(ChunkData chunkData, Vector2Int chunkCoord)
+    private async Task InstantiateTilesAsync(ChunkData chunkData, Vector2Int chunkCoord)
     {
         Dictionary<string, List<(Vector3Int, TileBase, Color, Tile.ColliderType)>> tilesPerLayer = new Dictionary<string, List<(Vector3Int, TileBase, Color, Tile.ColliderType)>>();
 
@@ -243,12 +241,12 @@ public class ChunkManager : MonoBehaviour
                     tilemap.SetColliderType(pos, colliderType);
                 }
 
-                yield return null;
+                await Task.Yield();
             }
         }
     }
 
-    private IEnumerator InstantiateObjectsAsync(ChunkData chunkData, GameObject chunkParent, Vector2Int chunkCoord)
+    private async Task InstantiateObjectsAsync(ChunkData chunkData, GameObject chunkParent, Vector2Int chunkCoord)
     {
         for (int i = 0; i < chunkData.objects.Count; i += OBJECTS_PER_FRAME)
         {
@@ -256,8 +254,8 @@ public class ChunkManager : MonoBehaviour
             for (int j = i; j < endIndex; j++)
             {
                 var objectData = chunkData.objects[j];
-                AsyncOperationHandle<GameObject> handle = Addressables.LoadAssetAsync<GameObject>(objectData.prefabName);
-                yield return handle;
+                var handle = Addressables.LoadAssetAsync<GameObject>(objectData.prefabName);
+                await handle.Task;
 
                 if (handle.Status == AsyncOperationStatus.Succeeded)
                 {
@@ -278,7 +276,7 @@ public class ChunkManager : MonoBehaviour
 
                 Addressables.Release(handle);
             }
-            yield return null;
+            await Task.Yield();
         }
     }
 
