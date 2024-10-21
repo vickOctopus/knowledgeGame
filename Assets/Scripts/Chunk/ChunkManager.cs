@@ -24,8 +24,8 @@ public class ChunkManager : MonoBehaviour
     [SerializeField] private GameObject levelGrid;
 
     private const int MAX_CACHE_SIZE = 20; // 可以根据需要调整
-    private Dictionary<Vector2Int, ChunkData> chunkCache = new Dictionary<Vector2Int, ChunkData>();
-    private Queue<Vector2Int> cacheOrder = new Queue<Vector2Int>();
+    private Dictionary<Vector2Int, LinkedListNode<ChunkData>> chunkCache = new Dictionary<Vector2Int, LinkedListNode<ChunkData>>();
+    private LinkedList<ChunkData> cacheOrder = new LinkedList<ChunkData>();
 
     private const int TILES_PER_FRAME = 100; // 每帧处理的瓦片数量
     private const int OBJECTS_PER_FRAME = 10; // 每帧处理的对象数量
@@ -290,14 +290,38 @@ public class ChunkManager : MonoBehaviour
 
     private void AddToCache(Vector2Int chunkCoord, ChunkData chunkData)
     {
-        if (chunkCache.Count >= MAX_CACHE_SIZE)
+        if (chunkCache.ContainsKey(chunkCoord))
         {
-            Vector2Int oldestChunk = cacheOrder.Dequeue();
-            chunkCache.Remove(oldestChunk);
+            // 如果缓存中已经存在该区块，则将其移动到链表头部
+            var node = chunkCache[chunkCoord];
+            cacheOrder.Remove(node);
+            cacheOrder.AddFirst(node);
         }
+        else
+        {
+            // 如果缓存已满，则移除最久未使用的区块
+            if (chunkCache.Count >= MAX_CACHE_SIZE)
+            {
+                var oldestNode = cacheOrder.Last;
+                cacheOrder.RemoveLast();
+                chunkCache.Remove(oldestNode.Value.chunkCoord);
+            }
 
-        chunkCache[chunkCoord] = chunkData;
-        cacheOrder.Enqueue(chunkCoord);
+            // 添加新的区块到缓存
+            var newNode = new LinkedListNode<ChunkData>(chunkData);
+            cacheOrder.AddFirst(newNode);
+            chunkCache[chunkCoord] = newNode;
+        }
+    }
+
+    private void UseCache(Vector2Int chunkCoord)
+    {
+        if (chunkCache.TryGetValue(chunkCoord, out var node))
+        {
+            // 将使用的区块移动到链表头部
+            cacheOrder.Remove(node);
+            cacheOrder.AddFirst(node);
+        }
     }
 
     private void UnloadChunk(Vector2Int chunkCoord)
