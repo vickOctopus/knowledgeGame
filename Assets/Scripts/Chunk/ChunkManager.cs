@@ -35,6 +35,8 @@ public class ChunkManager : MonoBehaviour
     private Queue<Vector2Int> loadQueue = new Queue<Vector2Int>();
     private int currentLoads = 0;
 
+    private const int TILES_TO_CLEAR_PER_FRAME = 50; // 每帧清除的瓦片数量
+
     private void Awake()
     {
         if (Instance == null)
@@ -107,7 +109,7 @@ public class ChunkManager : MonoBehaviour
             }
         }
 
-        // 按照到当前区块的距离��序
+        // 按照到当前区块的距离序
         chunksToLoad.Sort((a, b) => 
             Vector2Int.Distance(a, currentChunk).CompareTo(Vector2Int.Distance(b, currentChunk)));
 
@@ -379,12 +381,23 @@ public class ChunkManager : MonoBehaviour
         {
             if (!loadOperation.IsValid())
             {
-                Debug.LogWarning($"尝试卸载无效的区块: {chunkCoord}");
                 loadedChunks.Remove(chunkCoord);
                 return;
             }
 
-            foreach (var layerData in loadOperation.Result.tilemapLayers)
+            ChunkData chunkData = loadOperation.Result;
+
+            // 1. 卸载游戏物体
+            GameObject chunkParent = GameObject.Find($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+            if (chunkParent != null)
+            {
+                Destroy(chunkParent);
+                await Task.Yield(); // 等待一帧，确保物体被销毁
+            }
+
+            // 2. 卸载瓦片
+            List<(Vector3Int, Tilemap)> tilesToClear = new List<(Vector3Int, Tilemap)>();
+            foreach (var layerData in chunkData.tilemapLayers)
             {
                 Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
                 if (tilemapTransform != null)
@@ -399,25 +412,27 @@ public class ChunkManager : MonoBehaviour
                                 tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
                                 tileData.position.z
                             );
-                            tilemap.SetTile(globalPos, null);
-
-                            // 分帧处理
-                            await Task.Yield();
+                            tilesToClear.Add((globalPos, tilemap));
                         }
                     }
                 }
             }
 
-            GameObject chunkParent = GameObject.Find($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
-            if (chunkParent != null)
+            // 分帧清除瓦片
+            for (int i = 0; i < tilesToClear.Count; i += TILES_TO_CLEAR_PER_FRAME)
             {
-                Destroy(chunkParent);
-                await Task.Yield(); // 分帧处理
+                int endIndex = Mathf.Min(i + TILES_TO_CLEAR_PER_FRAME, tilesToClear.Count);
+                for (int j = i; j < endIndex; j++)
+                {
+                    var (pos, tilemap) = tilesToClear[j];
+                    tilemap.SetTile(pos, null);
+                }
+                await Task.Yield(); // 每处理完一批瓦片后等待一帧
             }
 
             if (!chunkCache.ContainsKey(chunkCoord))
             {
-                AddToCache(chunkCoord, loadOperation.Result);
+                AddToCache(chunkCoord, chunkData);
             }
 
             Addressables.Release(loadOperation);
