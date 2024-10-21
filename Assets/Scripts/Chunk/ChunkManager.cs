@@ -51,6 +51,7 @@ public class ChunkManager : MonoBehaviour
     private void Start()
     {
         InitializeChunks(PlayController.instance.transform.position);
+        InvokeRepeating(nameof(CleanUpUnusedResources), 60f, 60f); // 每60秒清理一次
     }
 
     public async void InitializeChunks(Vector3 playerPosition)
@@ -361,6 +362,7 @@ public class ChunkManager : MonoBehaviour
                 AddToCache(chunkCoord, loadOperation.Result);
             }
 
+            // 确保释放资源
             Addressables.Release(loadOperation);
             loadedChunks.Remove(chunkCoord);
         }
@@ -497,5 +499,11 @@ public class ChunkManager : MonoBehaviour
                 Addressables.Release(loadOperation);
             }
         }
+    }
+
+    private void CleanUpUnusedResources()
+    {
+        Resources.UnloadUnusedAssets();
+        System.GC.Collect();
     }
 }
