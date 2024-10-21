@@ -27,8 +27,8 @@ public class ChunkManager : MonoBehaviour
     private Dictionary<Vector2Int, LinkedListNode<ChunkData>> chunkCache = new Dictionary<Vector2Int, LinkedListNode<ChunkData>>();
     private LinkedList<ChunkData> cacheOrder = new LinkedList<ChunkData>();
 
-    private const int TILES_PER_FRAME = 100; // 每帧处理的瓦片数量
-    private const int OBJECTS_PER_FRAME = 10; // 每帧处理的对象数量
+    private const int TILES_PER_FRAME = 20; // 增加每帧处理的瓦片数量
+    private const int OBJECTS_PER_FRAME = 20; // 增加每帧处理的对象数量
 
     private const int MAX_CONCURRENT_LOADS = 2; // 最大并发加载数
     private Queue<Vector2Int> loadQueue = new Queue<Vector2Int>();
@@ -118,7 +118,7 @@ public class ChunkManager : MonoBehaviour
         {
             if (!newVisibleChunks.Contains(chunk))
             {
-                UnloadChunk(chunk);
+                await UnloadChunkAsync(chunk); // 使用异步方法
             }
         }
 
@@ -128,22 +128,16 @@ public class ChunkManager : MonoBehaviour
 
     private async Task ProcessLoadQueueAsync()
     {
-        List<Task> loadTasks = new List<Task>();
-
         while (loadQueue.Count > 0)
         {
-            while (currentLoads < MAX_CONCURRENT_LOADS && loadQueue.Count > 0)
+            if (currentLoads < MAX_CONCURRENT_LOADS)
             {
                 Vector2Int coord = loadQueue.Dequeue();
-                loadTasks.Add(LoadChunkAsync(coord));
                 currentLoads++;
+                _ = LoadChunkAsync(coord).ContinueWith(_ => currentLoads--);
             }
 
-            // 等待当前批次的加载任务完成
-            await Task.WhenAll(loadTasks);
-            loadTasks.Clear();
-
-            // 使用 Task.Delay(1) 代替 Task.Yield()
+            // 使用 Task.Delay 来分散加载操作
             await Task.Delay(1);
         }
     }
@@ -155,10 +149,8 @@ public class ChunkManager : MonoBehaviour
             chunksBeingLoaded.Add(chunkCoord);
             string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
 
-            Debug.Log($"开始加载区块: {chunkCoord}");
-
             var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
-            await loadOperation.Task; // 确保这里使用的是 loadOperation.Task
+            await loadOperation.Task;
 
             if (loadOperation.Status == AsyncOperationStatus.Succeeded)
             {
@@ -169,7 +161,6 @@ public class ChunkManager : MonoBehaviour
                     Debug.LogError($"加载区块失败: {chunkCoord}");
                     chunksBeingLoaded.Remove(chunkCoord);
                     Addressables.Release(loadOperation);
-                    currentLoads--;
                     return;
                 }
 
@@ -184,7 +175,9 @@ public class ChunkManager : MonoBehaviour
                 await InstantiateObjectsAsync(chunkData, chunkParent, chunkCoord);
 
                 loadedChunks[chunkCoord] = loadOperation;
-                Debug.Log($"区块加载完成: {chunkCoord}");
+
+                // 更新缓存
+                AddToCache(chunkCoord, chunkData);
             }
             else
             {
@@ -193,7 +186,6 @@ public class ChunkManager : MonoBehaviour
             }
 
             chunksBeingLoaded.Remove(chunkCoord);
-            currentLoads--;
         }
     }
 
@@ -235,21 +227,56 @@ public class ChunkManager : MonoBehaviour
                 continue;
             }
 
-            for (int i = 0; i < layerKVP.Value.Count; i += TILES_PER_FRAME * 2) // 增加批量处理数量
+            int getTileDataCalls = 0; // 计数器
+
+            for (int i = 0; i < layerKVP.Value.Count; i += TILES_PER_FRAME)
             {
-                int endIndex = Mathf.Min(i + TILES_PER_FRAME * 2, layerKVP.Value.Count); // 增加批量处理数量
+                int endIndex = Mathf.Min(i + TILES_PER_FRAME, layerKVP.Value.Count);
                 var batch = layerKVP.Value.GetRange(i, endIndex - i);
 
                 var positions = batch.Select(t => t.Item1).ToArray();
                 var tiles = batch.Select(t => t.Item2).ToArray();
                 tilemap.SetTiles(positions, tiles);
 
-                foreach (var (pos, _, color, colliderType) in batch)
+                foreach (var (pos, tile, color, colliderType) in batch)
                 {
-                    tilemap.SetColor(pos, color);
-                    tilemap.SetColliderType(pos, colliderType);
+                    if (tile is RuleTile ruleTile)
+                    {
+                        UnityEngine.Tilemaps.TileData tileData = new UnityEngine.Tilemaps.TileData();
+                        ruleTile.GetTileData(pos, tilemap, ref tileData);
+
+                        // 仅在 TileData 确实发生变化时更新
+                        Color finalColor = tileData.color != default ? tileData.color : color;
+                        if (tilemap.GetColor(pos) != finalColor)
+                        {
+                            tilemap.SetColor(pos, finalColor);
+                        }
+                        if (tilemap.GetColliderType(pos) != tileData.colliderType)
+                        {
+                            tilemap.SetColliderType(pos, tileData.colliderType);
+                        }
+
+                        getTileDataCalls++;
+                        if (getTileDataCalls >= TILES_PER_FRAME)
+                        {
+                            getTileDataCalls = 0;
+                            await Task.Yield(); // 分帧处理
+                        }
+                    }
+                    else
+                    {
+                        if (tilemap.GetColor(pos) != color)
+                        {
+                            tilemap.SetColor(pos, color);
+                        }
+                        if (tilemap.GetColliderType(pos) != colliderType)
+                        {
+                            tilemap.SetColliderType(pos, colliderType);
+                        }
+                    }
                 }
 
+                // 确保在每个批次后进行分帧处理
                 await Task.Yield();
             }
         }
@@ -257,9 +284,9 @@ public class ChunkManager : MonoBehaviour
 
     private async Task InstantiateObjectsAsync(ChunkData chunkData, GameObject chunkParent, Vector2Int chunkCoord)
     {
-        for (int i = 0; i < chunkData.objects.Count; i += OBJECTS_PER_FRAME * 2) // 增加批量处理数量
+        for (int i = 0; i < chunkData.objects.Count; i += OBJECTS_PER_FRAME) // 使用新的批量处理数量
         {
-            int endIndex = Mathf.Min(i + OBJECTS_PER_FRAME * 2, chunkData.objects.Count); // 增加批量处理数量
+            int endIndex = Mathf.Min(i + OBJECTS_PER_FRAME, chunkData.objects.Count);
             for (int j = i; j < endIndex; j++)
             {
                 var objectData = chunkData.objects[j];
@@ -285,7 +312,7 @@ public class ChunkManager : MonoBehaviour
 
                 Addressables.Release(handle);
             }
-            await Task.Yield();
+            await Task.Yield(); // 确保异步执行
         }
     }
 
@@ -327,17 +354,16 @@ public class ChunkManager : MonoBehaviour
     {
         if (chunkCache.TryGetValue(chunkCoord, out var node))
         {
-            // 将使用的区块移动到链表头部
+            // 将用的区块移动到链表头部
             cacheOrder.Remove(node);
             cacheOrder.AddFirst(node);
         }
     }
 
-    private void UnloadChunk(Vector2Int chunkCoord)
+    private async Task UnloadChunkAsync(Vector2Int chunkCoord)
     {
         if (loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<ChunkData> loadOperation))
         {
-            // 检查资源是否已经被释放
             if (!loadOperation.IsValid())
             {
                 Debug.LogWarning($"尝试卸载无效的区块: {chunkCoord}");
@@ -361,6 +387,9 @@ public class ChunkManager : MonoBehaviour
                                 tileData.position.z
                             );
                             tilemap.SetTile(globalPos, null);
+
+                            // 分帧处理
+                            await Task.Yield();
                         }
                     }
                 }
@@ -370,17 +399,19 @@ public class ChunkManager : MonoBehaviour
             if (chunkParent != null)
             {
                 Destroy(chunkParent);
+                await Task.Yield(); // 分帧处理
             }
 
-            // 更新缓存
             if (!chunkCache.ContainsKey(chunkCoord))
             {
                 AddToCache(chunkCoord, loadOperation.Result);
             }
 
-            // 确保释放资源
             Addressables.Release(loadOperation);
             loadedChunks.Remove(chunkCoord);
+
+            // 使用 Task.Delay 来分散卸载操作
+            await Task.Delay(1);
         }
     }
 
