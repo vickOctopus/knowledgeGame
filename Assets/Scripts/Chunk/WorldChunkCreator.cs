@@ -115,6 +115,8 @@ public class WorldChunkCreator : MonoBehaviour
         chunkData.tilemapLayers = new List<TilemapLayerData>();
         chunkData.objects = new List<ObjectData>();
 
+        bool chunkHasContent = false;
+
         for (int i = 0; i < sourceTilemaps.Length; i++)
         {
             Tilemap sourceTilemap = sourceTilemaps[i];
@@ -161,6 +163,7 @@ public class WorldChunkCreator : MonoBehaviour
             if (layerData.tiles.Count > 0)
             {
                 chunkData.tilemapLayers.Add(layerData);
+                chunkHasContent = true;
             }
         }
 
@@ -180,6 +183,7 @@ public class WorldChunkCreator : MonoBehaviour
                         scale = info.scale,
                         prefabName = info.prefabPath
                     });
+                    chunkHasContent = true;
 
                     var addressableSettings = AddressableAssetSettingsDefaultObject.Settings;
                     if (addressableSettings != null)
@@ -228,6 +232,7 @@ public class WorldChunkCreator : MonoBehaviour
                     scale = child.localScale,
                     prefabName = prefabAssetPath
                 });
+                chunkHasContent = true;
 
                 var addressableSettings = AddressableAssetSettingsDefaultObject.Settings;
                 if (addressableSettings != null)
@@ -244,16 +249,25 @@ public class WorldChunkCreator : MonoBehaviour
             }
         }
 
-        string assetPath = $"{directoryPath}/ChunkData_{chunkCoord.x}_{chunkCoord.y}.asset";
-        AssetDatabase.CreateAsset(chunkData, assetPath);
-        AssetDatabase.SaveAssets();
-
-        var settings = AddressableAssetSettingsDefaultObject.Settings;
-        if (settings != null)
+        // 只有当区块有内容时才创建资源
+        if (chunkHasContent)
         {
-            var guid = AssetDatabase.AssetPathToGUID(assetPath);
-            var entry = settings.CreateOrMoveEntry(guid, settings.DefaultGroup);
-            entry.address = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
+            string assetPath = $"{directoryPath}/ChunkData_{chunkCoord.x}_{chunkCoord.y}.asset";
+            AssetDatabase.CreateAsset(chunkData, assetPath);
+            AssetDatabase.SaveAssets();
+
+            var settings = AddressableAssetSettingsDefaultObject.Settings;
+            if (settings != null)
+            {
+                var guid = AssetDatabase.AssetPathToGUID(assetPath);
+                var entry = settings.CreateOrMoveEntry(guid, settings.DefaultGroup);
+                entry.address = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
+            }
+        }
+        else
+        {
+            // 如果区块为空，则销毁创建的 ScriptableObject
+            DestroyImmediate(chunkData);
         }
 
         DestroyImmediate(chunkObject);
