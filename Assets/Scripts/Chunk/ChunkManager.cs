@@ -183,13 +183,25 @@ public class ChunkManager : MonoBehaviour
                         await InstantiateTilesAsync(chunkData, chunkCoord);
                         await InstantiateObjectsAsync(chunkData, chunkParent, chunkCoord);
 
-                        loadedChunks[chunkCoord] = loadOperation;
+                        // 在添加到 loadedChunks 之前再次检查操作是否有效
+                        if (loadOperation.IsValid())
+                        {
+                            loadedChunks[chunkCoord] = loadOperation;
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"LoadChunkAsync: Operation became invalid for chunk {chunkCoord}");
+                        }
 
                         AddToCache(chunkCoord, chunkData);
                     }
                     else
                     {
-                        Addressables.Release(loadOperation);
+                        if (loadOperation.IsValid())
+                        {
+                            Addressables.Release(loadOperation);
+                        }
+                        Debug.LogError($"Failed to load chunk data for {chunkCoord}");
                     }
                 }
             }
@@ -379,68 +391,72 @@ public class ChunkManager : MonoBehaviour
     {
         if (loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<ChunkData> loadOperation))
         {
-            if (!loadOperation.IsValid())
+            // 检查操作是否有效
+            if (loadOperation.IsValid())
             {
-                loadedChunks.Remove(chunkCoord);
-                return;
-            }
+                ChunkData chunkData = loadOperation.Result;
 
-            ChunkData chunkData = loadOperation.Result;
-
-            // 1. 卸载游戏物体
-            GameObject chunkParent = GameObject.Find($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
-            if (chunkParent != null)
-            {
-                Destroy(chunkParent);
-                await Task.Yield(); // 等待一帧，确保物体被销毁
-            }
-
-            // 2. 卸载瓦片
-            List<(Vector3Int, Tilemap)> tilesToClear = new List<(Vector3Int, Tilemap)>();
-            foreach (var layerData in chunkData.tilemapLayers)
-            {
-                Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
-                if (tilemapTransform != null)
+                // 1. 卸载游戏物体
+                GameObject chunkParent = GameObject.Find($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+                if (chunkParent != null)
                 {
-                    Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
-                    if (tilemap != null)
+                    Destroy(chunkParent);
+                    await Task.Yield(); // 等待一帧，确保物体被销毁
+                }
+
+                // 2. 卸载瓦片
+                List<(Vector3Int, Tilemap)> tilesToClear = new List<(Vector3Int, Tilemap)>();
+                foreach (var layerData in chunkData.tilemapLayers)
+                {
+                    Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
+                    if (tilemapTransform != null)
                     {
-                        foreach (var tileData in layerData.tiles)
+                        Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
+                        if (tilemap != null)
                         {
-                            Vector3Int globalPos = new Vector3Int(
-                                tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
-                                tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
-                                tileData.position.z
-                            );
-                            tilesToClear.Add((globalPos, tilemap));
+                            foreach (var tileData in layerData.tiles)
+                            {
+                                Vector3Int globalPos = new Vector3Int(
+                                    tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
+                                    tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
+                                    tileData.position.z
+                                );
+                                tilesToClear.Add((globalPos, tilemap));
+                            }
                         }
                     }
                 }
-            }
 
-            // 分帧清除瓦片
-            for (int i = 0; i < tilesToClear.Count; i += TILES_TO_CLEAR_PER_FRAME)
-            {
-                int endIndex = Mathf.Min(i + TILES_TO_CLEAR_PER_FRAME, tilesToClear.Count);
-                for (int j = i; j < endIndex; j++)
+                // 分帧清除瓦片
+                for (int i = 0; i < tilesToClear.Count; i += TILES_TO_CLEAR_PER_FRAME)
                 {
-                    var (pos, tilemap) = tilesToClear[j];
-                    tilemap.SetTile(pos, null);
+                    int endIndex = Mathf.Min(i + TILES_TO_CLEAR_PER_FRAME, tilesToClear.Count);
+                    for (int j = i; j < endIndex; j++)
+                    {
+                        var (pos, tilemap) = tilesToClear[j];
+                        tilemap.SetTile(pos, null);
+                    }
+                    await Task.Yield(); // 每处理完一批瓦片后等待一帧
                 }
-                await Task.Yield(); // 每处理完一批瓦片后等待一帧
-            }
 
-            if (!chunkCache.ContainsKey(chunkCoord))
-            {
-                AddToCache(chunkCoord, chunkData);
-            }
+                if (!chunkCache.ContainsKey(chunkCoord))
+                {
+                    AddToCache(chunkCoord, chunkData);
+                }
 
-            Addressables.Release(loadOperation);
+                // 在释放之前再次检查操作是否有效
+                if (loadOperation.IsValid())
+                {
+                    Addressables.Release(loadOperation);
+                }
+            }
+            
+            // 无论操作是否有效，都从 loadedChunks 中移除
             loadedChunks.Remove(chunkCoord);
-
-            // 使用 Task.Delay 来分散卸载操作
-            await Task.Delay(1);
         }
+
+        // 使用 Task.Delay 来分散卸载操作
+        await Task.Delay(1);
     }
 
     private Vector2Int GetChunkCoordFromWorldPos(Vector3 worldPos)
