@@ -20,6 +20,7 @@ public class ChunkManager : MonoBehaviour
     private HashSet<Vector2Int> visibleChunks = new HashSet<Vector2Int>();
     private Vector2Int currentChunk;
     private HashSet<Vector2Int> chunksBeingLoaded = new HashSet<Vector2Int>();
+    private HashSet<Vector2Int> chunksBeingUnloaded = new HashSet<Vector2Int>();
     private bool isInitializing = false;
 
     [SerializeField] private GameObject levelGrid;
@@ -36,6 +37,8 @@ public class ChunkManager : MonoBehaviour
     private int currentLoads = 0;
 
     private const int TILES_TO_CLEAR_PER_FRAME = 50; // 每帧清除的瓦片数量
+
+    private HashSet<Vector2Int> chunksBeingProcessed = new HashSet<Vector2Int>();
 
     private void Awake()
     {
@@ -89,8 +92,10 @@ public class ChunkManager : MonoBehaviour
 
     private async Task UpdateVisibleChunksAsync()
     {
+        Debug.Log($"Updating visible chunks. Current chunk: {currentChunk}");
         HashSet<Vector2Int> newVisibleChunks = new HashSet<Vector2Int>();
         List<Vector2Int> chunksToLoad = new List<Vector2Int>();
+        List<Vector2Int> chunksToUnload = new List<Vector2Int>();
 
         for (int x = -loadDistance; x <= loadDistance; x++)
         {
@@ -98,10 +103,11 @@ public class ChunkManager : MonoBehaviour
             {
                 Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
                 newVisibleChunks.Add(coord);
-                if (!visibleChunks.Contains(coord) && !loadedChunks.ContainsKey(coord) && !chunksBeingLoaded.Contains(coord))
+                if (!visibleChunks.Contains(coord) && !loadedChunks.ContainsKey(coord))
                 {
-                    // 在这里添加检查，确保区块存在
-                    if (await ChunkExistsAsync(coord))
+                    bool exists = await ChunkExistsAsync(coord);
+                    Debug.Log($"Chunk {coord} exists: {exists}");
+                    if (exists)
                     {
                         chunksToLoad.Add(coord);
                     }
@@ -109,23 +115,48 @@ public class ChunkManager : MonoBehaviour
             }
         }
 
-        // 按照到当前区块的距离序
-        chunksToLoad.Sort((a, b) => 
-            Vector2Int.Distance(a, currentChunk).CompareTo(Vector2Int.Distance(b, currentChunk)));
+        Debug.Log($"Chunks to load: {string.Join(", ", chunksToLoad)}");
 
-        foreach (Vector2Int coord in chunksToLoad)
-        {
-            loadQueue.Enqueue(coord);
-        }
-
-        // 等待 ProcessLoadQueueAsync 完成
-        await ProcessLoadQueueAsync();
-
+        // 处理需要卸载的区块
         foreach (Vector2Int chunk in visibleChunks)
         {
             if (!newVisibleChunks.Contains(chunk))
             {
-                await UnloadChunkAsync(chunk); // 使用异步方法
+                chunksToUnload.Add(chunk);
+            }
+        }
+
+        // 按照到当前区块的距离排序
+        chunksToLoad.Sort((a, b) => 
+            Vector2Int.Distance(a, currentChunk).CompareTo(Vector2Int.Distance(b, currentChunk)));
+
+        // 处理加载
+        foreach (Vector2Int coord in chunksToLoad)
+        {
+            if (!chunksBeingProcessed.Contains(coord))
+            {
+                chunksBeingProcessed.Add(coord);
+                _ = LoadChunkAsync(coord).ContinueWith(t => 
+                {
+                    chunksBeingProcessed.Remove(coord);
+                    if (t.IsFaulted)
+                    {
+                        Debug.LogError($"Failed to load chunk {coord}: {t.Exception}");
+                    }
+                });
+            }
+        }
+
+        // 处理卸载
+        foreach (Vector2Int chunk in chunksToUnload)
+        {
+            if (!chunksBeingProcessed.Contains(chunk))
+            {
+                chunksBeingProcessed.Add(chunk);
+                _ = UnloadChunkAsync(chunk).ContinueWith(_ => 
+                {
+                    chunksBeingProcessed.Remove(chunk);
+                });
             }
         }
 
@@ -151,68 +182,67 @@ public class ChunkManager : MonoBehaviour
 
     private async Task LoadChunkAsync(Vector2Int chunkCoord)
     {
-        if (!loadedChunks.ContainsKey(chunkCoord) && !chunksBeingLoaded.Contains(chunkCoord))
+        if (loadedChunks.ContainsKey(chunkCoord))
         {
-            chunksBeingLoaded.Add(chunkCoord);
-            string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
+            Debug.Log($"Chunk {chunkCoord} is already loaded");
+            return;
+        }
 
-            try
+        Debug.Log($"Starting to load chunk {chunkCoord}");
+        string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
+
+        try
+        {
+            Debug.Log($"Loading chunk data for {chunkCoord}");
+            var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
+            await loadOperation.Task;
+
+            if (loadOperation.Status == AsyncOperationStatus.Succeeded && loadOperation.Result != null)
             {
-                if (await ChunkExistsAsync(chunkCoord))
+                ChunkData chunkData = loadOperation.Result;
+                Debug.Log($"Successfully loaded chunk data for {chunkCoord}");
+
+                if (chunkData == null || levelGrid == null)
                 {
-                    var loadOperation = Addressables.LoadAssetAsync<ChunkData>(chunkDataAddress);
-                    await loadOperation.Task;
+                    Debug.LogError($"ChunkData or levelGrid is null for chunk {chunkCoord}");
+                    Addressables.Release(loadOperation);
+                    return;
+                }
 
-                    if (loadOperation.Status == AsyncOperationStatus.Succeeded && loadOperation.Result != null)
-                    {
-                        ChunkData chunkData = loadOperation.Result;
+                GameObject chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+                chunkParent.transform.position = new Vector3(
+                    chunkCoord.x * chunkWidth,
+                    chunkCoord.y * chunkHeight,
+                    0
+                );
 
-                        if (chunkData == null || levelGrid == null)
-                        {
-                            Addressables.Release(loadOperation);
-                            return;
-                        }
+                await InstantiateTilesAsync(chunkData, chunkCoord);
+                await InstantiateObjectsAsync(chunkData, chunkParent, chunkCoord);
 
-                        GameObject chunkParent = new GameObject($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
-                        chunkParent.transform.position = new Vector3(
-                            chunkCoord.x * chunkWidth,
-                            chunkCoord.y * chunkHeight,
-                            0
-                        );
+                if (loadOperation.IsValid())
+                {
+                    loadedChunks[chunkCoord] = loadOperation;
+                    Debug.Log($"Chunk {chunkCoord} added to loadedChunks");
+                }
+                else
+                {
+                    Debug.LogWarning($"LoadChunkAsync: Operation became invalid for chunk {chunkCoord}");
+                }
 
-                        await InstantiateTilesAsync(chunkData, chunkCoord);
-                        await InstantiateObjectsAsync(chunkData, chunkParent, chunkCoord);
-
-                        // 在添加到 loadedChunks 之前再次检查操作是否有效
-                        if (loadOperation.IsValid())
-                        {
-                            loadedChunks[chunkCoord] = loadOperation;
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"LoadChunkAsync: Operation became invalid for chunk {chunkCoord}");
-                        }
-
-                        AddToCache(chunkCoord, chunkData);
-                    }
-                    else
-                    {
-                        if (loadOperation.IsValid())
-                        {
-                            Addressables.Release(loadOperation);
-                        }
-                        Debug.LogError($"Failed to load chunk data for {chunkCoord}");
-                    }
+                AddToCache(chunkCoord, chunkData);
+            }
+            else
+            {
+                Debug.LogError($"Failed to load chunk data for {chunkCoord}. Status: {loadOperation.Status}");
+                if (loadOperation.IsValid())
+                {
+                    Addressables.Release(loadOperation);
                 }
             }
-            catch (Exception e)
-            {
-                Debug.LogError($"加载区块时发生错误: {chunkCoord}, 错误: {e.Message}");
-            }
-            finally
-            {
-                chunksBeingLoaded.Remove(chunkCoord);
-            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error loading chunk {chunkCoord}: {e.Message}\n{e.StackTrace}");
         }
     }
 
@@ -389,74 +419,82 @@ public class ChunkManager : MonoBehaviour
 
     private async Task UnloadChunkAsync(Vector2Int chunkCoord)
     {
-        if (loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<ChunkData> loadOperation))
+        if (!loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<ChunkData> loadOperation))
         {
-            // 检查操作是否有效
-            if (loadOperation.IsValid())
-            {
-                ChunkData chunkData = loadOperation.Result;
-
-                // 1. 卸载游戏物体
-                GameObject chunkParent = GameObject.Find($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
-                if (chunkParent != null)
-                {
-                    Destroy(chunkParent);
-                    await Task.Yield(); // 等待一帧，确保物体被销毁
-                }
-
-                // 2. 卸载瓦片
-                List<(Vector3Int, Tilemap)> tilesToClear = new List<(Vector3Int, Tilemap)>();
-                foreach (var layerData in chunkData.tilemapLayers)
-                {
-                    Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
-                    if (tilemapTransform != null)
-                    {
-                        Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
-                        if (tilemap != null)
-                        {
-                            foreach (var tileData in layerData.tiles)
-                            {
-                                Vector3Int globalPos = new Vector3Int(
-                                    tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
-                                    tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
-                                    tileData.position.z
-                                );
-                                tilesToClear.Add((globalPos, tilemap));
-                            }
-                        }
-                    }
-                }
-
-                // 分帧清除瓦片
-                for (int i = 0; i < tilesToClear.Count; i += TILES_TO_CLEAR_PER_FRAME)
-                {
-                    int endIndex = Mathf.Min(i + TILES_TO_CLEAR_PER_FRAME, tilesToClear.Count);
-                    for (int j = i; j < endIndex; j++)
-                    {
-                        var (pos, tilemap) = tilesToClear[j];
-                        tilemap.SetTile(pos, null);
-                    }
-                    await Task.Yield(); // 每处理完一批瓦片后等待一帧
-                }
-
-                if (!chunkCache.ContainsKey(chunkCoord))
-                {
-                    AddToCache(chunkCoord, chunkData);
-                }
-
-                // 在释放之前再次检查操作是否有效
-                if (loadOperation.IsValid())
-                {
-                    Addressables.Release(loadOperation);
-                }
-            }
-            
-            // 无论操作是否有效，都从 loadedChunks 中移除
-            loadedChunks.Remove(chunkCoord);
+            Debug.Log($"Chunk {chunkCoord} is not loaded, cannot unload");
+            return;
         }
 
-        // 使用 Task.Delay 来分散卸载操作
-        await Task.Delay(1);
+        Debug.Log($"Starting to unload chunk {chunkCoord}");
+
+        // 检查操作是否有效
+        if (loadOperation.IsValid())
+        {
+            ChunkData chunkData = loadOperation.Result;
+
+            // 1. 卸载游戏物体
+            GameObject chunkParent = GameObject.Find($"Chunk_{chunkCoord.x}_{chunkCoord.y}_Objects");
+            if (chunkParent != null)
+            {
+                Destroy(chunkParent);
+                await Task.Yield(); // 等待一帧，确保物体被销毁
+            }
+
+            // 2. 卸载瓦片
+            await UnloadTilesAsync(chunkData, chunkCoord);
+
+            if (!chunkCache.ContainsKey(chunkCoord))
+            {
+                AddToCache(chunkCoord, chunkData);
+            }
+
+            // 在释放之前再次检查操作是否有效
+            if (loadOperation.IsValid())
+            {
+                Addressables.Release(loadOperation);
+            }
+        }
+        
+        // 无论操作是否有效，都从 loadedChunks 中移除
+        loadedChunks.Remove(chunkCoord);
+        Debug.Log($"Chunk {chunkCoord} unloaded and removed from loadedChunks");
+    }
+
+    private async Task UnloadTilesAsync(ChunkData chunkData, Vector2Int chunkCoord)
+    {
+        List<(Vector3Int, Tilemap)> tilesToClear = new List<(Vector3Int, Tilemap)>();
+        foreach (var layerData in chunkData.tilemapLayers)
+        {
+            Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
+            if (tilemapTransform != null)
+            {
+                Tilemap tilemap = tilemapTransform.GetComponent<Tilemap>();
+                if (tilemap != null)
+                {
+                    foreach (var tileData in layerData.tiles)
+                    {
+                        Vector3Int globalPos = new Vector3Int(
+                            tileData.position.x + chunkCoord.x * chunkWidth - chunkWidth / 2,
+                            tileData.position.y + chunkCoord.y * chunkHeight - chunkHeight / 2,
+                            tileData.position.z
+                        );
+                        tilesToClear.Add((globalPos, tilemap));
+                    }
+                }
+            }
+        }
+
+        // 分帧清除瓦片
+        for (int i = 0; i < tilesToClear.Count; i += TILES_TO_CLEAR_PER_FRAME)
+        {
+            int endIndex = Mathf.Min(i + TILES_TO_CLEAR_PER_FRAME, tilesToClear.Count);
+            for (int j = i; j < endIndex; j++)
+            {
+                var (pos, tilemap) = tilesToClear[j];
+                tilemap.SetTile(pos, null);
+            }
+            await Task.Yield(); // 每处理完一批瓦片后等待一帧
+        }
     }
 
     private Vector2Int GetChunkCoordFromWorldPos(Vector3 worldPos)
@@ -610,11 +648,19 @@ public class ChunkManager : MonoBehaviour
     private async Task<bool> ChunkExistsAsync(Vector2Int chunkCoord)
     {
         string chunkDataAddress = $"ChunkData_{chunkCoord.x}_{chunkCoord.y}";
-        var loadOperation = Addressables.LoadResourceLocationsAsync(chunkDataAddress);
-        await loadOperation.Task;
-        bool exists = loadOperation.Result != null && loadOperation.Result.Count > 0;
-        Addressables.Release(loadOperation);
-        return exists;
+        try
+        {
+            var loadOperation = Addressables.LoadResourceLocationsAsync(chunkDataAddress);
+            await loadOperation.Task;
+            bool exists = loadOperation.Result != null && loadOperation.Result.Count > 0;
+            Addressables.Release(loadOperation);
+            return exists;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error checking if chunk {chunkCoord} exists: {e.Message}");
+            return false;
+        }
     }
 
     private void CleanUpUnusedResources()
