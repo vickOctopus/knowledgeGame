@@ -128,15 +128,23 @@ public class ChunkManager : MonoBehaviour
 
     private async Task ProcessLoadQueueAsync()
     {
+        List<Task> loadTasks = new List<Task>();
+
         while (loadQueue.Count > 0)
         {
             while (currentLoads < MAX_CONCURRENT_LOADS && loadQueue.Count > 0)
             {
                 Vector2Int coord = loadQueue.Dequeue();
-                await LoadChunkAsync(coord);
+                loadTasks.Add(LoadChunkAsync(coord));
                 currentLoads++;
             }
-            await Task.Yield();
+
+            // 等待当前批次的加载任务完成
+            await Task.WhenAll(loadTasks);
+            loadTasks.Clear();
+
+            // 使用 Task.Delay(1) 代替 Task.Yield()
+            await Task.Delay(1);
         }
     }
 
@@ -227,9 +235,9 @@ public class ChunkManager : MonoBehaviour
                 continue;
             }
 
-            for (int i = 0; i < layerKVP.Value.Count; i += TILES_PER_FRAME)
+            for (int i = 0; i < layerKVP.Value.Count; i += TILES_PER_FRAME * 2) // 增加批量处理数量
             {
-                int endIndex = Mathf.Min(i + TILES_PER_FRAME, layerKVP.Value.Count);
+                int endIndex = Mathf.Min(i + TILES_PER_FRAME * 2, layerKVP.Value.Count); // 增加批量处理数量
                 var batch = layerKVP.Value.GetRange(i, endIndex - i);
 
                 var positions = batch.Select(t => t.Item1).ToArray();
@@ -249,9 +257,9 @@ public class ChunkManager : MonoBehaviour
 
     private async Task InstantiateObjectsAsync(ChunkData chunkData, GameObject chunkParent, Vector2Int chunkCoord)
     {
-        for (int i = 0; i < chunkData.objects.Count; i += OBJECTS_PER_FRAME)
+        for (int i = 0; i < chunkData.objects.Count; i += OBJECTS_PER_FRAME * 2) // 增加批量处理数量
         {
-            int endIndex = Mathf.Min(i + OBJECTS_PER_FRAME, chunkData.objects.Count);
+            int endIndex = Mathf.Min(i + OBJECTS_PER_FRAME * 2, chunkData.objects.Count); // 增加批量处理数量
             for (int j = i; j < endIndex; j++)
             {
                 var objectData = chunkData.objects[j];
@@ -329,6 +337,14 @@ public class ChunkManager : MonoBehaviour
     {
         if (loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<ChunkData> loadOperation))
         {
+            // 检查资源是否已经被释放
+            if (!loadOperation.IsValid())
+            {
+                Debug.LogWarning($"尝试卸载无效的区块: {chunkCoord}");
+                loadedChunks.Remove(chunkCoord);
+                return;
+            }
+
             foreach (var layerData in loadOperation.Result.tilemapLayers)
             {
                 Transform tilemapTransform = levelGrid.transform.Find(layerData.layerName);
