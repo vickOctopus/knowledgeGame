@@ -1,23 +1,15 @@
 using UnityEngine;
-using UnityEngine.Events;
 
-public class Button : MonoBehaviour, ISaveable
+public class Button : SaveableObject
 {
     public Sprite ButtonDownSprite;
-    // public UnityEvent OnButtonDown;
     private SpriteRenderer _spriteRenderer;
     private bool _isPressed;
-    private string _parentChunkName;
 
-    private void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         _spriteRenderer = GetComponent<SpriteRenderer>();
-        _parentChunkName = GetParentChunkName();
-    }
-
-    private void Start()
-    {
-        Load(SaveManager.CurrentSlotIndex);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -34,42 +26,19 @@ public class Button : MonoBehaviour, ISaveable
         _isPressed = true;
         _spriteRenderer.sprite = ButtonDownSprite;
         SendMessageUpwards("OnButtonDown", SendMessageOptions.DontRequireReceiver);
-        // OnButtonDown.Invoke();
     }
 
-    public void Save(int slotIndex)
+    public override void Save(int slotIndex)
     {
-        string key = GetPersistentKey();
-        PlayerPrefs.SetInt($"{key}_Slot{slotIndex}", _isPressed ? 1 : 0);
-        PlayerPrefs.Save();
+        SaveBool(GetPersistentKey(), _isPressed, slotIndex);
     }
 
-    public void Load(int slotIndex)
+    public override void Load(int slotIndex)
     {
-        string key = GetPersistentKey();
-        _isPressed = PlayerPrefs.GetInt($"{key}_Slot{slotIndex}", 0) == 1;
+        _isPressed = LoadBool(GetPersistentKey(), slotIndex);
         if (_isPressed)
         {
             ButtonDown();
         }
-    }
-
-    private string GetPersistentKey()
-    {
-        return $"Button_{_parentChunkName}_{gameObject.name}";
-    }
-
-    private string GetParentChunkName()
-    {
-        Transform current = transform;
-        while (current != null)
-        {
-            if (current.name.StartsWith("Chunk_"))
-            {
-                return current.name;
-            }
-            current = current.parent;
-        }
-        return "NoChunk"; // 如果没有找到父 Chunk，返回一个默认值
     }
 }
