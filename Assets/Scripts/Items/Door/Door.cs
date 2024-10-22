@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Door : MonoBehaviour
+public class Door : MonoBehaviour,IButton
 {
     public Sprite openSprite;
    
@@ -34,5 +34,15 @@ public class Door : MonoBehaviour
     {
         _renderer.sprite = openSprite;
         _collider.enabled = false;
+    }
+
+    public void OnButtonDown()
+    {
+       ButtonDown();
+    }
+
+    public void OnButtonUp()
+    {
+        throw new NotImplementedException();
     }
 }

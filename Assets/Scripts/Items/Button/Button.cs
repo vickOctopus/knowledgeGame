@@ -1,89 +1,75 @@
-using System;
 using UnityEngine;
 using UnityEngine.Events;
-using System.IO;
-using Newtonsoft.Json;
-
-[Serializable]
-public class ButtonData
-{
-    public bool isPressed;
-}
 
 public class Button : MonoBehaviour, ISaveable
 {
     public Sprite ButtonDownSprite;
-    public UnityEvent OnButtonDown;
+    // public UnityEvent OnButtonDown;
     private SpriteRenderer _spriteRenderer;
-    private ButtonData _buttonData;
+    private bool _isPressed;
+    private string _parentChunkName;
 
     private void Awake()
     {
         _spriteRenderer = GetComponent<SpriteRenderer>();
-        _buttonData = new ButtonData();
+        _parentChunkName = GetParentChunkName();
     }
 
     private void Start()
     {
-        Load(0); // 默认加载第一个存档槽，你可以根据需要修改这里
+        Load(SaveManager.CurrentSlotIndex);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (!_buttonData.isPressed)
+        if (!_isPressed)
         {
             ButtonDown();
-            Save(0); // 默认保存到第一个存档槽，你可以根据需要修改这里
+            Save(SaveManager.CurrentSlotIndex);
         }
     }
 
     public virtual void ButtonDown()
     {
-        _buttonData.isPressed = true;
+        _isPressed = true;
         _spriteRenderer.sprite = ButtonDownSprite;
-        OnButtonDown.Invoke();
+        SendMessageUpwards("OnButtonDown", SendMessageOptions.DontRequireReceiver);
+        // OnButtonDown.Invoke();
     }
 
     public void Save(int slotIndex)
     {
-        string json = JsonConvert.SerializeObject(_buttonData, Formatting.Indented);
-        string saveFilePath = SaveManager.GetSavePath(slotIndex, $"{gameObject.name}_data.json");
-        
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(saveFilePath));
-            File.WriteAllText(saveFilePath, json);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"保存按钮数据时出错：{e.Message}");
-        }
+        string key = GetPersistentKey();
+        PlayerPrefs.SetInt($"{key}_Slot{slotIndex}", _isPressed ? 1 : 0);
+        PlayerPrefs.Save();
     }
 
     public void Load(int slotIndex)
     {
-        string saveFilePath = SaveManager.GetSavePath(slotIndex, $"{gameObject.name}_data.json");
-        
-        if (File.Exists(saveFilePath))
+        string key = GetPersistentKey();
+        _isPressed = PlayerPrefs.GetInt($"{key}_Slot{slotIndex}", 0) == 1;
+        if (_isPressed)
         {
-            try
-            {
-                string json = File.ReadAllText(saveFilePath);
-                _buttonData = JsonConvert.DeserializeObject<ButtonData>(json);
-                if (_buttonData.isPressed)
-                {
-                    ButtonDown();
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"加载按钮数据时出错：{e.Message}");
-                _buttonData = new ButtonData();
-            }
+            ButtonDown();
         }
-        else
+    }
+
+    private string GetPersistentKey()
+    {
+        return $"Button_{_parentChunkName}_{gameObject.name}";
+    }
+
+    private string GetParentChunkName()
+    {
+        Transform current = transform;
+        while (current != null)
         {
-            _buttonData = new ButtonData();
+            if (current.name.StartsWith("Chunk_"))
+            {
+                return current.name;
+            }
+            current = current.parent;
         }
+        return "NoChunk"; // 如果没有找到父 Chunk，返回一个默认值
     }
 }

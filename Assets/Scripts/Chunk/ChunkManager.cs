@@ -455,7 +455,7 @@ public class ChunkManager : MonoBehaviour
             }
         }
         
-        // 无论操作是否有效，都从 loadedChunks 中移除
+        // 无论操作是否有效，从 loadedChunks 中移除
         loadedChunks.Remove(chunkCoord);
         Debug.Log($"Chunk {chunkCoord} unloaded and removed from loadedChunks");
     }
