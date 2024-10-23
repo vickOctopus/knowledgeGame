@@ -3,11 +3,13 @@ using UnityEngine.Tilemaps;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System; // 添加这行来引入 Exception 类
+using System;
+using System.Collections;  // 确保添加了这个引用
 
 public class ShadowWall : MonoBehaviour, ISaveable
 {
     [SerializeField] private string _saveFileName = "hiddenTiles.json";
+    private string _tilemapName; // 移除 SerializeField 特性
     private string _saveFilePath;
 
     private Tilemap _tilemap;
@@ -18,18 +20,66 @@ public class ShadowWall : MonoBehaviour, ISaveable
 
     private void Awake()
     {
+        // 自动获取挂载物体的名字
+        _tilemapName = gameObject.name;
+
+        // 首先尝试在当前对象上查找 Tilemap
         _tilemap = GetComponent<Tilemap>();
-        _chunkManager = ChunkManager.Instance;
+        
+        // 如果在当前对象上没有找到，则在子物体中查找
+        if (_tilemap == null)
+        {
+            _tilemap = GetComponentInChildren<Tilemap>();
+        }
+
+        // 如果仍然没有找到，则在整个场景中查找
+        if (_tilemap == null)
+        {
+            _tilemap = GameObject.Find(_tilemapName)?.GetComponent<Tilemap>();
+        }
+
+        if (_tilemap == null)
+        {
+            Debug.LogError($"Tilemap '{_tilemapName}' not found for ShadowWall on {gameObject.name}!");
+        }
+        else
+        {
+            Debug.Log($"ShadowWall on {gameObject.name} successfully found Tilemap '{_tilemapName}'");
+        }
     }
 
     private void Start()
     {
+        StartCoroutine(InitializeWithChunkManager());
+    }
+
+    private IEnumerator InitializeWithChunkManager()
+    {
+        while (ChunkManager.Instance == null)
+        {
+            yield return null;
+        }
+        _chunkManager = ChunkManager.Instance;
+        
         Load(PlayerPrefs.GetInt("CurrentSlotIndex"));
-        EventManager.instance.OnButtonShadowWallDown += HideTileAndNeighbors;
+        if (EventManager.instance != null)
+        {
+            EventManager.instance.OnButtonShadowWallDown += HideTileAndNeighbors;
+        }
+        else
+        {
+            Debug.LogError($"EventManager instance is null in ShadowWall on {gameObject.name}");
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
+        if (other == null)
+        {
+            Debug.LogError($"Null collider in OnTriggerEnter2D for ShadowWall on {gameObject.name}");
+            return;
+        }
+
         if (other.CompareTag("Player"))
         {
             Vector3 playerPosition = other.transform.position;
@@ -39,8 +89,27 @@ public class ShadowWall : MonoBehaviour, ISaveable
 
     private void HideTileAndNeighbors(Vector3 playerPosition)
     {
+        if (_tilemap == null)
+        {
+            Debug.LogError($"Tilemap is null in HideTileAndNeighbors for {gameObject.name}");
+            return;
+        }
+
+        if (_chunkManager == null)
+        {
+            _chunkManager = ChunkManager.Instance;
+            if (_chunkManager == null)
+            {
+                Debug.LogError($"ChunkManager is still null in HideTileAndNeighbors for {gameObject.name}");
+                return;
+            }
+        }
+
         Vector3Int startTilePosition = _tilemap.WorldToCell(playerPosition);
+        Vector2Int startChunkCoord = _chunkManager.GetChunkCoordFromWorldPos(playerPosition);
         
+        Debug.Log($"Player entered tile in chunk: {startChunkCoord} for Tilemap: {_tilemapName}");
+
         Queue<Vector3Int> tileQueue = new Queue<Vector3Int>();
         tileQueue.Enqueue(startTilePosition);
 
@@ -57,7 +126,6 @@ public class ShadowWall : MonoBehaviour, ISaveable
             _tilemap.SetTile(tilePosition, null);
             _hiddenTiles.Add(tilePosition);
 
-            // 从ChunkData中删除瓦片数据
             RemoveTileFromChunkData(tilePosition);
 
             Vector3Int[] directions = { Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right };
@@ -83,7 +151,7 @@ public class ShadowWall : MonoBehaviour, ISaveable
                 tilePosition.y - chunkCoord.y * ChunkManager.ChunkHeight + ChunkManager.ChunkHeight / 2,
                 tilePosition.z
             );
-            chunkData.RemoveTile(localPosition, _tilemap.name);
+            chunkData.RemoveTile(localPosition, _tilemapName);
         }
     }
 
@@ -106,13 +174,13 @@ public class ShadowWall : MonoBehaviour, ISaveable
     private void SaveHiddenTiles(int slotIndex)
     {
         string json = JsonUtility.ToJson(new TileDataList(_hiddenTiles));
-        _saveFilePath = SaveManager.GetSavePath(slotIndex, _saveFileName);
+        _saveFilePath = SaveManager.GetSavePath(slotIndex, $"{_tilemapName}_{_saveFileName}");
         File.WriteAllText(_saveFilePath, json);
     }
 
     private void LoadHiddenTiles(int slotIndex)
     {
-        _saveFilePath = SaveManager.GetSavePath(slotIndex, _saveFileName);
+        _saveFilePath = SaveManager.GetSavePath(slotIndex, $"{_tilemapName}_{_saveFileName}");
         if (File.Exists(_saveFilePath))
         {
             try
@@ -149,7 +217,6 @@ public class ShadowWall : MonoBehaviour, ISaveable
     }
 }
 
-// 用于序列化 Vector3Int 的类
 [System.Serializable]
 public class Vector3IntSerializable
 {
@@ -168,7 +235,6 @@ public class Vector3IntSerializable
     }
 }
 
-// 用于保存隐藏的 Tile 列表
 [System.Serializable]
 public class TileDataList
 {
