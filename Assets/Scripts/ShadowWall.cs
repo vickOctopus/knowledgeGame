@@ -10,6 +10,28 @@ public class ShadowWall : MonoBehaviour
     private Tilemap _tilemap;
     private ChunkManager _chunkManager;
 
+    private const int SEARCH_RADIUS = 1;
+
+    private Queue<Vector3Int> _vector3IntPool = new Queue<Vector3Int>();
+
+    private Vector3Int GetVector3Int(int x, int y, int z)
+    {
+        if (_vector3IntPool.Count > 0)
+        {
+            Vector3Int v = _vector3IntPool.Dequeue();
+            v.x = x;
+            v.y = y;
+            v.z = z;
+            return v;
+        }
+        return new Vector3Int(x, y, z);
+    }
+
+    private void ReleaseVector3Int(Vector3Int v)
+    {
+        _vector3IntPool.Enqueue(v);
+    }
+
     private void Awake()
     {
         _tilemapName = gameObject.name;
@@ -82,62 +104,51 @@ public class ShadowWall : MonoBehaviour
         Vector2Int startChunkCoord = _chunkManager.GetChunkCoordFromWorldPos(playerPosition);
         
         Debug.Log($"Player entered tile at {startTilePosition} in chunk: {startChunkCoord} for Tilemap: {_tilemapName}");
-        Debug.Log($"Tilemap bounds: {_tilemap.cellBounds}");
-        Debug.Log($"Player world position: {playerPosition}");
 
-        Queue<Vector3Int> tileQueue = new Queue<Vector3Int>();
+        HashSet<Vector3Int> tilesToProcess = new HashSet<Vector3Int>();
         HashSet<Vector3Int> processedTiles = new HashSet<Vector3Int>();
 
-        // 检查周围的瓦片，并将非空的瓦片加入队列
-        for (int x = -1; x <= 1; x++)
+        // 初始化待处理瓦片
+        for (int x = -SEARCH_RADIUS; x <= SEARCH_RADIUS; x++)
         {
-            for (int y = -1; y <= 1; y++)
+            for (int y = -SEARCH_RADIUS; y <= SEARCH_RADIUS; y++)
             {
-                Vector3Int checkPosition = startTilePosition + new Vector3Int(x, y, 0);
-                TileBase tile = _tilemap.GetTile(checkPosition);
-                Debug.Log($"Checking tile at {checkPosition}, tile is {(tile != null ? "not null" : "null")}");
-                if (tile != null)
-                {
-                    tileQueue.Enqueue(checkPosition);
-                }
+                tilesToProcess.Add(startTilePosition + new Vector3Int(x, y, 0));
             }
         }
 
         int processedCount = 0;
-        while (tileQueue.Count > 0)
+        while (tilesToProcess.Count > 0)
         {
-            Vector3Int tilePosition = tileQueue.Dequeue();
-            if (processedTiles.Contains(tilePosition)) continue;
+            Vector3Int tilePosition = tilesToProcess.First();
+            tilesToProcess.Remove(tilePosition);
 
+            if (processedTiles.Contains(tilePosition)) continue;
             processedTiles.Add(tilePosition);
 
             TileBase tile = _tilemap.GetTile(tilePosition);
-            Debug.Log($"Processing tile at {tilePosition}, tile is {(tile != null ? "not null" : "null")}");
-            
             if (tile != null)
             {
                 _tilemap.SetTile(tilePosition, null);
                 RemoveTileFromChunkData(tilePosition);
                 processedCount++;
 
-                Vector3Int[] directions = { Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right };
-                foreach (var direction in directions)
+                // 添加相邻瓦片到待处理集合
+                foreach (var direction in new Vector3Int[] { Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right })
                 {
                     Vector3Int neighborPos = tilePosition + direction;
-                    if (!processedTiles.Contains(neighborPos) && _tilemap.GetTile(neighborPos) != null)
+                    if (!processedTiles.Contains(neighborPos))
                     {
-                        tileQueue.Enqueue(neighborPos);
+                        tilesToProcess.Add(neighborPos);
                     }
                 }
             }
         }
 
         Debug.Log($"Processed and removed {processedCount} tiles for ShadowWall on {gameObject.name}");
-        Debug.Log($"Tilemap has {_tilemap.GetTilesBlock(_tilemap.cellBounds).Count(t => t != null)} tiles remaining");
 
         // 强制更新 Tilemap
         _tilemap.RefreshAllTiles();
-        Debug.Log($"Tilemap refreshed for ShadowWall on {gameObject.name}");
     }
 
     private void RemoveTileFromChunkData(Vector3Int tilePosition)
@@ -152,11 +163,6 @@ public class ShadowWall : MonoBehaviour
                 tilePosition.z
             );
             chunkData.RemoveTile(localPosition, _tilemapName);
-            Debug.Log($"Removed tile at local position {localPosition} from chunk {chunkCoord} for Tilemap: {_tilemapName}");
-        }
-        else
-        {
-            Debug.LogWarning($"ChunkData not found for chunk {chunkCoord} when trying to remove tile at {tilePosition}");
         }
     }
 }
