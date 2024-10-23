@@ -130,7 +130,11 @@ public class ShadowWall : MonoBehaviour
             if (tile != null)
             {
                 _tilemap.SetTile(tilePosition, null);
+                
+                #if !UNITY_EDITOR
                 RemoveTileFromChunkData(tilePosition);
+                #endif
+                
                 processedCount++;
 
                 // 添加相邻瓦片到待处理集合

@@ -439,7 +439,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
             return;
         }
 
-        _canRoll = false;
+        // _canRoll = false;
         if (!_isOnLadder)
         {
             if (Mathf.Abs(_verticalMove) > 0) //在地面如果按攀爬键则进入攀爬状态，不然则继续正常移动
@@ -460,7 +460,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
             return;
         }
         
-        _canRoll = true;
+        // _canRoll = true;
         LeftLadder(); 
     }
 
