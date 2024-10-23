@@ -7,22 +7,41 @@ using UnityEngine;
 public class LadderTopCollider : MonoBehaviour
 {
     private Collider2D _platformCollider; // 代表当前平台的 Collider
+    private bool _isSubscribed = false;
 
     void Start()
     {
         // 获取当前平台的 Collider2D 组件
         _platformCollider = GetComponent<Collider2D>();
 
-       _platformCollider.enabled = false;
+        _platformCollider.enabled = false;
 
-       EventManager.instance.OnClimbLadder += EnableCollider;
-       EventManager.instance.OnLeftLadder += DisableCollider;
+        SubscribeToEvents();
     }
 
     private void OnDisable()
     {
-        EventManager.instance.OnClimbLadder -= EnableCollider;
-        EventManager.instance.OnLeftLadder -= DisableCollider;
+        UnsubscribeFromEvents();
+    }
+
+    private void SubscribeToEvents()
+    {
+        if (!_isSubscribed)
+        {
+            EventManager.instance.OnClimbLadder += EnableCollider;
+            EventManager.instance.OnLeftLadder += DisableCollider;
+            _isSubscribed = true;
+        }
+    }
+
+    private void UnsubscribeFromEvents()
+    {
+        if (_isSubscribed)
+        {
+            EventManager.instance.OnClimbLadder -= EnableCollider;
+            EventManager.instance.OnLeftLadder -= DisableCollider;
+            _isSubscribed = false;
+        }
     }
 
     void EnableCollider()

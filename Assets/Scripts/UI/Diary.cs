@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Diary : MonoBehaviour
+public class Diary : MonoBehaviour,ISceneInteraction
 {
    
     public int diaryId;
@@ -41,24 +41,30 @@ public class Diary : MonoBehaviour
     }
 
 
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            StartCoroutine(DelayDisappear());
-            
-            if (!Application.isEditor)
-            {
-                  PlayerPrefs.SetInt(name, 1);
-            }
-          
-            
-        }
-    }
+    // private void OnTriggerEnter2D(Collider2D other)
+    // {
+    //     if (other.CompareTag("Player"))
+    //     {
+    //         // StartCoroutine(DelayDisappear());
+    //         
+    //       
+    //         
+    //     }
+    // }
 
-   private IEnumerator DelayDisappear()
-    {
-        yield return new WaitForSeconds(0.5f);
+   // private IEnumerator DelayDisappear()
+   //  {
+   //      yield return new WaitForSeconds(0.5f);
+   //     
+   //  }
+
+    public void Interact()
+    {  
+        if (!Application.isEditor)
+        {
+            PlayerPrefs.SetInt(name, 1);
+        }
+               
         UIManager.instance.OpenDiary(diaryId);
         Destroy(gameObject);
     }

@@ -8,7 +8,7 @@ using UnityEngine.SceneManagement;
 public class GameManager : MonoBehaviour
 {
     public Texture2D cursorTexture;
-    
+ 
     public static GameManager instance;
     private void Awake()
     {

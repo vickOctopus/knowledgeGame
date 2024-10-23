@@ -43,11 +43,10 @@ namespace Bundos.WaterSystem
         [HideInInspector]
         Vector2[] uvs;
 
-        private float maxHeight;
-        public float growthRate;
+        private float initialHeight;
+        public float baseGrowthRate = 0.1f;
         private float width;
-        private float rockInWater;
-
+        private int rocksInWater = 0;
 
         private void Start()
         {
@@ -55,8 +54,8 @@ namespace Bundos.WaterSystem
             InitializeSprings();
             CreateShape();
             
-            width=GetComponent<BoxCollider2D>().bounds.size.x;
-            maxHeight = GetComponent<BoxCollider2D>().bounds.size.y;
+            width = GetComponent<BoxCollider2D>().bounds.size.x;
+            initialHeight = transform.localScale.y;
         }
 
         public void Initialize()
@@ -224,51 +223,53 @@ namespace Bundos.WaterSystem
 
             if (other.gameObject.CompareTag("Player"))
             {
-                 PlayController.instance.Respawn(0.5f);
+                PlayController.instance.Respawn(0.5f);
             }
 
             if (other.CompareTag("Rock"))
             {
                 var rock = other.GetComponent<Rock>();
                 rock.EnterWater();
-                maxHeight += growthRate / width;
-                rockInWater++;
+                
+                // 计算新的目标高度
+                float currentHeight = transform.localScale.y - initialHeight;
+                float growthFactor = 1f / (1f + currentHeight); // 使用双曲函数来减缓增长
+                float newGrowth = baseGrowthRate * growthFactor * (1f / width);
+                
+                float targetHeight = transform.localScale.y + newGrowth;
+                
+                rocksInWater++;
                 StopAllCoroutines();
-                StartCoroutine(GrowLevel());
+                StartCoroutine(GrowLevel(targetHeight));
             }
 
             Rigidbody2D otherRigidbody = other.GetComponent<Rigidbody2D>();
             if (otherRigidbody != null)
             {
                 Vector2 contactPoint = other.ClosestPoint(transform.position);
-
                 Ripple(contactPoint, false);
             }
         }
 
-        private IEnumerator GrowLevel()
+        private IEnumerator GrowLevel(float targetHeight)
         {
-            while (transform.localScale.y < maxHeight)
+            float growthDuration = 2f; // 可以调整这个值来改变上涨速度
+            float elapsedTime = 0f;
+            float startHeight = transform.localScale.y;
+
+            while (elapsedTime < growthDuration)
             {
-                transform.localScale = new Vector3(transform.localScale.x,
-                    transform.localScale.y + growthRate / width * Time.deltaTime*rockInWater, transform.localScale.z);
-                yield return new WaitForSeconds(Time.deltaTime);
+                elapsedTime += Time.deltaTime;
+                float t = elapsedTime / growthDuration;
+                float smoothT = Mathf.SmoothStep(0f, 1f, t);
+                float newHeight = Mathf.Lerp(startHeight, targetHeight, smoothT);
+
+                transform.localScale = new Vector3(transform.localScale.x, newHeight, transform.localScale.z);
+                yield return null;
             }
 
-            rockInWater = 0;
+            transform.localScale = new Vector3(transform.localScale.x, targetHeight, transform.localScale.z);
+            rocksInWater = 0;
         }
-
-        // void OnTriggerExit2D(Collider2D other)
-        // {
-        //     if (!interactive)
-        //         return;
-        //
-        //     Rigidbody2D otherRigidbody = other.GetComponent<Rigidbody2D>();
-        //     if (otherRigidbody != null)
-        //     {
-        //         Vector2 contactPoint = other.ClosestPoint(transform.position);
-        //         Ripple(contactPoint, true);
-        //     }
-        // }
     }
 }

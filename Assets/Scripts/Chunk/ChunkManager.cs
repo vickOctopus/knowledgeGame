@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 
 public class ChunkManager : MonoBehaviour
 {
+    public GameObject worldRoot;
+    
     public static ChunkManager Instance { get; private set; }
 
     public const int chunkWidth = 50;
@@ -55,6 +57,8 @@ public class ChunkManager : MonoBehaviour
         {
             Destroy(gameObject);
         }
+        
+        worldRoot.SetActive(false);
     }
 
     private void Start()

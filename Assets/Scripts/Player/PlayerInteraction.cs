@@ -9,9 +9,16 @@ public class PlayerInteraction : MonoBehaviour
    private bool _canInteract = false;
    private PlayerInput _playerInput;
 
+   public GameObject F_Key;
+
    private void Awake()
    {
       _playerInput = new PlayerInput();
+   }
+
+   private void Start()
+   {
+      F_Key.SetActive(false);
    }
 
    private void OnEnable()
@@ -30,6 +37,7 @@ public class PlayerInteraction : MonoBehaviour
       if (_sceneInteraction is not null)
       {
          _canInteract = true;
+         F_Key.SetActive(true);
       }
    }
 
@@ -37,6 +45,7 @@ public class PlayerInteraction : MonoBehaviour
    {
       _canInteract = false;
       _sceneInteraction = null;
+      F_Key.SetActive(false);
    }
 
    private void Update()
@@ -46,6 +55,7 @@ public class PlayerInteraction : MonoBehaviour
          if (_playerInput.GamePLay.Interaction.triggered)
          {
             _sceneInteraction?.Interact();
+            F_Key.SetActive(false);
          }
       }
    }

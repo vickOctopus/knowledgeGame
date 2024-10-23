@@ -69,16 +69,16 @@ public class ShadowWall : MonoBehaviour
             yield return null;
         }
         _chunkManager = ChunkManager.Instance;
-        Debug.Log($"ChunkManager initialized for ShadowWall on {gameObject.name}");
+        // Debug.Log($"ChunkManager initialized for ShadowWall on {gameObject.name}");
         
         if (EventManager.instance != null)
         {
             EventManager.instance.OnButtonShadowWallDown += HideTileAndNeighbors;
-            Debug.Log($"OnButtonShadowWallDown event subscribed for ShadowWall on {gameObject.name}");
+            // Debug.Log($"OnButtonShadowWallDown event subscribed for ShadowWall on {gameObject.name}");
         }
         else
         {
-            Debug.LogError($"EventManager instance is null in ShadowWall on {gameObject.name}");
+            // Debug.LogError($"EventManager instance is null in ShadowWall on {gameObject.name}");
         }
     }
 
@@ -87,7 +87,7 @@ public class ShadowWall : MonoBehaviour
         if (other != null && other.CompareTag("Player"))
         {
             Vector3 playerPosition = other.transform.position;
-            Debug.Log($"Player entered trigger for ShadowWall on {gameObject.name} at position {playerPosition}");
+            // Debug.Log($"Player entered trigger for ShadowWall on {gameObject.name} at position {playerPosition}");
             HideTileAndNeighbors(playerPosition);
         }
     }
@@ -96,14 +96,14 @@ public class ShadowWall : MonoBehaviour
     {
         if (_tilemap == null || _chunkManager == null)
         {
-            Debug.LogError($"Tilemap or ChunkManager is null in HideTileAndNeighbors for {gameObject.name}");
+            // Debug.LogError($"Tilemap or ChunkManager is null in HideTileAndNeighbors for {gameObject.name}");
             return;
         }
 
         Vector3Int startTilePosition = _tilemap.WorldToCell(playerPosition);
         Vector2Int startChunkCoord = _chunkManager.GetChunkCoordFromWorldPos(playerPosition);
         
-        Debug.Log($"Player entered tile at {startTilePosition} in chunk: {startChunkCoord} for Tilemap: {_tilemapName}");
+        // Debug.Log($"Player entered tile at {startTilePosition} in chunk: {startChunkCoord} for Tilemap: {_tilemapName}");
 
         HashSet<Vector3Int> tilesToProcess = new HashSet<Vector3Int>();
         HashSet<Vector3Int> processedTiles = new HashSet<Vector3Int>();
@@ -149,7 +149,7 @@ public class ShadowWall : MonoBehaviour
             }
         }
 
-        Debug.Log($"Processed and removed {processedCount} tiles for ShadowWall on {gameObject.name}");
+        // Debug.Log($"Processed and removed {processedCount} tiles for ShadowWall on {gameObject.name}");
 
         // 强制更新 Tilemap
         _tilemap.RefreshAllTiles();
