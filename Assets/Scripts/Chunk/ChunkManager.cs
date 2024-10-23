@@ -40,6 +40,9 @@ public class ChunkManager : MonoBehaviour
 
     private HashSet<Vector2Int> chunksBeingProcessed = new HashSet<Vector2Int>();
 
+    public static int ChunkWidth => chunkWidth;
+    public static int ChunkHeight => chunkHeight;
+
     private void Awake()
     {
         if (Instance == null)
@@ -497,7 +500,7 @@ public class ChunkManager : MonoBehaviour
         }
     }
 
-    private Vector2Int GetChunkCoordFromWorldPos(Vector3 worldPos)
+    public Vector2Int GetChunkCoordFromWorldPos(Vector3 worldPos)
     {
         Vector2Int chunkCoord = new Vector2Int(
             Mathf.FloorToInt((worldPos.x + chunkWidth / 2) / chunkWidth),
@@ -667,5 +670,14 @@ public class ChunkManager : MonoBehaviour
     {
         Resources.UnloadUnusedAssets();
         System.GC.Collect();
+    }
+
+    public ChunkData GetChunkData(Vector2Int chunkCoord)
+    {
+        if (loadedChunks.TryGetValue(chunkCoord, out AsyncOperationHandle<ChunkData> loadOperation))
+        {
+            return loadOperation.Result;
+        }
+        return null;
     }
 }

@@ -8,6 +8,7 @@ public class ChunkData : ScriptableObject, ISaveable
     public Vector2Int chunkCoord;
     public List<TilemapLayerData> tilemapLayers = new List<TilemapLayerData>(); // 存储Tilemap层级信息
     public List<ObjectData> objects = new List<ObjectData>();
+    public bool isDirty = false; // 新增：标记数据是否被修改
 
     private void OnEnable()
     {
@@ -29,6 +30,26 @@ public class ChunkData : ScriptableObject, ISaveable
     public void Load(int slotIndex)
     {
         // Implement load logic here
+    }
+
+    public void MarkDirty()
+    {
+        isDirty = true;
+    }
+
+    public void ClearDirty()
+    {
+        isDirty = false;
+    }
+
+    public void RemoveTile(Vector3Int localPosition, string tilemapName)
+    {
+        TilemapLayerData layerData = tilemapLayers.Find(layer => layer.layerName == tilemapName);
+        if (layerData != null)
+        {
+            layerData.tiles.RemoveAll(tile => tile.position == localPosition);
+            MarkDirty();
+        }
     }
 }
 

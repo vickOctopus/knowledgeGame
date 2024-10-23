@@ -14,9 +14,12 @@ public class ShadowWall : MonoBehaviour, ISaveable
     private HashSet<Vector3Int> _hiddenTiles = new HashSet<Vector3Int>();
     private Dictionary<Vector3Int, TileBase> _originalTiles = new Dictionary<Vector3Int, TileBase>();
 
+    private ChunkManager _chunkManager;
+
     private void Awake()
     {
         _tilemap = GetComponent<Tilemap>();
+        _chunkManager = ChunkManager.Instance;
     }
 
     private void Start()
@@ -54,6 +57,9 @@ public class ShadowWall : MonoBehaviour, ISaveable
             _tilemap.SetTile(tilePosition, null);
             _hiddenTiles.Add(tilePosition);
 
+            // 从ChunkData中删除瓦片数据
+            RemoveTileFromChunkData(tilePosition);
+
             Vector3Int[] directions = { Vector3Int.up, Vector3Int.down, Vector3Int.left, Vector3Int.right };
             foreach (var direction in directions)
             {
@@ -63,6 +69,21 @@ public class ShadowWall : MonoBehaviour, ISaveable
                     tileQueue.Enqueue(neighborPos);
                 }
             }
+        }
+    }
+
+    private void RemoveTileFromChunkData(Vector3Int tilePosition)
+    {
+        Vector2Int chunkCoord = _chunkManager.GetChunkCoordFromWorldPos(_tilemap.CellToWorld(tilePosition));
+        ChunkData chunkData = _chunkManager.GetChunkData(chunkCoord);
+        if (chunkData != null)
+        {
+            Vector3Int localPosition = new Vector3Int(
+                tilePosition.x - chunkCoord.x * ChunkManager.ChunkWidth + ChunkManager.ChunkWidth / 2,
+                tilePosition.y - chunkCoord.y * ChunkManager.ChunkHeight + ChunkManager.ChunkHeight / 2,
+                tilePosition.z
+            );
+            chunkData.RemoveTile(localPosition, _tilemap.name);
         }
     }
 
