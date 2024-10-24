@@ -11,7 +11,10 @@ public abstract class SaveableObject : MonoBehaviour, ISaveable
 
     protected virtual void Start()
     {
-        Load(SaveManager.CurrentSlotIndex);
+        if (!Application.isEditor)
+        {
+            Load(SaveManager.CurrentSlotIndex);
+        }
     }
 
     public abstract void Save(int slotIndex);
@@ -38,13 +41,20 @@ public abstract class SaveableObject : MonoBehaviour, ISaveable
 
     protected void SaveBool(string key, bool value, int slotIndex)
     {
-        PlayerPrefs.SetInt($"{key}_Slot{slotIndex}", value ? 1 : 0);
-        PlayerPrefs.Save();
+        if (!Application.isEditor)
+        {
+            PlayerPrefs.SetInt($"{key}_Slot{slotIndex}", value ? 1 : 0);
+            PlayerPrefs.Save();
+        }
     }
 
     protected bool LoadBool(string key, int slotIndex, bool defaultValue = false)
     {
-        return PlayerPrefs.GetInt($"{key}_Slot{slotIndex}", defaultValue ? 1 : 0) == 1;
+        if (!Application.isEditor)
+        {
+            return PlayerPrefs.GetInt($"{key}_Slot{slotIndex}", defaultValue ? 1 : 0) == 1;
+        }
+        return defaultValue;
     }
 
     // 可以根据需要添加更多类型的 Save 和 Load 方法，如 SaveInt, LoadInt 等

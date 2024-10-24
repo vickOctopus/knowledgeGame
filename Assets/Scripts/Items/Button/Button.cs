@@ -17,7 +17,10 @@ public class Button : SaveableObject
         if (!_isPressed)
         {
             ButtonDown();
-            Save(SaveManager.CurrentSlotIndex);
+            if (!Application.isEditor)
+            {
+                Save(SaveManager.CurrentSlotIndex);
+            }
         }
     }
 
@@ -30,15 +33,21 @@ public class Button : SaveableObject
 
     public override void Save(int slotIndex)
     {
-        SaveBool(GetPersistentKey(), _isPressed, slotIndex);
+        if (!Application.isEditor)
+        {
+            SaveBool(GetPersistentKey(), _isPressed, slotIndex);
+        }
     }
 
     public override void Load(int slotIndex)
     {
-        _isPressed = LoadBool(GetPersistentKey(), slotIndex);
-        if (_isPressed)
+        if (!Application.isEditor)
         {
-            ButtonDown();
+            _isPressed = LoadBool(GetPersistentKey(), slotIndex);
+            if (_isPressed)
+            {
+                ButtonDown();
+            }
         }
     }
 }

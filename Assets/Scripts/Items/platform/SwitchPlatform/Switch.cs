@@ -1,51 +1,32 @@
-
 using UnityEngine;
 using DG.Tweening;
 
 
 public class Switch : MonoBehaviour
 {
-    [SerializeField]private bool _isRight=true;
-    private Rigidbody2D _rigidbody;
-    [SerializeField] private int switchID;
+    [SerializeField] private bool _isRight = true;
+    private Vector2Int chunkCoord;
 
-    private void Awake()
+    private void Start()
     {
-       
-       if (!PlayerPrefs.HasKey(transform.parent.name))
-       {
-           PlayerPrefs.SetInt(transform.parent.name, _isRight ? 1 : 0);
-           if (_isRight)
-           {
-               RotateSwitch();
-           }
-           else
-           {
-               RotateSwitch();
-           }
-       }
-       else if (PlayerPrefs.GetInt(transform.parent.name) == 0)
-       {
-           _isRight = false;
-           RotateSwitch();
-       }
-       else if (PlayerPrefs.GetInt(transform.parent.name) == 1)
-       {
-           _isRight = true;
-           RotateSwitch();
-       }
+        RotateSwitch();
+        if (ChunkManager.Instance != null)
+        {
+            chunkCoord = ChunkManager.Instance.GetChunkCoordFromWorldPos(transform.position);
+        }
+        else
+        {
+            // Debug.LogError("ChunkManager.Instance is null in Switch Start method");
+        }
     }
-    
 
     public void SwitchChange(bool dir)
     {
-        if (dir==_isRight)
-        {  
-           
-             _isRight = !_isRight;
-             PlayerPrefs.SetInt(transform.parent.name, _isRight ? 1 : 0);
-             RotateSwitch();
-            GameManager.instance.SwitchChange(switchID);
+        if (dir != _isRight)
+        {
+            _isRight = dir;
+            RotateSwitch();
+            NotifyChunkManager();
         }
     }
 
@@ -53,13 +34,16 @@ public class Switch : MonoBehaviour
     {
         _isRight = !_isRight;
         RotateSwitch();
-        PlayerPrefs.SetInt(transform.parent.name, _isRight ? 1 : 0);
-        GameManager.instance.SwitchChange(switchID);
+        NotifyChunkManager();
     }
 
+    private void NotifyChunkManager()
+    {
+        ChunkManager.Instance.NotifySwitchChange(chunkCoord);
+    }
 
     private void RotateSwitch()
     {
-        transform.DOLocalRotate(new Vector3(0,0,40*(_isRight?-1:1)),0.3f, RotateMode.Fast);
+        transform.DOLocalRotate(new Vector3(0, 0, 40 * (_isRight ? -1 : 1)), 0.3f, RotateMode.Fast);
     }
 }

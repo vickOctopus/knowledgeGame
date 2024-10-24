@@ -100,10 +100,4 @@ public class movePlatform : MonoBehaviour
     }
 
 
-    // private void OnDrawGizmos()
-    // {
-    //     var halfWidth=GetComponent<SpriteRenderer>().bounds.size.x/2;
-    //     Gizmos.DrawWireCube(new Vector2(transform.position.x+halfWidth,transform.position.y),checkBoxSize);
-    //     Gizmos.DrawWireCube(new Vector2(transform.position.x-halfWidth,transform.position.y),checkBoxSize);
-    // }
 }

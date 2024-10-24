@@ -325,21 +325,5 @@ public class WorldChunkCreator : MonoBehaviour
 
         return bounds;
     }
-
-    #if UNITY_EDITOR
-    [CustomEditor(typeof(WorldChunkCreator))]
-    public class WorldChunkCreatorEditor : Editor
-    {
-        public override void OnInspectorGUI()
-        {
-            DrawDefaultInspector();
-
-            WorldChunkCreator creator = (WorldChunkCreator)target;
-            if (GUILayout.Button("创建区块"))
-            {
-                creator.CreateChunks();
-            }
-        }
-    }
-    #endif
+   
 }

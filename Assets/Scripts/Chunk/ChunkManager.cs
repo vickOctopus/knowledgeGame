@@ -45,6 +45,23 @@ public class ChunkManager : MonoBehaviour
     public static int ChunkWidth => chunkWidth;
     public static int ChunkHeight => chunkHeight;
 
+    private SwitchPlatform switchPlatform;
+
+    public event System.Action<Vector2Int> OnChunkLoaded;
+    public event System.Action<Vector2Int> OnChunkUnloaded;
+
+    public void NotifySwitchChange(Vector2Int chunkCoord)
+    {
+        if (switchPlatform != null)
+        {
+            switchPlatform.PlatformChange(chunkCoord);
+        }
+        else
+        {
+            Debug.LogWarning("SwitchPlatform not found in the scene.");
+        }
+    }
+
     private void Awake()
     {
         if (Instance == null)
@@ -65,6 +82,15 @@ public class ChunkManager : MonoBehaviour
     {
         InitializeChunks(PlayController.instance.transform.position);
         InvokeRepeating(nameof(CleanUpUnusedResources), 60f, 60f);
+        switchPlatform = FindObjectOfType<SwitchPlatform>();
+        if (switchPlatform != null)
+        {
+            Debug.Log("ChunkManager: SwitchPlatform found");
+        }
+        else
+        {
+            Debug.LogError("ChunkManager: SwitchPlatform not found in the scene");
+        }
     }
 
     public async void InitializeChunks(Vector3 playerPosition)
@@ -251,6 +277,9 @@ public class ChunkManager : MonoBehaviour
         {
             Debug.LogError($"Error loading chunk {chunkCoord}: {e.Message}\n{e.StackTrace}");
         }
+
+        // 在加载完成后触发事件
+        // OnChunkLoaded?.Invoke(chunkCoord);
     }
 
     private async Task InstantiateTilesAsync(ChunkData chunkData, Vector2Int chunkCoord)
@@ -340,7 +369,7 @@ public class ChunkManager : MonoBehaviour
                     }
                 }
 
-                // 确保在每个批次后进行分帧处理
+                // 确保在每个批次后行分帧处理
                 await Task.Yield();
             }
         }
@@ -348,7 +377,7 @@ public class ChunkManager : MonoBehaviour
 
     private async Task InstantiateObjectsAsync(ChunkData chunkData, GameObject chunkParent, Vector2Int chunkCoord)
     {
-        for (int i = 0; i < chunkData.objects.Count; i += OBJECTS_PER_FRAME) // 使用新的批量处理数量
+        for (int i = 0; i < chunkData.objects.Count; i += OBJECTS_PER_FRAME) // 使用新的批量处理量
         {
             int endIndex = Mathf.Min(i + OBJECTS_PER_FRAME, chunkData.objects.Count);
             for (int j = i; j < endIndex; j++)
@@ -399,7 +428,7 @@ public class ChunkManager : MonoBehaviour
         }
         else
         {
-            // 如果缓存已满，则移除最久未使用的区块
+            // 如果缓存已，则移除最久未使用的区块
             if (chunkCache.Count >= MAX_CACHE_SIZE)
             {
                 var oldestNode = cacheOrder.Last;
@@ -455,7 +484,7 @@ public class ChunkManager : MonoBehaviour
                 AddToCache(chunkCoord, chunkData);
             }
 
-            // 在释放之前再次检查操作是否有效
+            // 在释放之前再次检查操作否有效
             if (loadOperation.IsValid())
             {
                 Addressables.Release(loadOperation);
@@ -465,6 +494,9 @@ public class ChunkManager : MonoBehaviour
         // 无论操作是否有效，从 loadedChunks 中移除
         loadedChunks.Remove(chunkCoord);
         // Debug.Log($"Chunk {chunkCoord} unloaded and removed from loadedChunks");
+
+        // 在卸载完成后触发事件
+        // OnChunkUnloaded?.Invoke(chunkCoord);
     }
 
     private async Task UnloadTilesAsync(ChunkData chunkData, Vector2Int chunkCoord)
@@ -678,5 +710,17 @@ public class ChunkManager : MonoBehaviour
             return loadOperation.Result;
         }
         return null;
+    }
+
+    // 在加载 chunk 完成后调用
+    private void ChunkLoaded(Vector2Int chunkCoord)
+    {
+        OnChunkLoaded?.Invoke(chunkCoord);
+    }
+
+    // 在卸载 chunk 完成后调用
+    private void ChunkUnloaded(Vector2Int chunkCoord)
+    {
+        OnChunkUnloaded?.Invoke(chunkCoord);
     }
 }
