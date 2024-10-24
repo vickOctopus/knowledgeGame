@@ -539,11 +539,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
         while (true) //0.2秒更新一次
         {
 
-            var tem = Physics2D.Raycast(transform.position, Vector2.down, 1.0f, LayerMask.GetMask("Platform"));
+            var tem = Physics2D.Raycast(transform.position, Vector2.down, 0.5f, LayerMask.GetMask("Platform"));
 
             if (tem)
             {
-                if (_isGrounded && !_underWater && !tem.collider.CompareTag("Floating Objects"))
+                if (_isGrounded && !_underWater && !tem.collider.CompareTag("Floating Objects")&&_canBeDamaged)
                 {
                     //Debug.DrawRay(transform.position,Vector2.down*1.0f,Color.red,1.0f);
                     _respawnPosition = transform.position;
@@ -558,6 +558,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     public void Respawn(float respawnTime)
     {
         DisableControl();
+        // _rg.velocity = Vector2.zero;
         _underWater = true;
         isOnJinGuBang = false;
         _animator.SetBool(_underwaterHash,_underWater);
@@ -617,6 +618,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         if (_canBeDamaged)
         {
+            _rg.velocity = Vector2.zero;
             _canBeDamaged = false;
             StartCoroutine(CanBeDamaged());
             

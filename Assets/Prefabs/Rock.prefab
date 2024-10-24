@@ -103,7 +103,7 @@ Rigidbody2D:
   m_LinearDrag: 0
   m_AngularDrag: 0.05
   m_GravityScale: 1
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 6200000, guid: 0acc9d7d5d96e4bd695547b22184fa62, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -161,4 +161,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e38cb560bfbd44e9c96235dad788a5ec, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  frictionCoefficient: 150
+  frictionCoefficient: 50
