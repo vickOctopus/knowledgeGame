@@ -68,7 +68,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     [Header("Property")] 
     [SerializeField]private PlayerData playerData;
-    public int maxHp;
+    public int maxHp=4;
     
     [Header("Check")]
     [SerializeField]private Transform groundCheckPoint;
@@ -112,6 +112,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
        _animator = GetComponent<Animator>();
        _playerInput=new PlayerInput();
        
+       currentHp = maxHp;
     }
 
     private void OnEnable()
@@ -581,6 +582,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     public void SpawnJinGuBang()
     {
+        if (!PlayerPrefs.HasKey("HasJinGuBang")) return;
+        
         jinGuBang = Instantiate(jinGuBang, transform.position, Quaternion.identity);
         jinGuBang.transform.SetParent(this.transform);
         jinGuBang.transform.localPosition = Vector3.zero;
@@ -622,7 +625,10 @@ public class PlayController : MonoBehaviour,ITakeDamage
             _canBeDamaged = false;
             StartCoroutine(CanBeDamaged());
             
+            
+       
             currentHp -= damage;
+           
             HpChange();
 
             if (currentHp == 0)
@@ -667,13 +673,19 @@ public class PlayController : MonoBehaviour,ITakeDamage
     public void DisableControl()
     {
         _playerInput.Disable();
-        jinGuBang.GetComponent<JinGuBang>().DisableControl();
+        if (PlayerPrefs.HasKey("HasJinGuBang"))
+        {
+            jinGuBang.GetComponent<JinGuBang>().DisableControl();
+        }
     }
 
     public void EnableControl()
     {
         _playerInput.Enable();
-        jinGuBang.GetComponent<JinGuBang>().EnableControl();
+        if (PlayerPrefs.HasKey("HasJinGuBang"))
+        {
+            jinGuBang.GetComponent<JinGuBang>().EnableControl();
+        }
     }
 
     private void UpdateIsOnJinGuBang()

@@ -54,6 +54,7 @@ public abstract class SaveableObject : MonoBehaviour, ISaveable
         {
             return PlayerPrefs.GetInt($"{key}_Slot{slotIndex}", defaultValue ? 1 : 0) == 1;
         }
+        
         return defaultValue;
     }
 
