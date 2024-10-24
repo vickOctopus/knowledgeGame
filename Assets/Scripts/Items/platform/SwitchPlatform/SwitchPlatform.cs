@@ -8,6 +8,7 @@ public class SwitchPlatform : MonoBehaviour
     [SerializeField] private TileBase falseTile;
     private Tilemap _tilemap;
     private Dictionary<Vector2Int, List<Vector3Int>> _switchableTilesCache = new Dictionary<Vector2Int, List<Vector3Int>>();
+    private HashSet<Vector3Int> _pendingTrueChanges = new HashSet<Vector3Int>();
 
     private void Awake()
     {
@@ -66,8 +67,44 @@ public class SwitchPlatform : MonoBehaviour
                 }
                 else if (_tilemap.GetTile(position) == falseTile)
                 {
-                    _tilemap.SetTile(position, trueTile);
+                    if (HasColliderAtPosition(position))
+                    {
+                        _pendingTrueChanges.Add(position);
+                    }
+                    else
+                    {
+                        _tilemap.SetTile(position, trueTile);
+                    }
                 }
+            }
+        }
+    }
+
+    private bool HasColliderAtPosition(Vector3Int position)
+    {
+        Vector3 worldPosition = _tilemap.GetCellCenterWorld(position);
+        Collider2D[] colliders = Physics2D.OverlapPointAll(worldPosition);
+        return colliders.Length > 0;
+    }
+
+    private void Update()
+    {
+        if (_pendingTrueChanges.Count > 0)
+        {
+            List<Vector3Int> positionsToRemove = new List<Vector3Int>();
+
+            foreach (var position in _pendingTrueChanges)
+            {
+                if (!HasColliderAtPosition(position))
+                {
+                    _tilemap.SetTile(position, trueTile);
+                    positionsToRemove.Add(position);
+                }
+            }
+
+            foreach (var position in positionsToRemove)
+            {
+                _pendingTrueChanges.Remove(position);
             }
         }
     }

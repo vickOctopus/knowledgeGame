@@ -49,35 +49,38 @@ public class BouncingBall : MonoBehaviour
     void FixedUpdate()
     {
         Vector2 movement = currentVelocity * Time.fixedDeltaTime;
-        RaycastHit2D hit = Physics2D.CircleCast(rb.position, circleCollider.radius, currentVelocity.normalized, movement.magnitude);
+        RaycastHit2D[] hits = Physics2D.CircleCastAll(rb.position, circleCollider.radius, currentVelocity.normalized, movement.magnitude);
         
-        if (hit.collider != null)
+        bool collided = false;
+        foreach (RaycastHit2D hit in hits)
         {
-            HandleCollision(hit.collider, hit.normal, hit.point);
+            if (hit.collider != null)
+            {
+                if (hit.collider.CompareTag("Spikes"))
+                {
+                    DestroyBall();
+                    return; // 立即结束方法，因为球已被销毁
+                }
+                else if (!hit.collider.isTrigger)
+                {
+                    HandleCollision(hit.collider, hit.normal, hit.point);
+                    collided = true;
+                    break;
+                }
+            }
         }
-        else
+
+        if (!collided)
         {
             rb.MovePosition(rb.position + movement);
         }
     }
 
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        HandleCollision(collision.collider, collision.contacts[0].normal, collision.contacts[0].point);
-    }
-
     void HandleCollision(Collider2D collider, Vector2 normal, Vector2 point)
     {
-        if (collider.CompareTag("Spikes"))
-        {
-            DestroyBall();
-        }
-        else
-        {
-            currentVelocity = Vector2.Reflect(currentVelocity, normal);
-            Vector2 newPosition = point + normal * (circleCollider.radius + bounceThreshold);
-            rb.MovePosition(newPosition);
-        }
+        currentVelocity = Vector2.Reflect(currentVelocity, normal);
+        Vector2 newPosition = point + normal * (circleCollider.radius + bounceThreshold);
+        rb.MovePosition(newPosition);
     }
 
     void DestroyBall()
@@ -91,5 +94,13 @@ public class BouncingBall : MonoBehaviour
     void OnEnable()
     {
         ResetVelocity();
+    }
+
+    void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Spikes"))
+        {
+            DestroyBall();
+        }
     }
 }
