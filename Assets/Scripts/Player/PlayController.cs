@@ -47,6 +47,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private SpriteRenderer _spriteRenderer;
     private bool _isRolling;
     private BoxCollider2D _boxCollider;
+    private CapsuleCollider2D _capsuleCollider;
     private CircleCollider2D _circleCollider;
     private Animator _animator;
     [HideInInspector]public bool isEquipJinGuBang;
@@ -63,6 +64,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     [SerializeField]private float moveSpeed;
     [SerializeField]private float jumpForce;
     [SerializeField]private float fallGravityScale;
+    [SerializeField]private float maxFallVelocity;
     [Range(0.0f, 5.0f)]
     public float airControl;
 
@@ -107,8 +109,9 @@ public class PlayController : MonoBehaviour,ITakeDamage
         
         _rg = GetComponent<Rigidbody2D>();
        _spriteRenderer = GetComponent<SpriteRenderer>();
-       _boxCollider = GetComponent<BoxCollider2D>();
+       // _boxCollider = GetComponent<BoxCollider2D>();
        _circleCollider = GetComponent<CircleCollider2D>();
+       _capsuleCollider = GetComponent<CapsuleCollider2D>();
        _animator = GetComponent<Animator>();
        _playerInput=new PlayerInput();
        
@@ -130,14 +133,14 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _gravityScale = _rg.gravityScale;
         _respawnPosition = transform.position;
 
-        Physics2D.IgnoreCollision(_boxCollider, _circleCollider, true);
+        Physics2D.IgnoreCollision(_capsuleCollider, _circleCollider, true);
 
         StartCoroutine(RespawnPositionRecord());
 
         SpawnJinGuBang();
         jinGuBang.SetActive(false);
 
-        _boxCollider.enabled = true;
+        _capsuleCollider.enabled = true;
         _circleCollider.enabled = false;
 
         _groundContactFilter = new ContactFilter2D();
@@ -255,6 +258,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
         if (_rg.velocity.y < -0.1f) //下落时重力变大
         {
             _rg.gravityScale = fallGravityScale * _gravityScale;
+
+            if (_rg.velocity.y<=maxFallVelocity)
+            {
+                _rg.velocity = new Vector2(_rg.velocity.x, maxFallVelocity);
+            }
         }
         else
         {
@@ -305,7 +313,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void StartRolling()
     {
-        _boxCollider.enabled = false;
+        // _boxCollider.enabled = false;
+        _capsuleCollider.enabled = false;
         _circleCollider.enabled = true;
         _isRolling = true;
         _animator.SetBool(_rollHash, _isRolling);
@@ -325,7 +334,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
             return;
         }
 
-        _boxCollider.enabled = true;
+        // _boxCollider.enabled = true;
+        _capsuleCollider.enabled = true;
         _circleCollider.enabled = false;
         _isRolling = false;
         _animator.SetBool(_rollHash, _isRolling);
@@ -471,6 +481,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _animator.SetBool(_climbHash, _isOnLadder);
         _rg.gravityScale = 0;
         EventManager.instance.ClimbLadder();
+        if (jinGuBang != null)
+        {
+             jinGuBang.SetActive(false);
+        }
+       
     }
 
     private void LeftLadder()
@@ -582,7 +597,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     public void SpawnJinGuBang()
     {
-        if (!PlayerPrefs.HasKey("HasJinGuBang")) return;
+        // if (!PlayerPrefs.HasKey("HasJinGuBang")) return;
         
         jinGuBang = Instantiate(jinGuBang, transform.position, Quaternion.identity);
         jinGuBang.transform.SetParent(this.transform);
@@ -673,19 +688,26 @@ public class PlayController : MonoBehaviour,ITakeDamage
     public void DisableControl()
     {
         _playerInput.Disable();
-        if (PlayerPrefs.HasKey("HasJinGuBang"))
-        {
-            jinGuBang.GetComponent<JinGuBang>().DisableControl();
-        }
+        
+        
+        // if (PlayerPrefs.HasKey("HasJinGuBang"))
+        // {
+        //     jinGuBang.GetComponent<JinGuBang>().DisableControl();
+        // }
+        
+        jinGuBang.GetComponent<JinGuBang>().DisableControl();
     }
 
     public void EnableControl()
     {
         _playerInput.Enable();
-        if (PlayerPrefs.HasKey("HasJinGuBang"))
-        {
-            jinGuBang.GetComponent<JinGuBang>().EnableControl();
-        }
+        
+        // if (PlayerPrefs.HasKey("HasJinGuBang"))
+        // {
+        //     jinGuBang.GetComponent<JinGuBang>().EnableControl();
+        // }
+        //
+        jinGuBang.GetComponent<JinGuBang>().EnableControl();
     }
 
     private void UpdateIsOnJinGuBang()

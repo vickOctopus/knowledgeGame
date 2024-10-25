@@ -54,7 +54,7 @@ public class BouncingBall : MonoBehaviour
         bool collided = false;
         foreach (RaycastHit2D hit in hits)
         {
-            if (hit.collider != null)
+            if (hit.collider != null && !hit.collider.CompareTag("OneWayPlatform"))
             {
                 if (hit.collider.CompareTag("Spikes"))
                 {
@@ -103,4 +103,6 @@ public class BouncingBall : MonoBehaviour
             DestroyBall();
         }
     }
+
+   
 }
