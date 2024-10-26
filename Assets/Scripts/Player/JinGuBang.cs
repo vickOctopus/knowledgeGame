@@ -149,11 +149,7 @@ public class JinGuBang : MonoBehaviour
        {
            _joint.anchor = new Vector2(0, 0);
        }
-       // 移除这里的 isOnJinGuBang 设置
-       // else
-       // {
-       //     PlayController.instance.isOnJinGuBang = true;
-       // }
+       
    }
 
 
@@ -195,16 +191,7 @@ public class JinGuBang : MonoBehaviour
        {
            _isTipsBlock = false;
        }
-       // 这里的 isOnJinGuBang 设置
-       // else if (upCheck || downCheck)
-       // {
-       //     PlayController.instance.isOnJinGuBang = true;
-       //     _isTipsBlock = false;
-       // }
-       // else
-       // {
-       //     _isTipsBlock = false;
-       // }
+      
    }
 
    private void Elongation()
@@ -256,7 +243,7 @@ public class JinGuBang : MonoBehaviour
    {
        _joint.enabled = false;
        _rg.mass = 10.0f;
-       _rg.gravityScale = 1.0f;
+       _rg.gravityScale = 3.0f;
        PlayController.instance.UnloadJinGuBangPlayerMove();
 
        // 移除立即恢复碰撞的代码，因为这将在 PlayController 中延迟处理
@@ -264,6 +251,8 @@ public class JinGuBang : MonoBehaviour
        Cursor.visible = false;
 
        PlayController.instance.isOnJinGuBang = false;
+       
+       PlayController.instance.isTakingJinGuBang = false;
    }
 
    private void EquipJinGuBang()
@@ -279,9 +268,11 @@ public class JinGuBang : MonoBehaviour
        _joint.connectedAnchor = new Vector2(0f, 0.5f);
 
        // 忽略玩家和金箍棒之间的碰撞
-       Physics2D.IgnoreCollision(GetComponent<Collider2D>(), PlayController.instance.GetComponent<Collider2D>(), true);
+       // Physics2D.IgnoreCollision(_collider, PlayController.instance.GetComponent<Collider2D>(), true);
+       Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Player"), LayerMask.NameToLayer("JinGuBang"),true);
 
        PlayController.instance.isEquipJinGuBang = true;
+       PlayController.instance.isTakingJinGuBang = true;
 
        Cursor.visible = true;
    }

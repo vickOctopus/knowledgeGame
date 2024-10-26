@@ -13,7 +13,7 @@ public class BallPoolManager : MonoBehaviour
 
     private const float GIZMO_SIZE = 0.5f;
     private const float VELOCITY_ARROW_SCALE = 0.2f;
-    private Queue<GameObject> ballPool = new Queue<GameObject>();
+    protected Queue<GameObject> ballPool = new Queue<GameObject>();
     private bool isRespawning = false; // 新增：标记是否正在重生
 
     void Start()
@@ -22,7 +22,7 @@ public class BallPoolManager : MonoBehaviour
         SpawnBall();
     }
 
-    void InitializePool()
+    protected virtual void InitializePool()
     {
         for (int i = 0; i < poolSize; i++)
         {
@@ -32,7 +32,7 @@ public class BallPoolManager : MonoBehaviour
         }
     }
 
-    public void SpawnBall()
+    public virtual void SpawnBall()
     {
         if (ballPool.Count > 0 && !isRespawning)
         {
@@ -59,7 +59,7 @@ public class BallPoolManager : MonoBehaviour
         return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
     }
 
-    public void ReturnBallToPool(GameObject ball)
+    public virtual void ReturnBallToPool(GameObject ball)
     {
         ball.SetActive(false);
         ballPool.Enqueue(ball);

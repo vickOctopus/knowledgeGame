@@ -65,6 +65,14 @@ public class BouncingBall : MonoBehaviour
                 {
                     HandleCollision(hit.collider, hit.normal, hit.point);
                     collided = true;
+                    
+                    // 检查是否可以销毁
+                    IDestroyable destroyable = hit.collider.GetComponent<IDestroyable>();
+                    if (destroyable != null)
+                    {
+                        destroyable.Destroy();
+                    }
+                    
                     break;
                 }
             }
@@ -96,13 +104,5 @@ public class BouncingBall : MonoBehaviour
         ResetVelocity();
     }
 
-    void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Spikes"))
-        {
-            DestroyBall();
-        }
-    }
-
-   
+    // OnTriggerEnter2D 方法已被移除，因为它不再需要
 }

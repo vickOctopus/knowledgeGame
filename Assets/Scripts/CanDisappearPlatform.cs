@@ -9,6 +9,7 @@ public class CanDisappearPlatform : MonoBehaviour,IButton
     
     private BoxCollider2D boxCollider;
     private SpriteRenderer spriteRenderer;
+    public bool disappearStart;
 
     private void Awake()
     {
@@ -18,7 +19,11 @@ public class CanDisappearPlatform : MonoBehaviour,IButton
 
     private void Start()
     {
-        Disappear();
+        if (disappearStart)
+        {
+             Disappear();
+        }
+       
     }
 
     public void Disappear()
@@ -41,11 +46,26 @@ public class CanDisappearPlatform : MonoBehaviour,IButton
 
     public void OnButtonDown()
     {
-        Appear();
+        if (disappearStart)
+        {
+            Appear();
+        }
+        else
+        {
+            Disappear();
+        }
+        
     }
 
     public void OnButtonUp()
     {
-       Disappear();
+        if (disappearStart)
+        {
+             Disappear();
+        }
+        else
+        {
+            Appear();
+        }
     }
 }

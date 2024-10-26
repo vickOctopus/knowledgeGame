@@ -22,6 +22,12 @@ public class PlayerCamera : MonoBehaviour
         if (!IsPlayerInCameraView())
         {
             UpdateCameraPosition();
+
+            if (!PlayController.instance.isTakingJinGuBang)
+            {
+                PlayController.instance.HandleTakingState();
+                PlayController.instance.isTakingJinGuBang = true;
+            }
         }
     }
 

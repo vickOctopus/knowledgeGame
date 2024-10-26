@@ -43,6 +43,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private float _verticalMove; 
     private bool _isOnLadder; 
     [HideInInspector][FormerlySerializedAs("_currentHp")] public int currentHp;
+    [HideInInspector]public bool isTakingJinGuBang=true;
     private Vector2 _archivePosition;
     private SpriteRenderer _spriteRenderer;
     private bool _isRolling;
@@ -211,7 +212,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         }
     }
 
-    private void HandleTakingState()
+    public void HandleTakingState()
     {
         jinGuBang.SetActive(!jinGuBang.activeInHierarchy);
         Cursor.visible = jinGuBang.activeInHierarchy;
@@ -612,7 +613,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     public void UnloadJinGuBangPlayerMove()
     {
-        _rg.velocity += Vector2.up * jumpForce * 0.5f;
+        _rg.velocity +=  jumpForce * 0.5f*Vector2.up;
         isEquipJinGuBang = false;
         
         // 启动协程来延迟恢复碰撞
@@ -621,9 +622,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private IEnumerator DelayedCollisionRestore()
     {
-        yield return new WaitForSeconds(0.2f);
+        yield return new WaitForSeconds(0.5f);
         // 恢复玩家和金箍棒之间的碰撞
-        Physics2D.IgnoreCollision(GetComponent<Collider2D>(), jinGuBang.GetComponent<Collider2D>(), false);
+        // Physics2D.IgnoreCollision(_capsuleCollider, jinGuBang.GetComponent<Collider2D>(), false);
+        Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Player"),LayerMask.NameToLayer("JinGuBang"),false);
+        // Debug.Log("hello");
     }
 
     
