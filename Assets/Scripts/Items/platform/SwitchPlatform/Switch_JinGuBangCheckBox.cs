@@ -9,7 +9,7 @@ public class Switch_JinGuBangCheckBox : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            Physics2D.IgnoreLayerCollision(7,10,false);
+            Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("IgnorePlayer"),LayerMask.NameToLayer("JinGuBang"),false);
         }
     }
 
@@ -17,7 +17,7 @@ public class Switch_JinGuBangCheckBox : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            Physics2D.IgnoreLayerCollision(7,10,true);
+            Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("IgnorePlayer"),LayerMask.NameToLayer("JinGuBang"),true);
         }
     }
 }

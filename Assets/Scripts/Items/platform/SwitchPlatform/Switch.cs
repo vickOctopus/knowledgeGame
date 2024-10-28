@@ -22,9 +22,10 @@ public class Switch : MonoBehaviour
 
     public void SwitchChange(bool dir)
     {
-        if (dir != _isRight)
+       
+        if (dir == _isRight)
         {
-            _isRight = dir;
+            _isRight = !dir;
             RotateSwitch();
             NotifyChunkManager();
         }

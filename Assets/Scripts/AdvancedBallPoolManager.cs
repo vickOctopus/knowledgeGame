@@ -28,7 +28,7 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
     }
 
     // 覆盖 Start 方法
-    protected new void Start()
+    void Start()  // 而不是 new void Start()
     {
         base.InitializePool();
         // 注意：我们不调用 SpawnBall()

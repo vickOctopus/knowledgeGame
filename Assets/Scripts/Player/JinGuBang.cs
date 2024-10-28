@@ -246,13 +246,12 @@ public class JinGuBang : MonoBehaviour
        _rg.gravityScale = 3.0f;
        PlayController.instance.UnloadJinGuBangPlayerMove();
 
-       // 移除立即恢复碰撞的代码，因为这将在 PlayController 中延迟处理
-
        Cursor.visible = false;
-
        PlayController.instance.isOnJinGuBang = false;
-       
        PlayController.instance.isTakingJinGuBang = false;
+       
+       // 移除原有的延迟恢复碰撞代码
+       // StartCoroutine(DelayStartCollisionWithPlayer());
    }
 
    private void EquipJinGuBang()
@@ -281,12 +280,6 @@ public class JinGuBang : MonoBehaviour
    {
        Gizmos.DrawWireSphere(transform.up * (_colliderHeight + 0.2f) + transform.position, width / 3);
        Gizmos.DrawWireSphere(transform.position - transform.up * +0.2f, width / 1.5f);
-   }
-
-   private IEnumerator DelayStartCollisionWithPlayer()
-   {
-       yield return new WaitForSeconds(0.3f);
-       Physics2D.IgnoreLayerCollision(3, 7, false);
    }
 
    public void DisableControl()

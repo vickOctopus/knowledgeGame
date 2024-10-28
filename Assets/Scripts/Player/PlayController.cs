@@ -613,23 +613,33 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     public void UnloadJinGuBangPlayerMove()
     {
-        _rg.velocity +=  jumpForce * 0.5f*Vector2.up;
+        // _rg.velocity += jumpForce * 0.3f * Vector2.up;
         isEquipJinGuBang = false;
         
-        // 启动协程来延迟恢复碰撞
-        StartCoroutine(DelayedCollisionRestore());
+        // 直接开始检测碰撞
+        StartCoroutine(CheckCollisionRestore());
     }
 
-    private IEnumerator DelayedCollisionRestore()
+    private IEnumerator CheckCollisionRestore()
     {
-        yield return new WaitForSeconds(0.5f);
-        // 恢复玩家和金箍棒之间的碰撞
-        // Physics2D.IgnoreCollision(_capsuleCollider, jinGuBang.GetComponent<Collider2D>(), false);
-        Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Player"),LayerMask.NameToLayer("JinGuBang"),false);
-        // Debug.Log("hello");
+        while (true)
+        {
+            // 检查玩家和金箍棒是否重叠
+            Collider2D[] results = new Collider2D[1];
+            ContactFilter2D filter = new ContactFilter2D();
+            filter.SetLayerMask(LayerMask.GetMask("JinGuBang")); // 只检测与金箍棒的重叠
+            
+            int count = _capsuleCollider.OverlapCollider(filter, results);
+            
+            if (count == 0) // 如果没有重叠
+            {
+                Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Player"), LayerMask.NameToLayer("JinGuBang"), false);
+                yield break; // 结束协程
+            }
+            
+            yield return new WaitForFixedUpdate();
+        }
     }
-
-    
 
     #endregion
     
@@ -720,3 +730,4 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     
 }
+

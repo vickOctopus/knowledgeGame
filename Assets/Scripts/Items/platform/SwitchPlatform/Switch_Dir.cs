@@ -9,9 +9,10 @@ public class Switch_Dir : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player") || other.CompareTag("JinGuBang"))
+        if (other.CompareTag("JinGuBang"))
         {
             SendMessageUpwards("SwitchChange",isRight);
+            Debug.Log("SwitchChange");
         }
         
     }

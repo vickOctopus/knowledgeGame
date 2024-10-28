@@ -4,11 +4,11 @@ using UnityEngine.Events;
 
 public class NonReboundButton : MonoBehaviour
 {
-    private SpriteRenderer spriteRenderer;
+    protected SpriteRenderer spriteRenderer;
    
-    private Sprite upSprite;
+    protected Sprite upSprite;
     public Sprite downSprite;
-    private BoxCollider2D boxCollider;
+    protected BoxCollider2D boxCollider;
 
     private void Awake()
     {
@@ -34,7 +34,8 @@ public class NonReboundButton : MonoBehaviour
         }
     }
 
-    private bool IsAnyBodyInTrigger()
+    // 改为protected以便子类访问
+    protected bool IsAnyBodyInTrigger()
     {
         Collider2D[] colliders = Physics2D.OverlapBoxAll(transform.position, boxCollider.size, 0);
         foreach (Collider2D collider in colliders)
