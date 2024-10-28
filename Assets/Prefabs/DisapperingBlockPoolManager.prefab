@@ -25,7 +25,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9046314090757679018}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -208.25, y: 147.79, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
@@ -46,6 +46,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   blockPrefab: {fileID: 2178776127290033570, guid: 954afa700f0b24bc99f80e6247f8a16b, type: 3}
   rowCount: 4
-  columnCount: 10
+  columnCount: 9
   blockSize: {x: 3, y: 1.5}
   autoCalculateSize: 0

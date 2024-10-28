@@ -46,7 +46,8 @@ public class RockPoolManager : MonoBehaviour,IButton
         }
     }
 
-    private void Start()
+    // 将private改为protected
+    protected virtual void Start()
     {
         InitializePool();
     }

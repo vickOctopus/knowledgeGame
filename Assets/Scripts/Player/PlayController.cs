@@ -217,6 +217,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         jinGuBang.SetActive(!jinGuBang.activeInHierarchy);
         Cursor.visible = jinGuBang.activeInHierarchy;
         _currentState = PlayerState.Idle;
+        isTakingJinGuBang = true;
         
         if (!jinGuBang.activeInHierarchy)
         {
@@ -358,6 +359,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void HandleJumpState()
     {
+        
         _rg.AddForce(Vector2.up * jumpForce, ForceMode2D.Impulse);
 
         _currentState = PlayerState.Airing;
@@ -615,7 +617,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         // _rg.velocity += jumpForce * 0.3f * Vector2.up;
         isEquipJinGuBang = false;
-        
+        isTakingJinGuBang = false;
         // 直接开始检测碰撞
         StartCoroutine(CheckCollisionRestore());
     }

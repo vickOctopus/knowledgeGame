@@ -28,7 +28,7 @@ Transform:
   m_GameObject: {fileID: 2019504170501805036}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 26.23, y: -4.1, z: 0}
+  m_LocalPosition: {x: -17.3, y: 2.1, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -200,7 +200,7 @@ Transform:
   m_GameObject: {fileID: 4239433343822295103}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 8.75, y: -8.49, z: 0}
+  m_LocalPosition: {x: -0.91, y: -12.89, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -290,8 +290,8 @@ MonoBehaviour:
   spawnInterval: 2
   spawnPoint: {fileID: 3710810855976967605}
   despawnAreaCenter: {fileID: 7158593046510141849}
-  despawnAreaSize: {x: 4.18, y: 1.36}
+  despawnAreaSize: {x: 6.91, y: 1.36}
   accelerationAreaCenter: {fileID: 9040737932222835777}
   accelerationAreaSize: {x: 3.46, y: 0.87}
   accelerationDirection: 3
-  accelerationForce: 40
+  accelerationForce: 0
