@@ -56,12 +56,14 @@ public class BouncingBall : MonoBehaviour
         {
             if (hit.collider != null && !hit.collider.CompareTag("OneWayPlatform"))
             {
+                // 使用 CompareTag 替代 GetComponent
                 if (hit.collider.CompareTag("Spikes"))
                 {
                     DestroyBall();
                     return; // 立即结束方法，因为球已被销毁
                 }
-                else if (!hit.collider.isTrigger)
+
+                if (!hit.collider.isTrigger)
                 {
                     HandleCollision(hit.collider, hit.normal, hit.point);
                     collided = true;
@@ -105,4 +107,9 @@ public class BouncingBall : MonoBehaviour
     }
 
     // OnTriggerEnter2D 方法已被移除，因为它不再需要
+    // public void TakeDamage(int damage)
+    // {
+    //     Debug.Log("BouncingBall taking damage");
+    //     DestroyBall();
+    // }
 }

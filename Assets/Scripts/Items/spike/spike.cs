@@ -6,10 +6,13 @@ using UnityEngine;
 public class spike : MonoBehaviour
 {
     [SerializeField]private int damage=1;
-    private void OnTriggerEnter2D(Collider2D other)
+
+    private void OnCollisionEnter2D(Collision2D other)
     {
-        var takeDamage = other.GetComponent<ITakeDamage>();
-       
-        takeDamage?.TakeDamage(damage);
+        var takeDamage = other.gameObject.GetComponent<ITakeDamage>();
+        if (takeDamage != null)
+        {
+            takeDamage.TakeDamage(damage);
+        }
     }
 }
