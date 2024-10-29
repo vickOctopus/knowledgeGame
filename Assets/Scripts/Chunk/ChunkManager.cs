@@ -92,13 +92,45 @@ public class ChunkManager : MonoBehaviour
 
     private void Start()
     {
-        // 从PlayerState获取重生点位置
-        Vector2 respawnPoint = new Vector2(
-            PlayerState.instance.playerSaveData.respawnPointX,
-            PlayerState.instance.playerSaveData.respawnPointY
-        );
         
-        InitializeChunks(respawnPoint);
+        // 等待PlayerState加载完成后再初始化区块
+        StartCoroutine(WaitForPlayerStateAndInitialize());
+    }
+
+    private IEnumerator WaitForPlayerStateAndInitialize()
+    {
+        if (Application.isEditor)
+        {
+            // 在编辑模式下等待PlayController实例
+            while (PlayController.instance == null)
+            {
+                yield return null;
+            }
+            
+            yield return new WaitForEndOfFrame();
+            
+            // 使用PlayController的位置
+            Vector3 playerPosition = PlayController.instance.transform.position;
+            InitializeChunks(playerPosition);
+        }
+        else
+        {
+            // 在发布版本中使用PlayerState的存档数据
+            while (PlayerState.instance == null)
+            {
+                yield return null;
+            }
+            
+            yield return new WaitForEndOfFrame();
+            
+            Vector2 respawnPoint = new Vector2(
+                PlayerState.instance.playerSaveData.respawnPointX,
+                PlayerState.instance.playerSaveData.respawnPointY
+            );
+            
+            InitializeChunks(respawnPoint);
+        }
+        
         InvokeRepeating(nameof(CleanUpUnusedResources), 60f, 60f);
     }
 
@@ -120,6 +152,7 @@ public class ChunkManager : MonoBehaviour
         }
 
         await UpdateVisibleChunksAsync();
+        isInitializing = false;
     }
 
     public async void ForceUpdateChunks(Vector3 cameraPosition)
@@ -578,11 +611,10 @@ public class ChunkManager : MonoBehaviour
 
     public Vector2Int GetChunkCoordFromWorldPos(Vector3 worldPos)
     {
-        Vector2Int chunkCoord = new Vector2Int(
+        return new Vector2Int(
             Mathf.FloorToInt((worldPos.x + chunkWidth / 2) / chunkWidth),
             Mathf.FloorToInt((worldPos.y + chunkHeight / 2) / chunkHeight)
         );
-        return chunkCoord;
     }
 
     public void UnloadAllChunks()

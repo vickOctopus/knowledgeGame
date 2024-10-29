@@ -27,13 +27,14 @@ public class PlayerState : MonoBehaviour, ISaveable
         else
         {
             Destroy(gameObject);
-        }
+        } 
+        
+        
     }
 
     private void Start()
     {
-        Load(PlayerPrefs.GetInt("CurrentSlotIndex"));
-     
+      Load(PlayerPrefs.GetInt("CurrentSlotIndex"));
     }
 
     public void Save(int slotIndex)
@@ -62,10 +63,7 @@ public class PlayerState : MonoBehaviour, ISaveable
 
     public void Load(int slotIndex)
     { 
-        // if (Application.isEditor) 
-        // {
-        //     return;//编辑模式不读取，方便测试
-        // }
+        if (Application.isEditor) return;
         
         if (PlayController.instance == null) return;
 

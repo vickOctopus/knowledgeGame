@@ -474,6 +474,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
             return;
         }
         
+        Debug.Log("Exit");
         LeftLadder(); 
         // Debug.Log("Exit Ladder");
     }
