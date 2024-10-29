@@ -28,7 +28,7 @@ public class ChunkManager : MonoBehaviour
 
     [SerializeField] private GameObject levelGrid;
 
-    private const float MEMORY_CHECK_INTERVAL = 10f; // 内存检查间隔（秒）
+    private const float MEMORY_CHECK_INTERVAL = 10f; // 内存检��间隔（秒）
     private const float MEMORY_WARNING_THRESHOLD = 0.8f; // 内存警告阈值（80%）
     private const int MIN_CACHE_SIZE = 5; // 最小缓存大小
     private const int DEFAULT_CACHE_SIZE = 20; // 默认缓存大小

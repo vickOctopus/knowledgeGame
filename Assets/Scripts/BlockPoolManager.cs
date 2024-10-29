@@ -15,28 +15,56 @@ public class BlockPoolManager : MonoBehaviour
     private Queue<GameObject> blockPool;
     private Vector2 startPosition;
     private Vector2 blockSpacing;
-    private List<GameObject> activeBlocks; // 新增：用于跟踪活跃的方块
+    private List<GameObject> activeBlocks;
+    private bool isInitialized = false;
 
     private void Awake()
     {
-        if (instance == null)
+        ValidateComponents();
+    }
+
+    private void OnEnable()
+    {
+        if (!isInitialized)
         {
-            instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
+            Initialize();
         }
     }
 
-    void Start()
+    private void ValidateComponents()
     {
-        initialPoolSize = rowCount * columnCount;
-        activeBlocks = new List<GameObject>(initialPoolSize); // 初始化活跃方块列表
-        CalculateBlockSizeAndSpacing();
-        InitializePool();
-        CalculateStartPosition();
-        ArrangeBlocks();
+        if (blockPrefab == null)
+        {
+            Debug.LogError($"BlockPrefab is not assigned in BlockPoolManager on {gameObject.name}!");
+            enabled = false;
+            return;
+        }
+
+        if (blockPrefab.GetComponent<SpriteRenderer>() == null)
+        {
+            Debug.LogWarning($"Block prefab is missing SpriteRenderer component on {gameObject.name}!");
+        }
+    }
+
+    private void Initialize()
+    {
+        if (!enabled) return;
+
+        try
+        {
+            initialPoolSize = rowCount * columnCount;
+            activeBlocks = new List<GameObject>(initialPoolSize);
+            CalculateBlockSizeAndSpacing();
+            InitializePool();
+            CalculateStartPosition();
+            ArrangeBlocks();
+            isInitialized = true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error initializing BlockPoolManager on {gameObject.name}: {e.Message}\n{e.StackTrace}");
+            enabled = false;
+        }
     }
 
     void CalculateBlockSizeAndSpacing()
@@ -50,7 +78,7 @@ public class BlockPoolManager : MonoBehaviour
             }
             else
             {
-                Debug.LogWarning("Block prefab does not have a SpriteRenderer or Sprite. Using default size.");
+                Debug.LogWarning($"Block prefab does not have a SpriteRenderer or Sprite on {gameObject.name}. Using default size.");
             }
         }
         blockSpacing = blockSize;
@@ -67,7 +95,7 @@ public class BlockPoolManager : MonoBehaviour
 
     void CalculateStartPosition()
     {
-        startPosition = new Vector2(transform.position.x+blockSize.x/2, transform.position.y-blockSize.y/2);
+        startPosition = new Vector2(blockSize.x/2, -blockSize.y/2);
     }
 
     void ArrangeBlocks()
@@ -85,9 +113,9 @@ public class BlockPoolManager : MonoBehaviour
     void SpawnBlock(Vector2 position)
     {
         GameObject block = GetBlockFromPool();
-        block.transform.position = position;
+        block.transform.localPosition = position;
         block.SetActive(true);
-        activeBlocks.Add(block); // 将新生成的方块添加到活跃列表
+        activeBlocks.Add(block);
     }
 
     GameObject GetBlockFromPool()
@@ -114,21 +142,51 @@ public class BlockPoolManager : MonoBehaviour
 
     public void ReturnBlockToPool(GameObject block)
     {
-        block.SetActive(false);
-        blockPool.Enqueue(block);
-        activeBlocks.Remove(block); // 从活跃列表中移除
+        if (block != null)
+        {
+            block.SetActive(false);
+            blockPool.Enqueue(block);
+            activeBlocks.Remove(block);
+        }
     }
 
-    // 修改后的恢复所有方块方法
     public void RestoreAllBlocks()
     {
-        // 使用我们自己维护的活跃方块列表
+        if (!enabled || !isInitialized) return;
+
         foreach (GameObject block in new List<GameObject>(activeBlocks))
         {
             ReturnBlockToPool(block);
         }
-
-        // 重新排列所有方块
         ArrangeBlocks();
+    }
+
+    private void OnDisable()
+    {
+        if (activeBlocks != null)
+        {
+            foreach (var block in activeBlocks)
+            {
+                if (block != null)
+                {
+                    Destroy(block);
+                }
+            }
+            activeBlocks.Clear();
+        }
+
+        if (blockPool != null)
+        {
+            while (blockPool.Count > 0)
+            {
+                var block = blockPool.Dequeue();
+                if (block != null)
+                {
+                    Destroy(block);
+                }
+            }
+        }
+        
+        isInitialized = false;
     }
 }

@@ -3,8 +3,28 @@ using UnityEngine;
 public class AdvancedBallPoolManager : BallPoolManager, IButton
 {
     private int activeBallCount = 0;
+    private BlockPoolManager blockPoolManager;
 
-    // 覆盖 SpawnBall 方法
+    private void Awake()
+    {
+        // 获取当前所在的区块对象
+        Transform chunkParent = transform.parent;
+        if (chunkParent != null && chunkParent.name.StartsWith("Chunk_"))
+        {
+            // 在当前区块中查找 BlockPoolManager
+            blockPoolManager = chunkParent.GetComponentInChildren<BlockPoolManager>();
+            
+            if (blockPoolManager == null)
+            {
+                Debug.LogWarning($"BlockPoolManager not found in chunk {chunkParent.name}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"AdvancedBallPoolManager is not in a chunk: {gameObject.name}");
+        }
+    }
+
     public override void SpawnBall()
     {
         if (activeBallCount == 0)
@@ -12,26 +32,23 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
             base.SpawnBall();
             activeBallCount++;
         }
-        else
-        {
-            // Debug.Log("世界中已存在活跃的球，不生成新的球。");
-        }
     }
 
-    // 覆盖 ReturnBallToPool 方法
     public override void ReturnBallToPool(GameObject ball)
     {
         ball.SetActive(false);
         ballPool.Enqueue(ball);
         activeBallCount--;
-        BlockPoolManager.instance.RestoreAllBlocks();
+        
+        if (blockPoolManager != null)
+        {
+            blockPoolManager.RestoreAllBlocks();
+        }
     }
 
-    // 覆盖 Start 方法
-    void Start()  // 而不是 new void Start()
+    void Start()
     {
         base.InitializePool();
-        // 注意：我们不调用 SpawnBall()
     }
 
     public void OnButtonDown()
@@ -41,6 +58,5 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
 
     public void OnButtonUp()
     {
-        // 按钮释放时不做任何操作
     }
 }
