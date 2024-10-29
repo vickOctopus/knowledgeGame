@@ -467,16 +467,16 @@ public class PlayController : MonoBehaviour,ITakeDamage
         }
     }
 
-    // private void OnTriggerExit2D(Collider2D other)
-    // {
-    //     if (!other.CompareTag("Ladder")||Mathf.Abs(_verticalMove) > 0)
-    //     {
-    //         return;
-    //     }
-    //     
-    //     LeftLadder(); 
-    //     // Debug.Log("Exit Ladder");
-    // }
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (!other.CompareTag("Ladder"))
+        {
+            return;
+        }
+        
+        LeftLadder(); 
+        // Debug.Log("Exit Ladder");
+    }
 
     private void OnLadder()
     {

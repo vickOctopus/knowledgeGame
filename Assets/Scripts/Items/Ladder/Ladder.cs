@@ -13,15 +13,7 @@ public class Ladder : MonoBehaviour, IEditorInstantiatedObject
     public GameObject ladderTopCollider;
     private Tilemap _ladderTilemap;// 梯子所在的 Tilemap
 
-
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.CompareTag("Player"))
-        {
-          // Debug.Log("Ladder Exited");
-          PlayController.instance.LeftLadder();
-        }
-    }
+    
 
     public List<EditorInstantiatedObjectInfo> InstantiateEditorObjects()
     {
