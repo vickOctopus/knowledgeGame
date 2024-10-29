@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class AdvancedBallPoolManager : BallPoolManager, IButton
 {
@@ -8,7 +9,18 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
     private void Awake()
     {
         base.InitializePool();
-        // 在初始化时就找到对应的 BlockPoolManager
+    }
+
+    private void Start()
+    {
+        StartCoroutine(InitializeBlockPoolManager());
+    }
+
+    private IEnumerator InitializeBlockPoolManager()
+    {
+        yield return null;  // 等待一帧确保所有组件初始化
+
+        // 在父级层次结构中查找BlockPoolManager
         Transform current = transform;
         while (current != null)
         {
@@ -19,13 +31,17 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
             }
             current = current.parent;
         }
+
+        if (blockPoolManager == null)
+        {
+            Debug.LogWarning($"Failed to find BlockPoolManager for {gameObject.name}");
+        }
     }
 
     public override void SpawnBall()
     {
         if (activeBallCount == 0)
         {
-            // 调用基类的 SpawnBall() 方法，它会正确设置速度和方向
             base.SpawnBall();
             activeBallCount++;
         }
@@ -43,11 +59,6 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
         }
     }
 
-    private void Start()
-    {
-        // 空实现，因为初始化已经在 Awake 中完成
-    }
-
     public void OnButtonDown()
     {
         SpawnBall();
@@ -57,3 +68,4 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
     {
     }
 }
+

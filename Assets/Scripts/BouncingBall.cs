@@ -56,7 +56,6 @@ public class BouncingBall : MonoBehaviour
         {
             if (hit.collider != null && hit.collider != circleCollider && !hit.collider.CompareTag("OneWayPlatform"))
             {
-                Debug.Log(hit.collider.name);
                 // 使用 CompareTag 替代 GetComponent
                 if (hit.collider.CompareTag("Spikes"))
                 {
