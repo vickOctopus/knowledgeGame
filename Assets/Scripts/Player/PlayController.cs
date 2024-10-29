@@ -74,15 +74,19 @@ public class PlayController : MonoBehaviour,ITakeDamage
     public int maxHp=4;
     
     [Header("Check")]
-    [SerializeField]private Transform groundCheckPoint;
-    [SerializeField]private LayerMask groundLayer;
-    [SerializeField]private Vector2 groundCheckSize;
-    [SerializeField]private Transform rollingCheckPoint;
-    [SerializeField]private Vector2 rollingCheckSize;
+    [SerializeField] private Vector2 groundCheckOffset;
+    [SerializeField] private Vector2 groundCheckSize;
+    [SerializeField] private Vector2 rollingCheckOffset;
+    [SerializeField] private Vector2 rollingCheckSize;
     public LayerMask canJumpLayer;
     
     [Header("Ladder")]
     [SerializeField] private float ladderSpeed;
+    [SerializeField] private Vector2 ladderCheckOffset;
+    [SerializeField] private Vector2 ladderCheckSize = new Vector2(0.8f, 1f);
+    [SerializeField] private LayerMask ladderLayer;
+    private readonly Collider2D[] _ladderCheckResults = new Collider2D[1];
+    private ContactFilter2D _ladderContactFilter;
     
     [Header("Arm")]
     [SerializeField]private LayerMask jinGuBangLayer;
@@ -148,7 +152,9 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _groundContactFilter.SetLayerMask(canJumpLayer);
         _groundContactFilter.useLayerMask = true;
 
-        // 初始化Chunk
+        _ladderContactFilter = new ContactFilter2D();
+        _ladderContactFilter.SetLayerMask(1 << LayerMask.NameToLayer("Ladder"));
+        _ladderContactFilter.useLayerMask = true;
     }
 
     private void Update()
@@ -161,6 +167,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         HandleState();
         UpdateAnimator();
         UpdateIsOnJinGuBang();
+        CheckLadder();
     }
 
     private void UpdateAnimator()
@@ -328,7 +335,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void EndRolling()
     {
-        var tem = Physics2D.OverlapBox(rollingCheckPoint.position, rollingCheckSize, 0.0f,
+        Vector2 checkPosition = (Vector2)transform.position + rollingCheckOffset;
+        var tem = Physics2D.OverlapBox(checkPosition, rollingCheckSize, 0.0f,
             LayerMask.GetMask("Platform", "MovePlatform", "JinGuBang"));
 
         if (tem)
@@ -346,15 +354,20 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void HandleClimbState()
     {
+        if (!_isOnLadder)
+        {
+            _currentState = PlayerState.Idle;
+            return;
+        }
+
         _rg.velocity = new Vector2(_horizontalMove * moveSpeed * 0.2f, _verticalMove * ladderSpeed);
         _rg.gravityScale = 0.0f;
         
-        if (_isOnLadder)
+        if (_playerInput.GamePLay.Jump.triggered)
         {
-            return;
+            LeftLadder();
+            _currentState = PlayerState.Jumping;
         }
-        
-        _currentState = PlayerState.Running;
     }
 
     private void HandleJumpState()
@@ -419,20 +432,20 @@ public class PlayController : MonoBehaviour,ITakeDamage
         {
             _currentState = PlayerState.Airing;
         }
-
+        
+        else if (_isOnLadder && Mathf.Abs(_verticalMove) > 0)
+        {
+            _currentState = PlayerState.Climbing;
+        }
+        
         else if (Mathf.Abs(_horizontalMove) >= 0.1f||Mathf.Abs(_rg.velocity.x) >= 0.01f)
         {
             _currentState = PlayerState.Running;
         }
-
+        
         else if (_playerInput.GamePLay.Jump.triggered)
         {
             _currentState = PlayerState.Jumping;
-        }
-        
-        else if (_isOnLadder)
-        {
-            _currentState = PlayerState.Climbing;
         }
         
         else if (_playerInput.GamePLay.Roll.triggered&&_canRoll)
@@ -446,56 +459,46 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     #region Ladder
 
-    private void OnTriggerStay2D(Collider2D other)
+    private void CheckLadder()
     {
-        if (!other.CompareTag("Ladder") || _isRolling)
+        Vector2 checkPosition = (Vector2)transform.position + ladderCheckOffset;
+        Collider2D hitCollider = Physics2D.OverlapBox(checkPosition, ladderCheckSize, 0f, 1 << LayerMask.NameToLayer("Ladder"));
+        
+        if (hitCollider != null)
         {
-            return;
-        }
-
-        // _canRoll = false;
-        if (!_isOnLadder)
-        {
-            if (Mathf.Abs(_verticalMove) > 0) //在地面如果按攀爬键则进入攀爬状态，不然则继续正常移动
+            if (!_isRolling)
             {
-                OnLadder();
+                if (!_isOnLadder && Mathf.Abs(_verticalMove) > 0)
+                {
+                    OnLadder();
+                    _currentState = PlayerState.Climbing;
+                }
+                else if (_isOnLadder && _isGrounded && Mathf.Abs(_verticalMove) < 0.1f)
+                {
+                    LeftLadder();
+                }
             }
         }
-        else if (_isGrounded && Mathf.Abs(_verticalMove) == 0) //在底部时如果不攀爬则正常移动
+        else if (_isOnLadder)
         {
             LeftLadder();
         }
     }
 
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (!other.CompareTag("Ladder"))
-        {
-            return;
-        }
-        
-        Debug.Log("Exit");
-        LeftLadder(); 
-        // Debug.Log("Exit Ladder");
-    }
-
     private void OnLadder()
     {
         _isOnLadder = true;
-        // _currentState = PlayerState.Climbing;
         _animator.SetBool(_climbHash, _isOnLadder);
         _rg.gravityScale = 0;
         EventManager.instance.ClimbLadder();
-        if (jinGuBang != null&&isTakingJinGuBang)
+        if (jinGuBang != null && isTakingJinGuBang)
         {
              jinGuBang.SetActive(false);
         }
-       
     }
 
-   public void LeftLadder()
+    public void LeftLadder()
     {
-        // _currentState=PlayerState.Idle;
         _isOnLadder = false;
         _animator.SetBool(_climbHash, _isOnLadder);
         _rg.gravityScale = _gravityScale;
@@ -531,8 +534,9 @@ public class PlayController : MonoBehaviour,ITakeDamage
         }
 
         _lastGroundCheckTime = Time.time;
-
-        int hitCount = Physics2D.OverlapBox(groundCheckPoint.position, groundCheckSize, 0f, _groundContactFilter, _groundCheckResults);
+        Vector2 checkPosition = (Vector2)transform.position + groundCheckOffset;
+        
+        int hitCount = Physics2D.OverlapBox(checkPosition, groundCheckSize, 0f, _groundContactFilter, _groundCheckResults);
         
         if (hitCount > 0)
         {
@@ -548,8 +552,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void OnDrawGizmos()
     {
-        Gizmos.DrawWireCube(groundCheckPoint.position, groundCheckSize);
-        Gizmos.DrawWireCube(rollingCheckPoint.position, rollingCheckSize);
+        Vector3 position = transform.position;
+        Gizmos.DrawWireCube((Vector2)position + groundCheckOffset, groundCheckSize);
+        Gizmos.DrawWireCube((Vector2)position + rollingCheckOffset, rollingCheckSize);
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireCube((Vector2)position + ladderCheckOffset, ladderCheckSize);
     }
 
         #endregion
