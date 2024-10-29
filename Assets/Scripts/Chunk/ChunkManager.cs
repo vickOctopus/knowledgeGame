@@ -28,39 +28,44 @@ public class ChunkManager : MonoBehaviour
 
     [SerializeField] private GameObject levelGrid;
 
-    private const int MAX_CACHE_SIZE = 20;
-    private Dictionary<Vector2Int, LinkedListNode<ChunkData>> chunkCache = new Dictionary<Vector2Int, LinkedListNode<ChunkData>>();
-    private LinkedList<ChunkData> cacheOrder = new LinkedList<ChunkData>();
+    private const float MEMORY_CHECK_INTERVAL = 10f; // 内存检查间隔（秒）
+    private const float MEMORY_WARNING_THRESHOLD = 0.8f; // 内存警告阈值（80%）
+    private const int MIN_CACHE_SIZE = 5; // 最小缓存大小
+    private const int DEFAULT_CACHE_SIZE = 20; // 默认缓存大小
+    private const int MAX_ABSOLUTE_CACHE_SIZE = 50; // 绝对最大缓存大小
 
+    private int currentMaxCacheSize;
+    private float lastMemoryCheckTime;
+
+    private int MAX_CACHE_SIZE 
+    {
+        get => currentMaxCacheSize;
+        set => currentMaxCacheSize = Mathf.Clamp(value, MIN_CACHE_SIZE, MAX_ABSOLUTE_CACHE_SIZE);
+    }
+
+    private HashSet<Vector2Int> chunksBeingProcessed = new HashSet<Vector2Int>();
+    
     private const int TILES_PER_FRAME = 20;
     private const int OBJECTS_PER_FRAME = 20;
-
     private const int MAX_CONCURRENT_LOADS = 2;
+    private const int TILES_TO_CLEAR_PER_FRAME = 50;
+    
     private Queue<Vector2Int> loadQueue = new Queue<Vector2Int>();
     private int currentLoads = 0;
 
-    private const int TILES_TO_CLEAR_PER_FRAME = 50;
-
-    private HashSet<Vector2Int> chunksBeingProcessed = new HashSet<Vector2Int>();
+    private Dictionary<Vector2Int, LinkedListNode<ChunkData>> chunkCache = new Dictionary<Vector2Int, LinkedListNode<ChunkData>>();
+    private LinkedList<ChunkData> cacheOrder = new LinkedList<ChunkData>();
 
     public static int ChunkWidth => chunkWidth;
     public static int ChunkHeight => chunkHeight;
 
-    private SwitchPlatform switchPlatform;
-
     public event System.Action<Vector2Int> OnChunkLoaded;
     public event System.Action<Vector2Int> OnChunkUnloaded;
+    public event System.Action<Vector2Int> OnSwitchStateChanged;
 
     public void NotifySwitchChange(Vector2Int chunkCoord)
     {
-        if (switchPlatform != null)
-        {
-            switchPlatform.PlatformChange(chunkCoord);
-        }
-        else
-        {
-            Debug.LogWarning("SwitchPlatform not found in the scene.");
-        }
+        OnSwitchStateChanged?.Invoke(chunkCoord);
     }
 
     private void Awake()
@@ -70,6 +75,10 @@ public class ChunkManager : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
             CheckAddressablesStatus();
+            
+            // 初始化缓存大小
+            currentMaxCacheSize = DEFAULT_CACHE_SIZE;
+            StartCoroutine(MonitorMemoryUsage());
         }
         else if (Instance != this)
         {
@@ -83,15 +92,6 @@ public class ChunkManager : MonoBehaviour
     {
         InitializeChunks(PlayController.instance.transform.position);
         InvokeRepeating(nameof(CleanUpUnusedResources), 60f, 60f);
-        switchPlatform = FindObjectOfType<SwitchPlatform>();
-        if (switchPlatform != null)
-        {
-            Debug.Log("ChunkManager: SwitchPlatform found");
-        }
-        else
-        {
-            Debug.LogError("ChunkManager: SwitchPlatform not found in the scene");
-        }
     }
 
     public async void InitializeChunks(Vector3 playerPosition)
@@ -460,9 +460,22 @@ public class ChunkManager : MonoBehaviour
         {
             if (chunkCache.Count >= MAX_CACHE_SIZE)
             {
-                var oldestNode = cacheOrder.Last;
-                cacheOrder.RemoveLast();
-                chunkCache.Remove(oldestNode.Value.chunkCoord);
+                // 检查内存使用情况
+                float memoryUsageRatio = UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong() / 
+                                       (SystemInfo.systemMemorySize * 1024f * 1024f);
+                
+                if (memoryUsageRatio > MEMORY_WARNING_THRESHOLD)
+                {
+                    // 如果内存使用率高，立即清理多个缓存项
+                    TrimCache();
+                }
+                else
+                {
+                    // 正常移除最旧的缓存项
+                    var oldestNode = cacheOrder.Last;
+                    cacheOrder.RemoveLast();
+                    chunkCache.Remove(oldestNode.Value.chunkCoord);
+                }
             }
 
             var newNode = new LinkedListNode<ChunkData>(chunkData);
@@ -713,6 +726,7 @@ public class ChunkManager : MonoBehaviour
 
     private void CleanUpUnusedResources()
     {
+        AdjustCacheSizeBasedOnMemory(); // 在清理前检查并调整缓存大小
         Resources.UnloadUnusedAssets();
         System.GC.Collect();
     }
@@ -734,5 +748,47 @@ public class ChunkManager : MonoBehaviour
     private void ChunkUnloaded(Vector2Int chunkCoord)
     {
         OnChunkUnloaded?.Invoke(chunkCoord);
+    }
+
+    private IEnumerator MonitorMemoryUsage()
+    {
+        while (true)
+        {
+            yield return new WaitForSeconds(MEMORY_CHECK_INTERVAL);
+            AdjustCacheSizeBasedOnMemory();
+        }
+    }
+
+    private void AdjustCacheSizeBasedOnMemory()
+    {
+        float totalMemory = SystemInfo.systemMemorySize;
+        float reservedMemory = UnityEngine.Profiling.Profiler.GetTotalReservedMemoryLong() / (1024f * 1024f); // 转换为MB
+        float memoryUsageRatio = reservedMemory / totalMemory;
+
+        if (memoryUsageRatio > MEMORY_WARNING_THRESHOLD)
+        {
+            // 内存使用过高，减少缓存大小
+            MAX_CACHE_SIZE = Mathf.Max(MIN_CACHE_SIZE, MAX_CACHE_SIZE - 5);
+            TrimCache();
+            Debug.LogWarning($"High memory usage detected ({memoryUsageRatio:P2}). Reducing cache size to {MAX_CACHE_SIZE}");
+        }
+        else if (memoryUsageRatio < MEMORY_WARNING_THRESHOLD * 0.7f) // 有足够内存余量
+        {
+            // 逐渐增加缓存大小
+            MAX_CACHE_SIZE = Mathf.Min(MAX_ABSOLUTE_CACHE_SIZE, MAX_CACHE_SIZE + 2);
+        }
+    }
+
+    private void TrimCache()
+    {
+        while (chunkCache.Count > MAX_CACHE_SIZE)
+        {
+            var oldestNode = cacheOrder.Last;
+            cacheOrder.RemoveLast();
+            chunkCache.Remove(oldestNode.Value.chunkCoord);
+            
+            // 强制进行垃圾回收
+            Resources.UnloadUnusedAssets();
+        }
     }
 }

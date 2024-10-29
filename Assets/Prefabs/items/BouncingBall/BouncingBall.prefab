@@ -99,7 +99,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 37fadea58dedc4f6399e1c146c2dfbba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialVelocity: {x: 10.62, y: 2.27}
+  initialVelocity: {x: 3, y: 3}
   bounceThreshold: 0.1
 --- !u!58 &4739726814060809164
 CircleCollider2D:

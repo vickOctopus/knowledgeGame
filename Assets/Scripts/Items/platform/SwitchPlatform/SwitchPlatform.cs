@@ -29,6 +29,8 @@ public class SwitchPlatform : MonoBehaviour
         // 订阅 ChunkManager 的事件
         ChunkManager.Instance.OnChunkLoaded += OnChunkLoaded;
         ChunkManager.Instance.OnChunkUnloaded += OnChunkUnloaded;
+        // 订阅开关状态改变事件
+        ChunkManager.Instance.OnSwitchStateChanged += PlatformChange;
     }
 
     private void OnDestroy()
@@ -38,6 +40,7 @@ public class SwitchPlatform : MonoBehaviour
         {
             ChunkManager.Instance.OnChunkLoaded -= OnChunkLoaded;
             ChunkManager.Instance.OnChunkUnloaded -= OnChunkUnloaded;
+            ChunkManager.Instance.OnSwitchStateChanged -= PlatformChange;
         }
     }
 
