@@ -13,28 +13,49 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
 
     private void Start()
     {
-        StartCoroutine(InitializeBlockPoolManager());
+        if (ChunkManager.Instance)
+        {
+            StartCoroutine(InitializeBlockPoolManager());
+        }
+        
     }
 
     private IEnumerator InitializeBlockPoolManager()
     {
-        yield return null;  // 等待一帧确保所有组件初始化
-
-        // 在父级层次结构中查找BlockPoolManager
-        Transform current = transform;
-        while (current != null)
+        int maxRetries = 5;  // 最大重试次数
+        int currentRetry = 0;
+        
+        while (blockPoolManager == null && currentRetry < maxRetries)
         {
-            if (current.name.Contains("Chunk_"))
+            yield return new WaitForSeconds(0.1f);  // 等待0.1秒后重试
+            
+            // 在父级层次结构中查找BlockPoolManager
+            Transform current = transform;
+            while (current != null)
             {
-                blockPoolManager = current.GetComponentInChildren<BlockPoolManager>();
-                break;
+                if (current.name.Contains("Chunk_"))
+                {
+                    blockPoolManager = current.GetComponentInChildren<BlockPoolManager>();
+                    if (blockPoolManager != null) break;
+                }
+                current = current.parent;
             }
-            current = current.parent;
+            
+            currentRetry++;
         }
 
         if (blockPoolManager == null)
         {
-            Debug.LogWarning($"Failed to find BlockPoolManager for {gameObject.name}");
+            Debug.LogWarning($"Failed to find BlockPoolManager for {gameObject.name} after {maxRetries} retries");
+            // 输出层级结构以帮助调试
+            Transform current = transform;
+            string hierarchy = gameObject.name;
+            while (current.parent != null)
+            {
+                current = current.parent;
+                hierarchy = current.name + "/" + hierarchy;
+            }
+            Debug.LogWarning($"Object hierarchy: {hierarchy}");
         }
     }
 
@@ -66,6 +87,21 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
 
     public void OnButtonUp()
     {
+    }
+
+    private void OnEnable()
+    {
+        ChunkManager.OnChunkLoadedEvent += OnChunkFullyLoaded;
+    }
+
+    private void OnDisable()
+    {
+        ChunkManager.OnChunkLoadedEvent -= OnChunkFullyLoaded;
+    }
+
+    private void OnChunkFullyLoaded()
+    {
+        StartCoroutine(InitializeBlockPoolManager());
     }
 }
 

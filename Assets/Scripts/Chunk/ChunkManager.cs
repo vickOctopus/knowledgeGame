@@ -28,7 +28,7 @@ public class ChunkManager : MonoBehaviour
 
     [SerializeField] private GameObject levelGrid;
 
-    private const float MEMORY_CHECK_INTERVAL = 10f; // 内存检间隔（秒）
+    private const float MEMORY_CHECK_INTERVAL = 10f; // 内存检隔（秒）
     private const float MEMORY_WARNING_THRESHOLD = 0.8f; // 内存警告阈值（80%）
     private const int MIN_CACHE_SIZE = 5; // 最小缓存大小
     private const int DEFAULT_CACHE_SIZE = 20; // 默认缓存大小
@@ -62,6 +62,8 @@ public class ChunkManager : MonoBehaviour
     public event System.Action<Vector2Int> OnChunkLoaded;
     public event System.Action<Vector2Int> OnChunkUnloaded;
     public event System.Action<Vector2Int> OnSwitchStateChanged;
+
+    public static event Action OnChunkLoadedEvent;
 
     public void NotifySwitchChange(Vector2Int chunkCoord)
     {
@@ -297,6 +299,12 @@ public class ChunkManager : MonoBehaviour
                 }
 
                 AddToCache(chunkCoord, chunkData);
+
+                // 触发区块加载完成事件
+                OnChunkLoaded?.Invoke(chunkCoord);
+                
+                // 触发静态事件，表示区块完全加载完成
+                OnChunkLoadedEvent?.Invoke();
             }
             else
             {

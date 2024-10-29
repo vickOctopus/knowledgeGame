@@ -467,32 +467,34 @@ public class PlayController : MonoBehaviour,ITakeDamage
         }
     }
 
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (!other.CompareTag("Ladder"))
-        {
-            return;
-        }
-        
-        // _canRoll = true;
-        LeftLadder(); 
-    }
+    // private void OnTriggerExit2D(Collider2D other)
+    // {
+    //     if (!other.CompareTag("Ladder")||Mathf.Abs(_verticalMove) > 0)
+    //     {
+    //         return;
+    //     }
+    //     
+    //     LeftLadder(); 
+    //     // Debug.Log("Exit Ladder");
+    // }
 
     private void OnLadder()
     {
         _isOnLadder = true;
+        // _currentState = PlayerState.Climbing;
         _animator.SetBool(_climbHash, _isOnLadder);
         _rg.gravityScale = 0;
         EventManager.instance.ClimbLadder();
-        if (jinGuBang != null)
+        if (jinGuBang != null&&isTakingJinGuBang)
         {
              jinGuBang.SetActive(false);
         }
        
     }
 
-    private void LeftLadder()
+   public void LeftLadder()
     {
+        // _currentState=PlayerState.Idle;
         _isOnLadder = false;
         _animator.SetBool(_climbHash, _isOnLadder);
         _rg.gravityScale = _gravityScale;
