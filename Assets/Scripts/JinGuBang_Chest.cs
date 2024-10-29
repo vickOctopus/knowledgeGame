@@ -21,14 +21,15 @@ public class JinGuBang_Chest : MonoBehaviour,ISceneInteraction
 
     private void Start()
     {
-        if (!PlayerPrefs.HasKey(name))
-        {
-           PlayerPrefs.SetInt(name,0);
-        }
-        else if(PlayerPrefs.GetInt(name)==1)
-        {
-            OpenChest();
-        }
+            if (!PlayerPrefs.HasKey(name))
+            {
+                PlayerPrefs.SetInt(name,0);
+            }
+            else if(PlayerPrefs.GetInt(name)==1)
+            {
+                OpenChest();
+            }
+        
     }
 
 

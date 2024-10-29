@@ -100,6 +100,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private readonly Collider2D[] _groundCheckResults = new Collider2D[1];
     private ContactFilter2D _groundContactFilter;
 
+    private bool _checkingLadder = false;
+
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -162,12 +164,22 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _horizontalMove = _playerInput.GamePLay.Move.ReadValue<Vector2>().x;
         _verticalMove = _playerInput.GamePLay.Move.ReadValue<Vector2>().y;
 
+        // 只在有垂直输入或已经在梯子上时检测
+        if (Mathf.Abs(_verticalMove) > 0)
+        {
+            _checkingLadder = true;
+        }
+        
+        if (_checkingLadder)
+        {
+            CheckLadder();
+        }
+
         CheckGround();
         Flip();
         HandleState();
         UpdateAnimator();
         UpdateIsOnJinGuBang();
-        CheckLadder();
     }
 
     private void UpdateAnimator()
@@ -503,6 +515,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _animator.SetBool(_climbHash, _isOnLadder);
         _rg.gravityScale = _gravityScale;
         EventManager.instance.LeftLadder();
+        _checkingLadder = false; // 离开梯子时停止检测
     }
 
     #endregion
@@ -610,7 +623,10 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     public void SpawnJinGuBang()
     {
-        // if (!PlayerPrefs.HasKey("HasJinGuBang")) return;
+        if (!Application.isEditor)
+        {
+             if (!PlayerPrefs.HasKey("HasJinGuBang")) return;
+        }
         
         jinGuBang = Instantiate(jinGuBang, transform.position, Quaternion.identity);
         jinGuBang.transform.SetParent(this.transform);
@@ -714,25 +730,35 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         _playerInput.Disable();
         
-        
-        // if (PlayerPrefs.HasKey("HasJinGuBang"))
-        // {
-        //     jinGuBang.GetComponent<JinGuBang>().DisableControl();
-        // }
-        
-        jinGuBang.GetComponent<JinGuBang>().DisableControl();
+        if (Application.isEditor)
+        {
+            jinGuBang.GetComponent<JinGuBang>().DisableControl();
+        }
+        else
+        {
+            if (PlayerPrefs.GetInt("HasJinGuBang")==1)
+            {
+                jinGuBang.GetComponent<JinGuBang>().DisableControl();
+            }
+        }
     }
 
     public void EnableControl()
     {
         _playerInput.Enable();
         
-        // if (PlayerPrefs.HasKey("HasJinGuBang"))
-        // {
-        //     jinGuBang.GetComponent<JinGuBang>().EnableControl();
-        // }
-        //
-        jinGuBang.GetComponent<JinGuBang>().EnableControl();
+        
+        if (Application.isEditor)
+        {
+            jinGuBang.GetComponent<JinGuBang>().EnableControl();
+        }
+        else
+        {
+            if (PlayerPrefs.GetInt("HasJinGuBang")==1)
+            {
+                jinGuBang.GetComponent<JinGuBang>().EnableControl();
+            }
+        }
     }
 
     private void UpdateIsOnJinGuBang()

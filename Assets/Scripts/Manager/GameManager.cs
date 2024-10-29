@@ -29,7 +29,9 @@ public class GameManager : MonoBehaviour
         Screen.SetResolution(1920, 1080, true);
         StartCoroutine(SetCursorCoroutine());
         // ChunkManager.Instance.InitializeChunks(PlayController.instance.transform.position);
-        // PlayerPrefs.DeleteAll();
+        
+        
+        PlayerPrefs.DeleteAll();//删除所有playerprefs
     }
 
     public void StartGame()//由mainmenu调用
