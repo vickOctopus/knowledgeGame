@@ -13,11 +13,21 @@ public class PlayerSaveData
 
 public class PlayerState : MonoBehaviour, ISaveable
 {
-    private PlayerSaveData playerSaveData;
+    public PlayerSaveData playerSaveData;
+    public static PlayerState instance;
 
     private void Awake()
     {
         playerSaveData = new PlayerSaveData();
+
+        if (instance == null)
+        {
+            instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
 
     private void Start()
@@ -28,7 +38,7 @@ public class PlayerState : MonoBehaviour, ISaveable
 
     public void Save(int slotIndex)
     {
-        if (Application.isEditor) return;
+        // if (Application.isEditor) return;
         if (PlayController.instance == null) return;
 
         playerSaveData.currentHp = PlayController.instance.currentHp;
@@ -52,10 +62,10 @@ public class PlayerState : MonoBehaviour, ISaveable
 
     public void Load(int slotIndex)
     { 
-        if (Application.isEditor) 
-        {
-            return;//编辑模式不读取，方便测试
-        }
+        // if (Application.isEditor) 
+        // {
+        //     return;//编辑模式不读取，方便测试
+        // }
         
         if (PlayController.instance == null) return;
 

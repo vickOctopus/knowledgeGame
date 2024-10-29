@@ -55,7 +55,7 @@ public class SaveManager : MonoBehaviour
             return;
         }
 
-        playerData.respawnPoint = _respawnPosition;
+        // playerData.respawnPoint = _respawnPosition;
 
         // 保存所有实现了 ISaveable 接口的对象
         ISaveable[] saveableObjects = FindObjectsOfType<MonoBehaviour>().OfType<ISaveable>().ToArray();

@@ -92,7 +92,13 @@ public class ChunkManager : MonoBehaviour
 
     private void Start()
     {
-        InitializeChunks(PlayController.instance.transform.position);
+        // 从PlayerState获取重生点位置
+        Vector2 respawnPoint = new Vector2(
+            PlayerState.instance.playerSaveData.respawnPointX,
+            PlayerState.instance.playerSaveData.respawnPointY
+        );
+        
+        InitializeChunks(respawnPoint);
         InvokeRepeating(nameof(CleanUpUnusedResources), 60f, 60f);
     }
 
