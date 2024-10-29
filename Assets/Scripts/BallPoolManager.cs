@@ -77,7 +77,7 @@ public class BallPoolManager : MonoBehaviour
 
         isRespawning = false;
         SpawnBall();
-        ;
+        
     }
 
     void OnDrawGizmos()

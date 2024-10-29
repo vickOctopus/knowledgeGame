@@ -7,21 +7,17 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
 
     private void Awake()
     {
-        // 获取当前所在的区块对象
-        Transform chunkParent = transform.parent;
-        if (chunkParent != null && chunkParent.name.StartsWith("Chunk_"))
+        base.InitializePool();
+        // 在初始化时就找到对应的 BlockPoolManager
+        Transform current = transform;
+        while (current != null)
         {
-            // 在当前区块中查找 BlockPoolManager
-            blockPoolManager = chunkParent.GetComponentInChildren<BlockPoolManager>();
-            
-            if (blockPoolManager == null)
+            if (current.name.Contains("Chunk_"))
             {
-                Debug.LogWarning($"BlockPoolManager not found in chunk {chunkParent.name}");
+                blockPoolManager = current.GetComponentInChildren<BlockPoolManager>();
+                break;
             }
-        }
-        else
-        {
-            Debug.LogWarning($"AdvancedBallPoolManager is not in a chunk: {gameObject.name}");
+            current = current.parent;
         }
     }
 
@@ -29,6 +25,7 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
     {
         if (activeBallCount == 0)
         {
+            // 调用基类的 SpawnBall() 方法，它会正确设置速度和方向
             base.SpawnBall();
             activeBallCount++;
         }
@@ -46,9 +43,9 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
         }
     }
 
-    void Start()
+    private void Start()
     {
-        base.InitializePool();
+        // 空实现，因为初始化已经在 Awake 中完成
     }
 
     public void OnButtonDown()

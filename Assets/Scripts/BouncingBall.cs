@@ -54,13 +54,14 @@ public class BouncingBall : MonoBehaviour
         bool collided = false;
         foreach (RaycastHit2D hit in hits)
         {
-            if (hit.collider != null && !hit.collider.CompareTag("OneWayPlatform"))
+            if (hit.collider != null && hit.collider != circleCollider && !hit.collider.CompareTag("OneWayPlatform"))
             {
+                Debug.Log(hit.collider.name);
                 // 使用 CompareTag 替代 GetComponent
                 if (hit.collider.CompareTag("Spikes"))
                 {
                     DestroyBall();
-                    return; // 立即结束方法，因为球已被销毁
+                    return;
                 }
 
                 if (!hit.collider.isTrigger)
@@ -105,11 +106,5 @@ public class BouncingBall : MonoBehaviour
     {
         ResetVelocity();
     }
-
-    // OnTriggerEnter2D 方法已被移除，因为它不再需要
-    // public void TakeDamage(int damage)
-    // {
-    //     Debug.Log("BouncingBall taking damage");
-    //     DestroyBall();
-    // }
+    
 }

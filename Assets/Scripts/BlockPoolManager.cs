@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 public class BlockPoolManager : MonoBehaviour
 {
-    public static BlockPoolManager instance;
+    // public static BlockPoolManager instance;
     public GameObject blockPrefab;
     public int rowCount = 10;
     public int columnCount = 10;
@@ -188,5 +188,53 @@ public class BlockPoolManager : MonoBehaviour
         }
         
         isInitialized = false;
+    }
+
+    private void OnDrawGizmos()
+    {
+        if (!enabled) return;
+
+        // 计算网格的总宽度和高度
+        float totalWidth = columnCount * blockSize.x;
+        float totalHeight = rowCount * blockSize.y;
+        
+        // 计算网格的左上角位置
+        Vector3 gridOrigin = transform.position + new Vector3(startPosition.x - blockSize.x/2, startPosition.y + blockSize.y/2, 0);
+        
+        // 设置 Gizmos 颜色
+        Gizmos.color = new Color(0.2f, 1f, 0.2f, 0.3f);
+        
+        // 绘制整个区域的半透明框
+        Gizmos.DrawCube(gridOrigin + new Vector3(totalWidth/2, -totalHeight/2, 0), 
+            new Vector3(totalWidth, totalHeight, 0.1f));
+        
+        // 设置网格线的颜色
+        Gizmos.color = Color.green;
+        
+        // 绘制垂直线
+        for (int col = 0; col <= columnCount; col++)
+        {
+            Vector3 startLine = gridOrigin + new Vector3(col * blockSize.x, 0, 0);
+            Vector3 endLine = startLine + new Vector3(0, -totalHeight, 0);
+            Gizmos.DrawLine(startLine, endLine);
+        }
+        
+        // 绘制水平线
+        for (int row = 0; row <= rowCount; row++)
+        {
+            Vector3 startLine = gridOrigin + new Vector3(0, -row * blockSize.y, 0);
+            Vector3 endLine = startLine + new Vector3(totalWidth, 0, 0);
+            Gizmos.DrawLine(startLine, endLine);
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        // 如果在编辑器中选中对象，重新计算起始位置
+        if (!Application.isPlaying)
+        {
+            CalculateBlockSizeAndSpacing();
+            CalculateStartPosition();
+        }
     }
 }
