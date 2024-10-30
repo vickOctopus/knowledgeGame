@@ -78,7 +78,13 @@ public class PlayerState : MonoBehaviour, ISaveable
                 {
                     PlayController.instance.currentHp = playerSaveData.currentHp;
                     PlayController.instance.maxHp = playerSaveData.maxHp;
-                    transform.position = new Vector2(playerSaveData.respawnPointX, playerSaveData.respawnPointY);
+                    
+                    // 通知 ChunkManager 加载新位置周围的区块
+                    Vector3 newPosition = new Vector3(playerSaveData.respawnPointX, playerSaveData.respawnPointY, 0);
+                    ChunkManager.Instance.InitializeChunks(newPosition);
+                    
+                    // 设置位置和更新重生点
+                    transform.position = newPosition;
                     SaveManager.instance.GetRespawnPosition(transform.position);
                 }
                 else
@@ -104,6 +110,11 @@ public class PlayerState : MonoBehaviour, ISaveable
     {
         PlayController.instance.currentHp = 4;
         PlayController.instance.maxHp = 4;
+        
+        // 通知 ChunkManager 加载默认位置周围的区块
+        ChunkManager.Instance.InitializeChunks(SaveManager.instance.defaultSpawnPoint);
+        
+        // 设置位置
         transform.position = SaveManager.instance.defaultSpawnPoint;
     }
 }

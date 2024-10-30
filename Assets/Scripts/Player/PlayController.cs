@@ -718,9 +718,29 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void PlayerDead()
     {
+        DisableControl(); // 禁用控制
+        StartCoroutine(PlayerDeadCoroutine());
+    }
+
+    private IEnumerator PlayerDeadCoroutine()
+    {
         SaveManager.instance.LoadGame();
+        
+        // 等待区块加载完成
+        bool chunksLoaded = false;
+        ChunkManager.OnChunkLoadedEvent += () => chunksLoaded = true;
+        
+        // 等待区块加载完成或超时（5秒）
+        float timeoutTime = Time.time + 5f;
+        while (!chunksLoaded && Time.time < timeoutTime)
+        {
+            yield return null;
+        }
+        
+        // 重置生命值并传送到重生点
         currentHp = maxHp;
         HpChange();
+        EnableControl(); // 重新启用控制
     }
 
     public void Recover(int recoverHp)
