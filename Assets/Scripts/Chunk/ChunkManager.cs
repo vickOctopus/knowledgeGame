@@ -168,106 +168,117 @@ public class ChunkManager : MonoBehaviour
 
     private async Task UpdateVisibleChunksAsync()
     {
-        HashSet<Vector2Int> newVisibleChunks = new HashSet<Vector2Int>();
-        HashSet<Vector2Int> newVisibleObjectChunks = new HashSet<Vector2Int>();
-        List<Vector2Int> chunksToLoad = new List<Vector2Int>();
-        List<Vector2Int> chunksToUnload = new List<Vector2Int>();
-
-        for (int x = -loadDistance; x <= loadDistance; x++)
+        try
         {
-            for (int y = -loadDistance; y <= loadDistance; y++)
-            {
-                Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
-                newVisibleChunks.Add(coord);
-                
-                if (Mathf.Abs(x) <= objectLoadDistance && Mathf.Abs(y) <= objectLoadDistance)
-                {
-                    newVisibleObjectChunks.Add(coord);
-                }
+            // 使用 List 代替 HashSet 来避免可能的容量问题
+            List<Vector2Int> newVisibleChunks = new List<Vector2Int>();
+            List<Vector2Int> newVisibleObjectChunks = new List<Vector2Int>();
+            List<Vector2Int> chunksToLoad = new List<Vector2Int>();
+            List<Vector2Int> chunksToUnload = new List<Vector2Int>();
 
-                if (!visibleChunks.Contains(coord) && !loadedChunks.ContainsKey(coord))
+            // 计算新的可见区块
+            for (int x = -loadDistance; x <= loadDistance; x++)
+            {
+                for (int y = -loadDistance; y <= loadDistance; y++)
                 {
-                    bool exists = await ChunkExistsAsync(coord);
-                    if (exists)
+                    Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
+                    
+                    if (!newVisibleChunks.Contains(coord))
                     {
-                        chunksToLoad.Add(coord);
+                        newVisibleChunks.Add(coord);
+                    }
+                    
+                    if (Mathf.Abs(x) <= objectLoadDistance && Mathf.Abs(y) <= objectLoadDistance)
+                    {
+                        if (!newVisibleObjectChunks.Contains(coord))
+                        {
+                            newVisibleObjectChunks.Add(coord);
+                        }
+                    }
+
+                    if (!visibleChunks.Contains(coord) && !loadedChunks.ContainsKey(coord))
+                    {
+                        bool exists = await ChunkExistsAsync(coord);
+                        if (exists && !chunksToLoad.Contains(coord))
+                        {
+                            chunksToLoad.Add(coord);
+                        }
                     }
                 }
             }
-        }
 
-        foreach (Vector2Int chunk in visibleChunks)
-        {
-            bool shouldUnloadObjects = !newVisibleObjectChunks.Contains(chunk);
-            bool shouldUnloadCompletely = !newVisibleChunks.Contains(chunk);
+            // 找出需要卸载的区块
+            foreach (Vector2Int chunk in visibleChunks)
+            {
+                bool shouldUnloadObjects = !newVisibleObjectChunks.Contains(chunk);
+                bool shouldUnloadCompletely = !newVisibleChunks.Contains(chunk);
 
-            if (shouldUnloadCompletely)
-            {
-                chunksToUnload.Add(chunk);
-            }
-            else if (shouldUnloadObjects)
-            {
-                GameObject chunkParent = GameObject.Find($"Chunk_{chunk.x}_{chunk.y}_Objects");
-                if (chunkParent != null)
+                if (shouldUnloadCompletely && !chunksToUnload.Contains(chunk))
                 {
-                    Destroy(chunkParent);
+                    chunksToUnload.Add(chunk);
+                }
+                else if (shouldUnloadObjects)
+                {
+                    GameObject chunkParent = GameObject.Find($"Chunk_{chunk.x}_{chunk.y}_Objects");
+                    if (chunkParent != null)
+                    {
+                        Destroy(chunkParent);
+                    }
                 }
             }
-        }
 
-        chunksToLoad.Sort((a, b) => 
-            Vector2Int.Distance(a, currentChunk).CompareTo(Vector2Int.Distance(b, currentChunk)));
+            // 按距离排序加载顺序
+            chunksToLoad.Sort((a, b) => 
+                Vector2Int.Distance(a, currentChunk).CompareTo(Vector2Int.Distance(b, currentChunk)));
 
-        foreach (Vector2Int coord in chunksToLoad)
-        {
-            if (!chunksBeingProcessed.Contains(coord))
+            // 加载新区块
+            foreach (Vector2Int coord in chunksToLoad)
             {
-                chunksBeingProcessed.Add(coord);
-                bool shouldLoadObjects = newVisibleObjectChunks.Contains(coord);
-                _ = LoadChunkAsync(coord, shouldLoadObjects).ContinueWith(t => 
+                if (!chunksBeingProcessed.Contains(coord))
                 {
+                    chunksBeingProcessed.Add(coord);
+                    await LoadChunkAsync(coord, newVisibleObjectChunks.Contains(coord));
                     chunksBeingProcessed.Remove(coord);
-                    if (t.IsFaulted)
-                    {
-                        Debug.LogError($"Failed to load chunk {coord}: {t.Exception}");
-                    }
-                });
+                }
             }
-        }
 
-        foreach (Vector2Int coord in newVisibleObjectChunks)
-        {
-            if (loadedChunks.ContainsKey(coord))
+            // 更新对象
+            foreach (Vector2Int coord in newVisibleObjectChunks)
             {
-                GameObject chunkParent = GameObject.Find($"Chunk_{coord.x}_{coord.y}_Objects");
-                if (chunkParent == null)
+                if (loadedChunks.ContainsKey(coord))
                 {
-                    ChunkData chunkData = loadedChunks[coord].Result;
-                    chunkParent = new GameObject($"Chunk_{coord.x}_{coord.y}_Objects");
-                    chunkParent.transform.position = new Vector3(
-                        coord.x * chunkWidth,
-                        coord.y * chunkHeight,
-                        0
-                    );
-                    _ = InstantiateObjectsAsync(chunkData, chunkParent, coord);
+                    GameObject chunkParent = GameObject.Find($"Chunk_{coord.x}_{coord.y}_Objects");
+                    if (chunkParent == null)
+                    {
+                        ChunkData chunkData = loadedChunks[coord].Result;
+                        chunkParent = new GameObject($"Chunk_{coord.x}_{coord.y}_Objects");
+                        chunkParent.transform.position = new Vector3(
+                            coord.x * chunkWidth,
+                            coord.y * chunkHeight,
+                            0
+                        );
+                        await InstantiateObjectsAsync(chunkData, chunkParent, coord);
+                    }
+                }
+            }
+
+            // 更新可见区块集合
+            visibleChunks = new HashSet<Vector2Int>(newVisibleChunks);
+
+            // 处理卸载
+            foreach (Vector2Int chunk in chunksToUnload)
+            {
+                if (!chunksBeingProcessed.Contains(chunk))
+                {
+                    chunksBeingProcessed.Add(chunk);
+                    await UnloadChunkAsync(chunk);
+                    chunksBeingProcessed.Remove(chunk);
                 }
             }
         }
-
-        visibleChunks = newVisibleChunks;
-        isInitializing = false;
-
-        // 处理卸载
-        foreach (Vector2Int chunk in chunksToUnload)
+        catch (Exception e)
         {
-            if (!chunksBeingProcessed.Contains(chunk))
-            {
-                chunksBeingProcessed.Add(chunk);
-                _ = UnloadChunkAsync(chunk).ContinueWith(_ => 
-                {
-                    chunksBeingProcessed.Remove(chunk);
-                });
-            }
+            Debug.LogError($"UpdateVisibleChunksAsync error: {e.Message}\n{e.StackTrace}");
         }
     }
 
