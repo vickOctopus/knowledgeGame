@@ -136,23 +136,47 @@ public class ChunkManager : MonoBehaviour
 
     public async void InitializeChunks(Vector3 playerPosition)
     {
-        if (isInitializing) return;
+        Debug.Log($"[ChunkManager] Starting chunk initialization at position: {playerPosition}");
+        if (isInitializing)
+        {
+            Debug.Log("[ChunkManager] Already initializing chunks, skipping");
+            return;
+        }
         isInitializing = true;
 
-        currentChunk = GetChunkCoordFromWorldPos(playerPosition);
-
-        for (int x = -loadDistance; x <= loadDistance; x++)
+        try 
         {
-            for (int y = -loadDistance; y <= loadDistance; y++)
-            {
-                Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
-                bool shouldLoadObjects = Mathf.Abs(x) <= objectLoadDistance && Mathf.Abs(y) <= objectLoadDistance;
-                LoadChunkSync(coord, shouldLoadObjects);
-            }
-        }
+            currentChunk = GetChunkCoordFromWorldPos(playerPosition);
+            Debug.Log($"[ChunkManager] Current chunk coordinates: {currentChunk}");
 
-        await UpdateVisibleChunksAsync();
-        isInitializing = false;
+            // 先卸载所有区块
+            UnloadAllChunks();
+            
+            for (int x = -loadDistance; x <= loadDistance; x++)
+            {
+                for (int y = -loadDistance; y <= loadDistance; y++)
+                {
+                    Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
+                    bool shouldLoadObjects = Mathf.Abs(x) <= objectLoadDistance && Mathf.Abs(y) <= objectLoadDistance;
+                    Debug.Log($"[ChunkManager] Loading chunk at {coord}, with objects: {shouldLoadObjects}");
+                    LoadChunkSync(coord, shouldLoadObjects);
+                }
+            }
+
+            await UpdateVisibleChunksAsync();
+            Debug.Log("[ChunkManager] Chunk initialization completed");
+            
+            // 确保在完成后触发事件
+            OnChunkLoadedEvent?.Invoke();
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[ChunkManager] Error during chunk initialization: {e.Message}\n{e.StackTrace}");
+        }
+        finally
+        {
+            isInitializing = false;
+        }
     }
 
     public async void ForceUpdateChunks(Vector3 cameraPosition)
@@ -609,7 +633,7 @@ public class ChunkManager : MonoBehaviour
                 positions.Add(globalPos);
             }
 
-            // 批量清除瓦片
+            // 批量清除瓦
             for (int i = 0; i < positions.Count; i += TILES_TO_CLEAR_PER_FRAME)
             {
                 int endIndex = Mathf.Min(i + TILES_TO_CLEAR_PER_FRAME, positions.Count);

@@ -724,26 +724,46 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private IEnumerator PlayerDeadCoroutine()
     {
-        SaveManager.instance.LoadGame();
+        Debug.Log("[PlayController] Player died, starting respawn process");
         
-        // 等待区块加载完成
+        // 等待一小段时间确保死亡动画播放
+        yield return new WaitForSeconds(0.5f);
+        
         bool chunksLoaded = false;
-        ChunkManager.OnChunkLoadedEvent += () => chunksLoaded = true;
-
-         EnableControl();
-        // 等待区块加载完成或超时（5秒）
-
+        Debug.Log("[PlayController] Waiting for chunks to load...");
         
+        // 注册事件前先移除之前可能存在的订阅
+        ChunkManager.OnChunkLoadedEvent -= OnChunkLoaded;
+        ChunkManager.OnChunkLoadedEvent += OnChunkLoaded;
+        
+        void OnChunkLoaded()
+        {
+            chunksLoaded = true;
+            Debug.Log("[PlayController] Chunks loaded successfully");
+        }
+
+        SaveManager.instance.LoadGame();
+
         float timeoutTime = Time.time + 5f;
         while (!chunksLoaded && Time.time < timeoutTime)
         {
             yield return null;
         }
+
+        // 移除事件监听
+        ChunkManager.OnChunkLoadedEvent -= OnChunkLoaded;
+
+        if (!chunksLoaded)
+        {
+            Debug.LogWarning("[PlayController] Chunk loading timed out after 5 seconds");
+        }
         
-        // 重置生命值并传送到重生点
         currentHp = maxHp;
+        Debug.Log($"[PlayController] Reset HP to max: {currentHp}/{maxHp}");
         HpChange();
-        // 重新启用控制
+        
+        // 确保在所有操作完成后重新启用控制
+        EnableControl();
     }
 
     public void Recover(int recoverHp)

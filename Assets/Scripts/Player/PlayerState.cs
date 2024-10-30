@@ -63,43 +63,59 @@ public class PlayerState : MonoBehaviour, ISaveable
 
     public void Load(int slotIndex)
     { 
-        if (PlayController.instance == null) return;
+        Debug.Log($"[PlayerState] Starting Load for slot {slotIndex}");
+        if (PlayController.instance == null)
+        {
+            Debug.LogError("[PlayerState] PlayController.instance is null");
+            return;
+        }
+
+        if (ChunkManager.Instance == null)
+        {
+            Debug.LogError("[PlayerState] ChunkManager.Instance is null");
+            SetDefaultValues();
+            return;
+        }
 
         string saveFilePath = SaveManager.GetSavePath(slotIndex, "playerData.json");
+        Debug.Log($"[PlayerState] Loading from path: {saveFilePath}");
 
         if (File.Exists(saveFilePath))
         {
             try
             {
                 string jsonData = File.ReadAllText(saveFilePath);
+                Debug.Log($"[PlayerState] Loaded JSON data: {jsonData}");
                 playerSaveData = JsonUtility.FromJson<PlayerSaveData>(jsonData);
 
                 if (playerSaveData != null)
                 {
+                    Debug.Log($"[PlayerState] Loaded position: ({playerSaveData.respawnPointX}, {playerSaveData.respawnPointY})");
                     PlayController.instance.currentHp = playerSaveData.currentHp;
                     PlayController.instance.maxHp = playerSaveData.maxHp;
                     
-                    // 通知 ChunkManager 加载新位置周围的区块
                     Vector3 newPosition = new Vector3(playerSaveData.respawnPointX, playerSaveData.respawnPointY, 0);
-                    ChunkManager.Instance.InitializeChunks(newPosition);
-                    
-                    // 设置位置和更新重生点
                     transform.position = newPosition;
+                    Debug.Log($"[PlayerState] Set player position to: {transform.position}");
+                    
+                    ChunkManager.Instance.InitializeChunks(newPosition);
                     SaveManager.instance.GetRespawnPosition(transform.position);
                 }
                 else
                 {
+                    Debug.LogWarning("[PlayerState] playerSaveData is null after deserialization");
                     SetDefaultValues();
                 }
             }
             catch (Exception e)
             {
-                Debug.LogError($"加载玩家数据时出错：{e.Message}");
+                Debug.LogError($"[PlayerState] Error loading player data: {e.Message}\n{e.StackTrace}");
                 SetDefaultValues();
             }
         }
         else
         {
+            Debug.Log($"[PlayerState] No save file found at {saveFilePath}, using default values");
             SetDefaultValues();
         }
         
@@ -108,13 +124,14 @@ public class PlayerState : MonoBehaviour, ISaveable
 
     private void SetDefaultValues()
     {
+        Debug.Log("[PlayerState] Setting default values");
         PlayController.instance.currentHp = 4;
         PlayController.instance.maxHp = 4;
         
-        // 通知 ChunkManager 加载默认位置周围的区块
+        Debug.Log($"[PlayerState] Default spawn point: {SaveManager.instance.defaultSpawnPoint}");
         ChunkManager.Instance.InitializeChunks(SaveManager.instance.defaultSpawnPoint);
         
-        // 设置位置
         transform.position = SaveManager.instance.defaultSpawnPoint;
+        Debug.Log($"[PlayerState] Set player position to default: {transform.position}");
     }
 }

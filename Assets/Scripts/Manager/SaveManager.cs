@@ -39,6 +39,7 @@ public class SaveManager : MonoBehaviour
     {
         CurrentSlotIndex = PlayerPrefs.GetInt("CurrentSlotIndex");
         _respawnPosition = defaultSpawnPoint;
+        Debug.Log($"[SaveManager] GameStart - CurrentSlotIndex: {CurrentSlotIndex}, Default spawn point: {defaultSpawnPoint}");
         LoadGame();
     }
     
@@ -77,18 +78,19 @@ public class SaveManager : MonoBehaviour
     {
         if (slotIndex < 0 || slotIndex >= MaxSaveSlots)
         {
-            Debug.LogError("无效的存档槽索引");
+            Debug.LogError($"[SaveManager] Invalid slot index: {slotIndex}");
             return;
         }
 
-        // 加载所有实现了 ISaveable 接口的对象
+        Debug.Log($"[SaveManager] Loading game from slot {slotIndex}");
         ISaveable[] saveableObjects = FindObjectsOfType<MonoBehaviour>().OfType<ISaveable>().ToArray();
+        Debug.Log($"[SaveManager] Found {saveableObjects.Length} saveable objects");
+        
         foreach (ISaveable saveable in saveableObjects)
         {
+            Debug.Log($"[SaveManager] Loading object: {(saveable as MonoBehaviour)?.gameObject.name}");
             saveable.Load(slotIndex);
         }
-
-        // Debug.Log($"已从槽位 {slotIndex} 加载游戏");
     }
 
     public bool DoesSaveExist(int slotIndex)
