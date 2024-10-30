@@ -102,33 +102,33 @@ public class ChunkManager : MonoBehaviour
         // if (Application.isEditor)
         // {
         //     // 在编辑模式下等待PlayController实例
-        while (PlayController.instance == null)
+        // while (PlayController.instance == null)
+        // {
+        //     yield return null;
+        // }
+        //
+        // yield return new WaitForEndOfFrame();
+        //
+        // // 使用PlayController的位置
+        // Vector3 playerPosition = PlayController.instance.transform.position;
+        // InitializeChunks(playerPosition);
+        // }
+        // else
+        // {
+        //     // 在发布版本中使用PlayerState的存档数据
+        while (PlayerState.instance == null)
         {
             yield return null;
         }
         
         yield return new WaitForEndOfFrame();
         
-        // 使用PlayController的位置
-        Vector3 playerPosition = PlayController.instance.transform.position;
-        InitializeChunks(playerPosition);
-        // }
-        // else
-        // {
-        //     // 在发布版本中使用PlayerState的存档数据
-        //     while (PlayerState.instance == null)
-        //     {
-        //         yield return null;
-        //     }
-        //     
-        //     yield return new WaitForEndOfFrame();
-        //     
-        //     Vector2 respawnPoint = new Vector2(
-        //         PlayerState.instance.playerSaveData.respawnPointX,
-        //         PlayerState.instance.playerSaveData.respawnPointY
-        //     );
-        //     
-        //     InitializeChunks(respawnPoint);
+        Vector2 respawnPoint = new Vector2(
+            PlayerState.instance.playerSaveData.respawnPointX,
+            PlayerState.instance.playerSaveData.respawnPointY
+        );
+        
+        InitializeChunks(respawnPoint);
         // // }
         
         InvokeRepeating(nameof(CleanUpUnusedResources), 60f, 60f);

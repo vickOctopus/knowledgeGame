@@ -729,8 +729,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
         // 等待区块加载完成
         bool chunksLoaded = false;
         ChunkManager.OnChunkLoadedEvent += () => chunksLoaded = true;
-        
+
+         EnableControl();
         // 等待区块加载完成或超时（5秒）
+
+        
         float timeoutTime = Time.time + 5f;
         while (!chunksLoaded && Time.time < timeoutTime)
         {
@@ -740,7 +743,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         // 重置生命值并传送到重生点
         currentHp = maxHp;
         HpChange();
-        EnableControl(); // 重新启用控制
+        // 重新启用控制
     }
 
     public void Recover(int recoverHp)
