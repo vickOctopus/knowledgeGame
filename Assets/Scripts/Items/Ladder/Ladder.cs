@@ -13,8 +13,7 @@ public class Ladder : MonoBehaviour, IEditorInstantiatedObject
     public GameObject ladderTopCollider;
     private Tilemap _ladderTilemap;// 梯子所在的 Tilemap
 
-    
-
+    #if UNITY_EDITOR
     public List<EditorInstantiatedObjectInfo> InstantiateEditorObjects()
     {
         _ladderTilemap = GetComponent<Tilemap>();
@@ -66,4 +65,13 @@ public class Ladder : MonoBehaviour, IEditorInstantiatedObject
 
         return objectInfos;
     }
+    #endif
+
+    #if !UNITY_EDITOR
+    public List<EditorInstantiatedObjectInfo> InstantiateEditorObjects()
+    {
+        // 在构建版本中返回空列表
+        return new List<EditorInstantiatedObjectInfo>();
+    }
+    #endif
 }

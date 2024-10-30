@@ -604,7 +604,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _underWater = true;
         isOnJinGuBang = false;
         _animator.SetBool(_underwaterHash,_underWater);
-        jinGuBang.SetActive(false);
+        if (isTakingJinGuBang)
+        {
+             jinGuBang.SetActive(false);
+        }
+       
         StartCoroutine(RespawnTimer(respawnTime));
     }
 
@@ -644,6 +648,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         // _rg.velocity += jumpForce * 0.3f * Vector2.up;
         isEquipJinGuBang = false;
         isTakingJinGuBang = false;
+        // jinGuBang.transform.parent = null;
         // 直接开始检测碰撞
         StartCoroutine(CheckCollisionRestore());
     }

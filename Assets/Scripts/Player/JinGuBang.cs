@@ -245,6 +245,7 @@ public class JinGuBang : MonoBehaviour
        _rg.mass = 10.0f;
        _rg.gravityScale = 3.0f;
        PlayController.instance.UnloadJinGuBangPlayerMove();
+       transform.parent = null;
 
        Cursor.visible = false;
        PlayController.instance.isOnJinGuBang = false;
@@ -256,6 +257,8 @@ public class JinGuBang : MonoBehaviour
 
    private void EquipJinGuBang()
    {
+       
+       transform.parent = PlayController.instance.transform;
        rotateSpeed = _originalRotationSpeed;
        _rg.mass = _originalMass;
        _rg.gravityScale = _originalGravity;
@@ -265,6 +268,8 @@ public class JinGuBang : MonoBehaviour
        _joint.enabled = true;
        _joint.anchor = new Vector2(0.0f, 0.3f);
        _joint.connectedAnchor = new Vector2(0f, 0.5f);
+       
+      
 
        // 忽略玩家和金箍棒之间的碰撞
        // Physics2D.IgnoreCollision(_collider, PlayController.instance.GetComponent<Collider2D>(), true);

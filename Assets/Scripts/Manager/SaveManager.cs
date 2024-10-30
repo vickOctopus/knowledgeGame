@@ -30,8 +30,7 @@ public class SaveManager : MonoBehaviour
 
     private void Start()
     {
-        GameStart();//加上mainscene后由mainmenu调用
-        // Debug.Log(Application.persistentDataPath);
+        // GameStart();//加上mainscene后由mainmenu调用
     }
 
     public void GameStart()

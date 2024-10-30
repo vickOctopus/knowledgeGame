@@ -25,6 +25,7 @@ public class MySceneManager : MonoBehaviour
     private void Start()
     {
         LoadSceneIfNotLoaded("PersistentScene");
+        LoadSceneIfNotLoaded("Room_01");
     }
 
     public void StartGame()
@@ -34,8 +35,6 @@ public class MySceneManager : MonoBehaviour
 
     private IEnumerator StartGameCoroutine()
     {
-        // 加载 PersistentScene 和 Room_01
-        // AsyncOperation persistentSceneLoad = LoadSceneIfNotLoaded("PersistentScene");
         AsyncOperation room01Load = LoadSceneIfNotLoaded("Room_01");
 
         // 等待两个场景都加载完成

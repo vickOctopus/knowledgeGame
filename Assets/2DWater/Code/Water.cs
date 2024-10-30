@@ -31,6 +31,11 @@ namespace Bundos.WaterSystem
         [Header("Particles")]
         public GameObject splashParticle;
 
+        [Header("Water Level Settings")]
+        public float baseWaterRiseAmount = 0.1f; // 基础上涨高度
+        private float width;
+        private float targetHeight; // 新增：记录目标高度
+
         [HideInInspector]
         Spring[] springs;
         MeshFilter meshFilter;
@@ -43,9 +48,6 @@ namespace Bundos.WaterSystem
         [HideInInspector]
         Vector2[] uvs;
 
-        private float initialHeight;
-        public float baseGrowthRate = 0.1f;
-        private float width;
         private int rocksInWater = 0;
 
         private void Start()
@@ -54,8 +56,9 @@ namespace Bundos.WaterSystem
             InitializeSprings();
             CreateShape();
             
+            // 获取水面宽度
             width = GetComponent<BoxCollider2D>().bounds.size.x;
-            initialHeight = transform.localScale.y;
+            targetHeight = transform.localScale.y; // 初始化目标高度
         }
 
         public void Initialize()
@@ -231,12 +234,9 @@ namespace Bundos.WaterSystem
                 var rock = other.GetComponent<Rock>();
                 rock.EnterWater();
                 
-                // 计算新的目标高度
-                float currentHeight = transform.localScale.y - initialHeight;
-                float growthFactor = 1f / (1f + currentHeight); // 使用双曲函数来减缓增长
-                float newGrowth = baseGrowthRate * growthFactor * (1f / width);
-                
-                float targetHeight = transform.localScale.y + newGrowth;
+                // 根据宽度计算实际上涨高度并累加到目标高度
+                float actualRiseAmount = baseWaterRiseAmount / width;
+                targetHeight += actualRiseAmount;
                 
                 rocksInWater++;
                 StopAllCoroutines();
@@ -253,7 +253,7 @@ namespace Bundos.WaterSystem
 
         private IEnumerator GrowLevel(float targetHeight)
         {
-            float growthDuration = 2f; // 可以调整这个值来改变上涨速度
+            float growthDuration = 2f;
             float elapsedTime = 0f;
             float startHeight = transform.localScale.y;
 

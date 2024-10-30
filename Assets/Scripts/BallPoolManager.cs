@@ -2,6 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 public class BallPoolManager : MonoBehaviour
 {
     public GameObject ballPrefab;
@@ -80,32 +84,12 @@ public class BallPoolManager : MonoBehaviour
         
     }
 
-    void OnDrawGizmos()
+    private void OnDrawGizmos()
     {
-        Vector3 spawnPosition = transform.position;
-
-        // 绘制生成位置
-        Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(spawnPosition, GIZMO_SIZE);
-        Gizmos.DrawLine(spawnPosition, spawnPosition + transform.right * GIZMO_SIZE);
-        Gizmos.DrawLine(spawnPosition, spawnPosition + transform.up * GIZMO_SIZE);
-
-        // 绘制初始速度方向和大小
-        Gizmos.color = Color.red;
-        Vector2 initialDirection = GetInitialDirection();
-        Vector3 velocityDirection = transform.TransformDirection(initialDirection);
-        float arrowLength = initialSpeed * VELOCITY_ARROW_SCALE;
-        Vector3 arrowEnd = spawnPosition + velocityDirection * arrowLength;
-        Gizmos.DrawLine(spawnPosition, arrowEnd);
-        
-        // 绘制箭头
-        Vector3 right = Quaternion.LookRotation(velocityDirection) * Quaternion.Euler(0, 180 + 20, 0) * Vector3.forward;
-        Vector3 left = Quaternion.LookRotation(velocityDirection) * Quaternion.Euler(0, 180 - 20, 0) * Vector3.forward;
-        Gizmos.DrawLine(arrowEnd, arrowEnd + right * (arrowLength * 0.2f));
-        Gizmos.DrawLine(arrowEnd, arrowEnd + left * (arrowLength * 0.2f));
-
-        // 绘制速度大小和角度文本
-        UnityEditor.Handles.color = Color.white;
-        UnityEditor.Handles.Label(arrowEnd, $"速度: {initialSpeed}\n角度: {initialAngle}°");
+        #if UNITY_EDITOR
+        // 将所有使用 Handles 的代码放在这里
+        Handles.DrawWireCube(transform.position, new Vector3(10, 10, 0));
+        // 其他使用 Handles 的代码...
+        #endif
     }
 }

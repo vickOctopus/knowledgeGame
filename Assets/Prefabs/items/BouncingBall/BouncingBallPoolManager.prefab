@@ -46,6 +46,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ballPrefab: {fileID: 6039985693219572034, guid: 4b10f3d006bc54dbda720f37a43eda96, type: 3}
   poolSize: 2
-  initialSpeed: 18.8
-  initialAngle: 138
+  initialSpeed: 15
+  initialAngle: 136
   respawnDelay: 0.5

@@ -32,14 +32,10 @@ public class PlayerState : MonoBehaviour, ISaveable
         
     }
 
-    private void Start()
-    {
-      Load(PlayerPrefs.GetInt("CurrentSlotIndex"));
-    }
 
     public void Save(int slotIndex)
     {
-        if (Application.isEditor) return;
+        // if (Application.isEditor) return;
         
         
         if (PlayController.instance == null) return;
@@ -65,7 +61,7 @@ public class PlayerState : MonoBehaviour, ISaveable
 
     public void Load(int slotIndex)
     { 
-        if (Application.isEditor) return;
+         // if (Application.isEditor) return;
         
         if (PlayController.instance == null) return;
 

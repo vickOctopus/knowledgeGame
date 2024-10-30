@@ -19,28 +19,7 @@ public class PlayerCamera : MonoBehaviour
 
         // InvokeRepeating(nameof(CheckPlayerVisibility), 0f, checkInterval);
     }
-
-    // private void CheckPlayerVisibility()
-    // {
-    //     if (!IsPlayerInCameraView())
-    //     {
-    //         UpdateCameraPosition();
-    //
-    //         if (!PlayController.instance.isTakingJinGuBang)
-    //         {
-    //             PlayController.instance.HandleTakingState();
-    //             PlayController.instance.isTakingJinGuBang = true;
-    //         }
-    //     }
-    // }
-
-    // private bool IsPlayerInCameraView()
-    // {
-    //     Vector3 viewportPosition = mainCamera.WorldToViewportPoint(transform.position);
-    //     return viewportPosition.x >= 0 && viewportPosition.x <= 1 &&
-    //            viewportPosition.y >= 0 && viewportPosition.y <= 1 &&
-    //            viewportPosition.z > 0;
-    // }
+    
 
     private void OnBecameInvisible()
     {
