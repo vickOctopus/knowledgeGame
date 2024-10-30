@@ -11,7 +11,7 @@ using Debug = UnityEngine.Debug;
 
 public class HP : MonoBehaviour
 {
-    public PlayerData playerData;
+    // public PlayerData playerData;
     public GameObject heart;
    
     private RectTransform rect;
@@ -19,23 +19,23 @@ public class HP : MonoBehaviour
     private void Awake()
     {
         rect = GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(70*playerData.currentHp, rect.sizeDelta.y);
+      
         
-        
-        for (var i = 0; i < playerData.maxHp; i++)
-        {
-            var tem = Instantiate(heart, transform.position, Quaternion.identity);
-            tem.transform.SetParent(transform);
-        }
-        
-        
-        HpChange(playerData.currentHp);
+       
     }
 
     private void Start()
-    {
+    {  rect.sizeDelta = new Vector2(70*PlayController.instance.currentHp, rect.sizeDelta.y);
+             
+             
+             for (var i = 0; i < PlayController.instance.maxHp; i++)
+             {
+                 var tem = Instantiate(heart, transform.position, Quaternion.identity);
+                 tem.transform.SetParent(transform);
+             }
+             
         GameManager.instance.OnPlayerHpChange += HpChange;
-        HpChange(playerData.currentHp);
+        HpChange(PlayController.instance.currentHp);
     }
     
 
@@ -46,7 +46,7 @@ public class HP : MonoBehaviour
 
     private void HpChange(int hp)
     {
-        for (var i = 0; i < playerData.maxHp; i++)
+        for (var i = 0; i < PlayController.instance.maxHp; i++)
         {
             if (i<hp)
             {
