@@ -168,6 +168,12 @@ public class ChunkManager : MonoBehaviour
             
             // 确保在完成后触发事件
             OnChunkLoadedEvent?.Invoke();
+            
+            // 在区块加载完成后启用玩家对象
+            if (PlayController.instance != null)
+            {
+                PlayController.instance.gameObject.SetActive(true);
+            }
         }
         catch (Exception e)
         {
@@ -633,7 +639,7 @@ public class ChunkManager : MonoBehaviour
                 positions.Add(globalPos);
             }
 
-            // 批量清除瓦
+            // 批量��除瓦
             for (int i = 0; i < positions.Count; i += TILES_TO_CLEAR_PER_FRAME)
             {
                 int endIndex = Mathf.Min(i + TILES_TO_CLEAR_PER_FRAME, positions.Count);

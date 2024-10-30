@@ -70,6 +70,8 @@ public class PlayerState : MonoBehaviour, ISaveable
             return;
         }
 
+        PlayController.instance.gameObject.SetActive(false);
+
         if (ChunkManager.Instance == null)
         {
             Debug.LogError("[PlayerState] ChunkManager.Instance is null");
@@ -97,6 +99,11 @@ public class PlayerState : MonoBehaviour, ISaveable
                     Vector3 newPosition = new Vector3(playerSaveData.respawnPointX, playerSaveData.respawnPointY, 0);
                     transform.position = newPosition;
                     Debug.Log($"[PlayerState] Set player position to: {transform.position}");
+                    
+                    if (CameraController.Instance != null)
+                    {
+                        CameraController.Instance.CameraStartResetPosition(newPosition);
+                    }
                     
                     ChunkManager.Instance.InitializeChunks(newPosition);
                     SaveManager.instance.GetRespawnPosition(transform.position);
@@ -129,9 +136,15 @@ public class PlayerState : MonoBehaviour, ISaveable
         PlayController.instance.maxHp = 4;
         
         Debug.Log($"[PlayerState] Default spawn point: {SaveManager.instance.defaultSpawnPoint}");
-        ChunkManager.Instance.InitializeChunks(SaveManager.instance.defaultSpawnPoint);
         
         transform.position = SaveManager.instance.defaultSpawnPoint;
         Debug.Log($"[PlayerState] Set player position to default: {transform.position}");
+        
+        if (CameraController.Instance != null)
+        {
+            CameraController.Instance.CameraStartResetPosition(SaveManager.instance.defaultSpawnPoint);
+        }
+        
+        ChunkManager.Instance.InitializeChunks(SaveManager.instance.defaultSpawnPoint);
     }
 }

@@ -1,10 +1,8 @@
-using System;
 using UnityEngine;
 
 public class PlayerCamera : MonoBehaviour
 {
     private Camera mainCamera;
-    // [SerializeField] private float checkInterval = 0.1f; // 检查间隔时间
 
     private void Start()
     {
@@ -15,12 +13,13 @@ public class PlayerCamera : MonoBehaviour
             return;
         }
         
-        UpdateCameraPosition();
-
-        // InvokeRepeating(nameof(CheckPlayerVisibility), 0f, checkInterval);
+        // 初始化时更新一次相机位置
+        if (CameraController.Instance != null)
+        {
+            CameraController.Instance.CameraStartResetPosition(transform.position);
+        }
     }
     
-
     private void OnBecameInvisible()
     {
         UpdateCameraPosition();
@@ -33,15 +32,25 @@ public class PlayerCamera : MonoBehaviour
             return;
         }
 
-        var x = Mathf.Floor(mainCamera.WorldToScreenPoint(transform.position).x / Screen.width);
-        var y = Mathf.Floor(mainCamera.WorldToScreenPoint(transform.position).y / Screen.height);
-        CameraController.Instance.CameraStartResetPosition(x, y);
+        // 获取玩家在屏幕上的位置
+        Vector3 screenPos = mainCamera.WorldToScreenPoint(transform.position);
         
-        
-        if (!PlayController.instance.isTakingJinGuBang)
+        // 计算玩家相对于当前相机视图的偏移方向
+        float x = Mathf.Floor(screenPos.x / Screen.width);
+        float y = Mathf.Floor(screenPos.y / Screen.height);
+
+        // 如果玩家超出视图，更新相机位置
+        if (x != 0 || y != 0)
         {
-            PlayController.instance.HandleTakingState();
-            PlayController.instance.isTakingJinGuBang = true;
+            Vector3 playerPos = transform.position;
+            CameraController.Instance.CameraStartResetPosition(playerPos);
+            
+            // 处理金箍棒状态
+            if (!PlayController.instance.isTakingJinGuBang)
+            {
+                PlayController.instance.HandleTakingState();
+                PlayController.instance.isTakingJinGuBang = true;
+            }
         }
     }
 }

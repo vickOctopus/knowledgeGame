@@ -1,14 +1,9 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
-   
    public static CameraController Instance;
-
-   // 将 chunkManager 改为 public
    public ChunkManager chunkManager;
 
    private void Awake()
@@ -40,11 +35,16 @@ public class CameraController : MonoBehaviour
       chunkManager = FindObjectOfType<ChunkManager>();
    }
 
-   public void CameraStartResetPosition(float x, float y)
+   public void CameraStartResetPosition(Vector3 playerPosition)
    {
+      // 计算玩家所在的区块坐标
+      int chunkX = Mathf.FloorToInt((playerPosition.x + ChunkManager.chunkWidth / 2) / ChunkManager.chunkWidth);
+      int chunkY = Mathf.FloorToInt((playerPosition.y + ChunkManager.chunkHeight / 2) / ChunkManager.chunkHeight);
+
+      // 计算相机应该在的位置（区块中心）
       Vector3 newPosition = new Vector3(
-         transform.position.x + x * ChunkManager.chunkWidth,
-         transform.position.y + y * ChunkManager.chunkHeight,
+         chunkX * ChunkManager.chunkWidth,
+         chunkY * ChunkManager.chunkHeight,
          transform.position.z
       );
       
@@ -63,6 +63,4 @@ public class CameraController : MonoBehaviour
          }
       }
    }
-   
-   
 }

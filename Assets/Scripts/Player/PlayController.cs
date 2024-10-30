@@ -640,7 +640,6 @@ public class PlayController : MonoBehaviour,ITakeDamage
         
         // 忽略玩家和金箍棒之间的碰撞
         Physics2D.IgnoreCollision(GetComponent<Collider2D>(), jinGuBang.GetComponent<Collider2D>(), true);
-        
     }
 
     public void UnloadJinGuBangPlayerMove()
@@ -778,15 +777,19 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         _playerInput.Disable();
         
-        if (Application.isEditor)
+        // 只有当金箍棒存在且已初始化时才禁用其控制
+        if (jinGuBang != null && jinGuBang.GetComponent<JinGuBang>() != null)
         {
-            jinGuBang.GetComponent<JinGuBang>().DisableControl();
-        }
-        else
-        {
-            if (PlayerPrefs.GetInt("HasJinGuBang")==1)
+            if (Application.isEditor)
             {
                 jinGuBang.GetComponent<JinGuBang>().DisableControl();
+            }
+            else
+            {
+                if (PlayerPrefs.GetInt("HasJinGuBang")==1)
+                {
+                    jinGuBang.GetComponent<JinGuBang>().DisableControl();
+                }
             }
         }
     }
@@ -795,16 +798,19 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         _playerInput.Enable();
         
-        
-        if (Application.isEditor)
+        // 只有当金箍棒存在且已初始化时才启用其控制
+        if (jinGuBang != null && jinGuBang.GetComponent<JinGuBang>() != null)
         {
-            jinGuBang.GetComponent<JinGuBang>().EnableControl();
-        }
-        else
-        {
-            if (PlayerPrefs.GetInt("HasJinGuBang")==1)
+            if (Application.isEditor)
             {
                 jinGuBang.GetComponent<JinGuBang>().EnableControl();
+            }
+            else
+            {
+                if (PlayerPrefs.GetInt("HasJinGuBang")==1)
+                {
+                    jinGuBang.GetComponent<JinGuBang>().EnableControl();
+                }
             }
         }
     }
@@ -813,7 +819,5 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         isOnJinGuBang = isEquipJinGuBang && !_isGrounded;
     }
-
-    
 }
 
