@@ -226,7 +226,7 @@ namespace Bundos.WaterSystem
 
             if (other.gameObject.CompareTag("Player"))
             {
-                PlayController.instance.Respawn(0.5f);
+                PlayController.instance.RetreatToSafePosition(0.5f);
             }
 
             if (other.CompareTag("Rock"))

@@ -1,13 +1,52 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq; // 添加这行
+using System.Linq;
 using UnityEngine;
 using System.IO;
+using System.Threading.Tasks;
+using System.Threading;
+using UnityEngine.SceneManagement;
+
+public enum GameLoadState
+{
+    NotStarted,
+    LoadingSaveData,      // 加载存档数据
+    LoadingPlayerState,   // 加载玩家状态
+    LoadingChunks,        // 加载区块
+    WaitingForChunks,     // 等待区块加载完成
+    Complete,             // 加载完成
+    Failed               // 加载失败
+}
+
+public class LoadingProgress
+{
+    public float Progress { get; private set; }
+    public string CurrentOperation { get; private set; }
+
+    public LoadingProgress(float progress, string operation)
+    {
+        Progress = progress;
+        CurrentOperation = operation;
+    }
+}
+
+public enum RespawnState
+{
+    NotStarted,
+    PreparingRespawn,    // 准备重生
+    LoadingData,         // 加载数据
+    SettingPosition,     // 设置位置
+    WaitingForChunks,    // 等待区块加载
+    ResettingState,      // 重置状态
+    Complete,            // 完成
+    Failed              // 失败
+}
 
 public class SaveManager : MonoBehaviour
 {
-    public static SaveManager instance; 
+    public static SaveManager instance;
+    private PlayerState playerState;  // 添加 PlayerState 引用
     
     public PlayerData playerData;
     private Vector2 _respawnPosition;
@@ -17,30 +56,198 @@ public class SaveManager : MonoBehaviour
 
     public Vector2 defaultSpawnPoint = new Vector2(0, 0); // 添加默认出生点
 
-    private void Awake()
+    private GameLoadState currentLoadState = GameLoadState.NotStarted;
+    public event Action<GameLoadState> OnLoadStateChanged;
+    public event Action<LoadingProgress> OnLoadProgressChanged;
+
+    private bool isLoadingGame = false;
+    private TaskCompletionSource<bool> loadingComplete;
+
+    public enum PlayerLoadState
     {
-        if (instance == null)
+        NotLoaded,        // 未加载
+        LoadingData,      // 加载数据中
+        ResettingState,   // 重置状态中
+        WaitingForChunks, // 等待区块加载
+        Complete,         // 完成
+        Failed           // 失败
+    }
+
+    private PlayerLoadState playerLoadState = PlayerLoadState.NotLoaded;
+    public event Action<PlayerLoadState> OnPlayerLoadStateChanged;
+
+    private RespawnState currentRespawnState = RespawnState.NotStarted;
+    public event Action<RespawnState> OnRespawnStateChanged;
+    private Vector2 lastValidRespawnPoint;
+
+    public void SetRespawnPoint(Vector2 position)
+    {
+        // 检查位置是否有效（例如：是否在地面上）
+        if (IsValidRespawnPoint(position))
         {
-            instance = this;
-            DontDestroyOnLoad(gameObject);
-        }
-        else
-        {
-            Destroy(gameObject);
+            lastValidRespawnPoint = position;
+            Debug.Log($"[SaveManager] Set respawn point to: {position}");
         }
     }
 
-    private void Start()
+    private bool IsValidRespawnPoint(Vector2 position)
     {
+        // 检查是否在地面上
+        var hit = Physics2D.Raycast(position, Vector2.down, 0.5f, LayerMask.GetMask("Platform"));
+        if (!hit) return false;
+
+        // 检查上方是否有足够空间
+        var headCheck = Physics2D.Raycast(position, Vector2.up, 2f, LayerMask.GetMask("Platform"));
+        if (headCheck) return false;
+
+        return true;
+    }
+
+    private async Task LoadGameAsync(int slotIndex)
+    {
+        try {
+            currentLoadState = GameLoadState.LoadingSaveData;
+            OnLoadStateChanged?.Invoke(currentLoadState);
+            
+            // 1. 加载基础存档数据
+            await LoadSaveDataAsync(slotIndex);
+            
+            // 2. 加载玩家状态
+            currentLoadState = GameLoadState.LoadingPlayerState;
+            OnLoadStateChanged?.Invoke(currentLoadState);
+            await LoadPlayerStateAsync();
+            
+            // 3. 加载区块
+            currentLoadState = GameLoadState.LoadingChunks;
+            OnLoadStateChanged?.Invoke(currentLoadState);
+            await LoadChunksAsync();
+            
+            currentLoadState = GameLoadState.Complete;
+            OnLoadStateChanged?.Invoke(currentLoadState);
+        }
+        catch (Exception e) {
+            Debug.LogError($"Load game failed: {e}");
+            currentLoadState = GameLoadState.Failed;
+            OnLoadStateChanged?.Invoke(currentLoadState);
+        }
+    }
+
+    private void Awake()
+    {
+        Debug.Log("[SaveManager] Awake method called");
+        
+        // 检查是否已经存在实例
+        if (instance != null && instance != this)
+        {
+            Debug.Log("[SaveManager] Another SaveManager instance exists, destroying this one");
+            Destroy(gameObject);
+            return;
+        }
+        
+        // 设置实例并保持对象
+        Debug.Log("[SaveManager] No existing instance found, setting this as instance");
+        instance = this;
+        DontDestroyOnLoad(gameObject);
+        
+        // 创建并初始化 PlayerState
+        if (playerState == null)
+        {
+            playerState = gameObject.AddComponent<PlayerState>();
+            Debug.Log("[SaveManager] Added PlayerState component");
+        }
+        else
+        {
+            Debug.Log("[SaveManager] PlayerState component already exists");
+        }
+        
+        // 确保游戏物体是激活的
+        if (!gameObject.activeInHierarchy)
+        {
+            Debug.LogWarning("[SaveManager] GameObject is inactive, activating it");
+            gameObject.SetActive(true);
+        }
+        
+        Debug.Log($"[SaveManager] Initialization complete. GameObject active: {gameObject.activeInHierarchy}");
+        
+        // 直接在 Awake 中开始游戏初始化
+        StartCoroutine(InitializeGameDelayed());
+    }
+
+    private void OnDestroy()
+    {
+        if (instance == this)
+        {
+            instance = null;
+            Debug.Log("[SaveManager] Instance destroyed");
+        }
+    }
+
+    private IEnumerator InitializeGameDelayed()
+    {
+        Debug.Log("[SaveManager] Starting delayed game initialization");
+        
+        // 减少等待时间，只等待一帧
+        yield return null;
+        Debug.Log("[SaveManager] Frame wait completed");
+        
+        // 检查并禁用玩家
+        if (PlayController.instance != null)
+        {
+            Debug.Log($"[SaveManager] Found PlayController, current active state: {PlayController.instance.gameObject.activeSelf}");
+            PlayController.instance.gameObject.SetActive(false);
+            Debug.Log($"[SaveManager] Disabled PlayController, new active state: {PlayController.instance.gameObject.activeSelf}");
+        }
+        else
+        {
+            Debug.LogError("[SaveManager] PlayController instance not found!");
+            // 等待更短的时间再次尝试
+            yield return new WaitForSeconds(0.05f);
+            Debug.Log("[SaveManager] Retrying to find PlayController after delay");
+            
+            if (PlayController.instance != null)
+            {
+                Debug.Log($"[SaveManager] Found PlayController after delay, current active state: {PlayController.instance.gameObject.activeSelf}");
+                PlayController.instance.gameObject.SetActive(false);
+                Debug.Log($"[SaveManager] Disabled PlayController after delay, new active state: {PlayController.instance.gameObject.activeSelf}");
+            }
+            else
+            {
+                Debug.LogError("[SaveManager] PlayController instance still not found after delay!");
+                yield break;
+            }
+        }
+        
+        // 开始游戏加载流程
+        Debug.Log("[SaveManager] Starting GameStart");
         GameStart();
     }
 
     public void GameStart()
     {
+        Debug.Log("[SaveManager] GameStart method called");
         CurrentSlotIndex = PlayerPrefs.GetInt("CurrentSlotIndex");
         _respawnPosition = defaultSpawnPoint;
         Debug.Log($"[SaveManager] GameStart - CurrentSlotIndex: {CurrentSlotIndex}, Default spawn point: {defaultSpawnPoint}");
-        LoadGame();
+        
+        // 检查存档文件是否存在
+        string saveFilePath = GetSavePath(CurrentSlotIndex, "playerData.json");
+        bool saveExists = File.Exists(saveFilePath);
+        Debug.Log($"[SaveManager] Save file exists at {saveFilePath}: {saveExists}");
+        
+        if (saveExists)
+        {
+            try
+            {
+                string jsonContent = File.ReadAllText(saveFilePath);
+                Debug.Log($"[SaveManager] Save file content: {jsonContent}");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SaveManager] Error reading save file: {e.Message}");
+            }
+        }
+        
+        LoadGame(CurrentSlotIndex);
     }
     
     public void SaveGame()
@@ -69,35 +276,226 @@ public class SaveManager : MonoBehaviour
         Debug.Log($"游戏已保存到槽位 {slotIndex}");
     }
 
-    public void LoadGame()
+    public async void LoadGame(int slotIndex)
     {
-        LoadGame(CurrentSlotIndex);
-    }
-
-    public void LoadGame(int slotIndex)
-    {
-        if (slotIndex < 0 || slotIndex >= MaxSaveSlots)
+        if (isLoadingGame)
         {
-            Debug.LogError($"[SaveManager] Invalid slot index: {slotIndex}");
+            Debug.LogWarning("[SaveManager] Game is already loading, ignoring request");
             return;
         }
 
-        Debug.Log($"[SaveManager] Loading game from slot {slotIndex}");
-        ISaveable[] saveableObjects = FindObjectsOfType<MonoBehaviour>().OfType<ISaveable>().ToArray();
-        Debug.Log($"[SaveManager] Found {saveableObjects.Length} saveable objects");
-        
-        foreach (ISaveable saveable in saveableObjects)
+        try
         {
-            Debug.Log($"[SaveManager] Loading object: {(saveable as MonoBehaviour)?.gameObject.name}");
-            saveable.Load(slotIndex);
+            isLoadingGame = true;
+            loadingComplete = new TaskCompletionSource<bool>();
+
+            // 1. 开始加载，确保玩家处于禁用状态
+            SetLoadState(GameLoadState.LoadingSaveData);
+            UpdateLoadProgress(0.1f, "正在准备加载...");
+            
+            if (PlayController.instance != null)
+            {
+                Debug.Log("[SaveManager] Disabling player at start of load");
+                PlayController.instance.gameObject.SetActive(false);
+            }
+
+            // 2. 读取存档数据
+            string playerSaveFilePath = GetSavePath(slotIndex, "playerData.json");
+            Vector3 playerPosition = defaultSpawnPoint;
+            bool hasValidSaveData = false;
+
+            if (File.Exists(playerSaveFilePath))
+            {
+                try
+                {
+                    string jsonContent = File.ReadAllText(playerSaveFilePath);
+                    Debug.Log($"[SaveManager] Save file content: {jsonContent}");
+                    var saveData = JsonUtility.FromJson<PlayerSaveData>(jsonContent);
+                    if (saveData != null)
+                    {
+                        playerPosition = new Vector3(saveData.respawnPointX, saveData.respawnPointY, 0);
+                        hasValidSaveData = true;
+                        Debug.Log($"[SaveManager] Found valid save position: {playerPosition}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[SaveManager] Error reading save file: {e.Message}");
+                }
+            }
+
+            // 3. 先加载区块
+            SetLoadState(GameLoadState.LoadingChunks);
+            UpdateLoadProgress(0.5f, "正在加载游戏区块...");
+            
+            if (ChunkManager.Instance != null)
+            {
+                Debug.Log($"[SaveManager] Loading chunks for position: {playerPosition}");
+                bool chunksLoaded = false;
+                ChunkManager.OnChunkLoadedEvent += OnChunksLoaded;
+                
+                void OnChunksLoaded()
+                {
+                    chunksLoaded = true;
+                    ChunkManager.OnChunkLoadedEvent -= OnChunksLoaded;
+                }
+
+                ChunkManager.Instance.InitializeChunks(playerPosition);
+                
+                SetLoadState(GameLoadState.WaitingForChunks);
+                UpdateLoadProgress(0.8f, hasValidSaveData ? "正在加载存档位置..." : "正在加载默认位置...");
+                
+                // 等待区块加载完成
+                float timeoutTime = Time.time + 5f;
+                while (!chunksLoaded && Time.time < timeoutTime)
+                {
+                    await Task.Yield();
+                }
+
+                Debug.Log("[SaveManager] Chunks loaded");
+            }
+
+            // 4. 设置玩家位置和状态
+            SetLoadState(GameLoadState.LoadingPlayerState);
+            UpdateLoadProgress(0.3f, "正在加载玩家状态...");
+
+            if (PlayController.instance != null)
+            {
+                // 先设置位置
+                Debug.Log($"[SaveManager] Setting player position to: {playerPosition}");
+                PlayController.instance.transform.position = playerPosition;
+                
+                // 加载其他状态
+                if (playerState != null)
+                {
+                    playerState.Load(slotIndex);
+                }
+                
+                // 确保相机位置正确
+                if (CameraController.Instance != null)
+                {
+                    CameraController.Instance.CameraStartResetPosition(playerPosition);
+                }
+                
+                // 最后再激活玩家
+                Debug.Log("[SaveManager] Activating player after all setup is complete");
+                PlayController.instance.gameObject.SetActive(true);
+                PlayController.instance.EnableControl();
+                Debug.Log($"[SaveManager] Player active state after enable: {PlayController.instance.gameObject.activeSelf}");
+            }
+
+            // 5. 完成加载
+            SetLoadState(GameLoadState.Complete);
+            UpdateLoadProgress(1.0f, hasValidSaveData ? "存档加载完成" : "使用默认位置加载完成");
         }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Load game failed: {e.Message}\n{e.StackTrace}");
+            SetLoadState(GameLoadState.Failed);
+            UpdateLoadProgress(0f, "加载失败");
+            
+            // 错误恢复：重置到默认状态
+            HandleLoadError();
+        }
+        finally
+        {
+            isLoadingGame = false;
+        }
+    }
+
+    private void OnChunksLoadedForGameLoad()
+    {
+        loadingComplete?.TrySetResult(true);
+    }
+
+    private void DisableAllControls()
+    {
+        try
+        {
+            Debug.Log("[SaveManager] Disabling all controls");
+            if (PlayController.instance != null)
+            {
+                Debug.Log($"[SaveManager] Player active state before disable: {PlayController.instance.gameObject.activeSelf}");
+                PlayController.instance.DisableControl();
+                PlayController.instance.gameObject.SetActive(false);
+                Debug.Log($"[SaveManager] Player active state after disable: {PlayController.instance.gameObject.activeSelf}");
+            }
+            else
+            {
+                Debug.LogWarning("[SaveManager] PlayController.instance is null when trying to disable controls");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Error disabling controls: {e.Message}");
+        }
+    }
+
+    private void EnableAllControls()
+    {
+        try
+        {
+            Debug.Log("[SaveManager] Enabling all controls");
+            if (PlayController.instance != null)
+            {
+                Debug.Log($"[SaveManager] Player active state before enable: {PlayController.instance.gameObject.activeSelf}");
+                PlayController.instance.gameObject.SetActive(true);
+                PlayController.instance.EnableControl();
+                Debug.Log($"[SaveManager] Player active state after enable: {PlayController.instance.gameObject.activeSelf}");
+            }
+            else
+            {
+                Debug.LogWarning("[SaveManager] PlayController.instance is null when trying to enable controls");
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Error enabling controls: {e.Message}");
+        }
+    }
+
+    private void HandleLoadError()
+    {
+        // 错误恢复
+        if (PlayController.instance != null)
+        {
+            PlayController.instance.gameObject.SetActive(true);
+            PlayController.instance.EnableControl();
+            PlayController.instance.currentHp = PlayController.instance.maxHp;
+            PlayController.instance.HpChange();
+            
+            // 设置位置
+            PlayController.instance.transform.position = defaultSpawnPoint;
+            
+            // 更新相机位置
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.CameraStartResetPosition(defaultSpawnPoint);
+            }
+        }
+    }
+
+    private void SetLoadState(GameLoadState newState)
+    {
+        if (currentLoadState != newState)
+        {
+            currentLoadState = newState;
+            Debug.Log($"[SaveManager] Load state changed to: {newState}");
+            OnLoadStateChanged?.Invoke(currentLoadState);
+        }
+    }
+
+    private void UpdateLoadProgress(float progress, string operation)
+    {
+        OnLoadProgressChanged?.Invoke(new LoadingProgress(progress, operation));
+        Debug.Log($"[SaveManager] Loading Progress: {progress:P0} - {operation}");
     }
 
     public bool DoesSaveExist(int slotIndex)
     {
         if (slotIndex < 0 || slotIndex >= MaxSaveSlots)
         {
-            Debug.LogError("无效的存档槽索引");
+            Debug.LogError("无效的存档索引");
             return false;
         }
 
@@ -119,4 +517,281 @@ public class SaveManager : MonoBehaviour
     {
         return _respawnPosition;
     }
+
+    private void SetRespawnState(RespawnState newState)
+    {
+        if (currentRespawnState != newState)
+        {
+            currentRespawnState = newState;
+            Debug.Log($"[SaveManager] Respawn state changed to: {newState}");
+            OnRespawnStateChanged?.Invoke(currentRespawnState);
+        }
+    }
+
+    public async Task HandlePlayerRespawn()
+    {
+        try
+        {
+            Debug.Log("[SaveManager] Starting respawn process");
+            SetRespawnState(RespawnState.PreparingRespawn);
+            
+            // 1. 准备重生，禁用玩家控制和显示
+            if (PlayController.instance != null)
+            {
+                PlayController.instance.DisableControl();
+                PlayController.instance.gameObject.SetActive(false);
+            }
+
+            // 2. 加载存档数据并确定重生位置
+            SetRespawnState(RespawnState.LoadingData);
+            string saveFilePath = GetSavePath(CurrentSlotIndex, "playerData.json");
+            Vector2 respawnPosition = defaultSpawnPoint;
+
+            if (File.Exists(saveFilePath))
+            {
+                try
+                {
+                    string jsonData = File.ReadAllText(saveFilePath);
+                    var saveData = JsonUtility.FromJson<PlayerSaveData>(jsonData);
+                    
+                    if (saveData != null)
+                    {
+                        respawnPosition = new Vector2(saveData.respawnPointX, saveData.respawnPointY);
+                        Debug.Log($"[SaveManager] Found respawn position in save: {respawnPosition}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[SaveManager] Error loading save data: {e.Message}");
+                }
+            }
+
+            // 3. 加载区块
+            SetRespawnState(RespawnState.WaitingForChunks);
+            Debug.Log($"[SaveManager] Loading chunks for position: {respawnPosition}");
+            await WaitForChunksLoad(respawnPosition);
+
+            // 4. 设置玩家位置和状态
+            if (PlayController.instance != null)
+            {
+                Debug.Log($"[SaveManager] Setting player position to: {respawnPosition}");
+                PlayController.instance.transform.position = respawnPosition;
+                PlayController.instance.currentHp = PlayController.instance.maxHp;
+                PlayController.instance.HpChange();
+                
+                // 确保相机位置正确
+                if (CameraController.Instance != null)
+                {
+                    CameraController.Instance.CameraStartResetPosition(respawnPosition);
+                }
+                
+                // 激活玩家
+                PlayController.instance.gameObject.SetActive(true);
+                PlayController.instance.EnableControl();
+            }
+
+            SetRespawnState(RespawnState.Complete);
+            Debug.Log("[SaveManager] Respawn completed");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Error during respawn: {e.Message}");
+            SetRespawnState(RespawnState.Failed);
+            HandleRespawnError();
+        }
+    }
+
+    private async Task WaitForChunksLoad(Vector2 position)
+    {
+        if (ChunkManager.Instance == null) return;
+
+        var loadingComplete = new TaskCompletionSource<bool>();
+        void OnChunksLoaded() => loadingComplete.TrySetResult(true);
+
+        try
+        {
+            ChunkManager.OnChunkLoadedEvent += OnChunksLoaded;
+            ChunkManager.Instance.InitializeChunks(position);
+
+            // 使用 Task.WhenAny 实现时
+            using (var cts = new CancellationTokenSource())
+            {
+                var timeoutTask = Task.Delay(5000, cts.Token); // 5秒超时
+                var completedTask = await Task.WhenAny(loadingComplete.Task, timeoutTask);
+                
+                // 取消另一个未完成的任务
+                cts.Cancel();
+                
+                if (completedTask == timeoutTask)
+                {
+                    Debug.LogWarning("[SaveManager] Chunk loading timed out");
+                    throw new TimeoutException("Chunk loading timed out");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Error waiting for chunks: {e.Message}");
+            throw;
+        }
+        finally
+        {
+            ChunkManager.OnChunkLoadedEvent -= OnChunksLoaded;
+        }
+    }
+
+    private void SetPlayerLoadState(PlayerLoadState newState)
+    {
+        if (playerLoadState != newState)
+        {
+            playerLoadState = newState;
+            Debug.Log($"[SaveManager] Player load state changed to: {newState}");
+            OnPlayerLoadStateChanged?.Invoke(playerLoadState);
+        }
+    }
+
+    private void ResetPlayerState()
+    {
+        if (PlayController.instance == null) return;
+
+        try
+        {
+            PlayController.instance.currentHp = PlayController.instance.maxHp;
+            PlayController.instance.HpChange();
+            
+            // 确保相机位置正确
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.CameraStartResetPosition(PlayController.instance.transform.position);
+            }
+            
+            Debug.Log("[SaveManager] Player state reset successfully");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Error resetting player state: {e.Message}");
+            HandleRespawnError();
+        }
+    }
+
+    private void HandleRespawnTimeout()
+    {
+        Debug.LogWarning("[SaveManager] Handling respawn timeout");
+        SetPlayerLoadState(PlayerLoadState.Failed);
+        ResetToDefaultState();
+        EnableAllControls();
+    }
+
+    private void HandleRespawnError()
+    {
+        Debug.LogError("[SaveManager] Handling respawn error");
+        
+        if (PlayController.instance != null)
+        {
+            // 确保玩家对象被激活
+            PlayController.instance.gameObject.SetActive(true);
+            
+            // 重置到默认位置
+            PlayController.instance.transform.position = defaultSpawnPoint;
+            
+            // 重置状态
+            PlayController.instance.currentHp = PlayController.instance.maxHp;
+            PlayController.instance.HpChange();
+            PlayController.instance.EnableControl();
+            
+            // 更新相机位置
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.CameraStartResetPosition(defaultSpawnPoint);
+            }
+        }
+    }
+
+    private void ResetToDefaultState()
+    {
+        if (PlayController.instance != null)
+        {
+            try
+            {
+                // 重置到默认状态
+                PlayController.instance.transform.position = defaultSpawnPoint;
+                PlayController.instance.currentHp = PlayController.instance.maxHp;
+                PlayController.instance.HpChange();
+                
+                if (CameraController.Instance != null)
+                {
+                    CameraController.Instance.CameraStartResetPosition(defaultSpawnPoint);
+                }
+                
+                Debug.Log("[SaveManager] Reset to default state successful");
+            }
+            catch (Exception e)
+            {
+                Debug.LogError($"[SaveManager] Error during reset to default state: {e.Message}");
+            }
+        }
+    }
+
+    private async Task LoadSaveDataAsync(int slotIndex)
+    {
+        try
+        {
+            Debug.Log($"[SaveManager] Loading save data for slot {slotIndex}");
+            // 这里可以添加加载基础存档数据的逻辑
+            await Task.CompletedTask;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Error loading save data: {e.Message}");
+            throw;
+        }
+    }
+
+    private async Task LoadPlayerStateAsync()
+    {
+        try
+        {
+            Debug.Log("[SaveManager] Loading player state");
+            // 这里可以添加加载玩家状态的逻辑
+            await Task.CompletedTask;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Error loading player state: {e.Message}");
+            throw;
+        }
+    }
+
+    private async Task LoadChunksAsync()
+    {
+        try
+        {
+            Debug.Log("[SaveManager] Loading chunks");
+            // 这里可以添加加载区块的逻辑
+            await Task.CompletedTask;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"[SaveManager] Error loading chunks: {e.Message}");
+            throw;
+        }
+    }
+
+    private async Task WaitWithTimeout(Task task, int milliseconds)
+    {
+        using var cts = new CancellationTokenSource(milliseconds);
+        try
+        {
+            await Task.WhenAny(task, Task.Delay(milliseconds, cts.Token));
+            if (!task.IsCompleted)
+            {
+                throw new TimeoutException();
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw new TimeoutException();
+        }
+    }
 }
+

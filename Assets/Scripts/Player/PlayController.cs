@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Serialization;
@@ -5,6 +6,7 @@ using Cursor = UnityEngine.Cursor;
 using Quaternion = UnityEngine.Quaternion;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
+using System.Threading.Tasks;
 
 public class PlayController : MonoBehaviour,ITakeDamage
 {
@@ -102,47 +104,77 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private bool _checkingLadder = false;
 
+    private Coroutine _respawnCoroutine;
+
     private void Awake()
     {
+        Debug.Log("[PlayController] Awake called");
+        
         if (instance != null && instance != this)
         {
+            Debug.Log("[PlayController] Destroying duplicate instance");
             Destroy(this.gameObject);
         }
         else
         {
+            Debug.Log("[PlayController] Setting up singleton instance");
             instance = this;
         }
+        
         DontDestroyOnLoad(this.gameObject);
         
         _rg = GetComponent<Rigidbody2D>();
-       _spriteRenderer = GetComponent<SpriteRenderer>();
-       // _boxCollider = GetComponent<BoxCollider2D>();
-       _circleCollider = GetComponent<CircleCollider2D>();
-       _capsuleCollider = GetComponent<CapsuleCollider2D>();
-       _animator = GetComponent<Animator>();
-       _playerInput=new PlayerInput();
-       
-       currentHp = maxHp;
+        _spriteRenderer = GetComponent<SpriteRenderer>();
+        _circleCollider = GetComponent<CircleCollider2D>();
+        _capsuleCollider = GetComponent<CapsuleCollider2D>();
+        _animator = GetComponent<Animator>();
+        _playerInput = new PlayerInput();
+        
+        currentHp = maxHp;
+        
+        Debug.Log($"[PlayController] Current active state before disable: {gameObject.activeSelf}");
+        // 在 Awake 时就禁用玩家对象
+        gameObject.SetActive(false);
+        Debug.Log($"[PlayController] Current active state after disable: {gameObject.activeSelf}");
     }
 
     private void OnEnable()
     {
-       _playerInput.Enable();
+        Debug.Log("[PlayController] OnEnable called");
+        _playerInput.Enable();
+        
+        if (_respawnCoroutine == null)
+        {
+            Debug.Log("[PlayController] Starting RespawnPositionRecord coroutine");
+            _respawnCoroutine = StartCoroutine(RespawnPositionRecord());
+        }
     }
 
     private void OnDisable()
     {
+        Debug.Log("[PlayController] OnDisable called");
         _playerInput.Disable();
+        
+        if (_respawnCoroutine != null)
+        {
+            Debug.Log("[PlayController] Stopping RespawnPositionRecord coroutine");
+            StopCoroutine(_respawnCoroutine);
+            _respawnCoroutine = null;
+        }
     }
 
     private void Start()
     {
+        Debug.Log("[PlayController] Start called");
+        Debug.Log($"[PlayController] Current active state in Start: {gameObject.activeSelf}");
+        
+        // 移除在 Start 中的激活逻辑，让 SaveManager 来控制
         _gravityScale = _rg.gravityScale;
         _respawnPosition = transform.position;
 
         Physics2D.IgnoreCollision(_capsuleCollider, _circleCollider, true);
 
-        StartCoroutine(RespawnPositionRecord());
+        _respawnCoroutine = StartCoroutine(RespawnPositionRecord());
 
         SpawnJinGuBang();
         jinGuBang.SetActive(false);
@@ -578,18 +610,18 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private IEnumerator RespawnPositionRecord()
     {
+        Debug.Log("[PlayController] RespawnPositionRecord coroutine started");
         while (true) //0.2秒更新一次
         {
-
             var tem = Physics2D.Raycast(transform.position, Vector2.down, 0.5f, LayerMask.GetMask("Platform"));
 
             if (tem)
             {
-                if (_isGrounded && !_underWater && !tem.collider.CompareTag("Floating Objects")&&_canBeDamaged)
+                if (_isGrounded && !_underWater && !tem.collider.CompareTag("Floating Objects") && _canBeDamaged)
                 {
                     //Debug.DrawRay(transform.position,Vector2.down*1.0f,Color.red,1.0f);
                     _respawnPosition = transform.position;
-                    //Debug.Log("Respawn position recorded");
+                  //  Debug.Log($"[PlayController] Respawn position updated to: {_respawnPosition}");
                 }
             }
             
@@ -597,10 +629,12 @@ public class PlayController : MonoBehaviour,ITakeDamage
         }
     }
 
-    public void Respawn(float respawnTime)
+    public void RetreatToSafePosition(float retreatTime)
     {
+        Debug.Log($"[PlayController] Retreating to safe position for {retreatTime} seconds");
+        Debug.Log($"[PlayController] Current position: {transform.position}, Retreat position: {_respawnPosition}");
+        
         DisableControl();
-        // _rg.velocity = Vector2.zero;
         _underWater = true;
         isOnJinGuBang = false;
         _animator.SetBool(_underwaterHash,_underWater);
@@ -609,16 +643,17 @@ public class PlayController : MonoBehaviour,ITakeDamage
              jinGuBang.SetActive(false);
         }
        
-        StartCoroutine(RespawnTimer(respawnTime));
+        StartCoroutine(RetreatTimer(retreatTime));
     }
 
-    private IEnumerator RespawnTimer(float time)
+    private IEnumerator RetreatTimer(float time)
     {
         yield return new WaitForSeconds(time);
-        transform.position = _respawnPosition;
+        transform.position = _respawnPosition;  // 回到最后接触的安全地面位置
+        Debug.Log($"[PlayController] Retreat complete, new position: {transform.position}");
         EnableControl();
-       _underWater = false;
-       _animator.SetBool(_underwaterHash,_underWater);
+        _underWater = false;
+        _animator.SetBool(_underwaterHash,_underWater);
     }
 
     #endregion
@@ -685,22 +720,18 @@ public class PlayController : MonoBehaviour,ITakeDamage
             _canBeDamaged = false;
             StartCoroutine(CanBeDamaged());
             
-            
-       
             currentHp -= damage;
-           
             HpChange();
 
-            if (currentHp == 0)
+            if (currentHp <= 0)
             {
                 PlayerDead();
             }
             else
             {
-                Respawn(0.3f);
+                RetreatToSafePosition(0.3f);
             }
         }
-        
     }
 
     private IEnumerator CanBeDamaged()
@@ -715,54 +746,26 @@ public class PlayController : MonoBehaviour,ITakeDamage
         //playerData.currentHp=currentHp;
     }
 
-    private void PlayerDead()
+    private async void PlayerDead()
     {
         DisableControl(); // 禁用控制
-        StartCoroutine(PlayerDeadCoroutine());
+        await PlayerDeadCoroutine();
     }
 
-    private IEnumerator PlayerDeadCoroutine()
+    private async Task PlayerDeadCoroutine()
     {
-        Debug.Log("[PlayController] Player died, starting respawn process");
-        
         // 等待一小段时间确保死亡动画播放
-        yield return new WaitForSeconds(0.5f);
+        await Task.Delay(500); // 0.5秒
         
-        bool chunksLoaded = false;
-        Debug.Log("[PlayController] Waiting for chunks to load...");
-        
-        // 注册事件前先移除之前可能存在的订阅
-        ChunkManager.OnChunkLoadedEvent -= OnChunkLoaded;
-        ChunkManager.OnChunkLoadedEvent += OnChunkLoaded;
-        
-        void OnChunkLoaded()
+        // 等待重生流程完成
+        try 
         {
-            chunksLoaded = true;
-            Debug.Log("[PlayController] Chunks loaded successfully");
+            await SaveManager.instance.HandlePlayerRespawn();
         }
-
-        SaveManager.instance.LoadGame();
-
-        float timeoutTime = Time.time + 5f;
-        while (!chunksLoaded && Time.time < timeoutTime)
+        catch (Exception e)
         {
-            yield return null;
+            Debug.LogError($"[PlayController] Error during respawn: {e.Message}");
         }
-
-        // 移除事件监听
-        ChunkManager.OnChunkLoadedEvent -= OnChunkLoaded;
-
-        if (!chunksLoaded)
-        {
-            Debug.LogWarning("[PlayController] Chunk loading timed out after 5 seconds");
-        }
-        
-        currentHp = maxHp;
-        Debug.Log($"[PlayController] Reset HP to max: {currentHp}/{maxHp}");
-        HpChange();
-        
-        // 确保在所有操作完成后重新启用控制
-        EnableControl();
     }
 
     public void Recover(int recoverHp)
@@ -778,17 +781,17 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _playerInput.Disable();
         
         // 只有当金箍棒存在且已初始化时才禁用其控制
-        if (jinGuBang != null && jinGuBang.GetComponent<JinGuBang>() != null)
+        if (jinGuBang != null && jinGuBang.activeInHierarchy && jinGuBang.GetComponent<JinGuBang>() != null)
         {
             if (Application.isEditor)
             {
-                jinGuBang.GetComponent<JinGuBang>().DisableControl();
+                jinGuBang.GetComponent<JinGuBang>()?.DisableControl();
             }
             else
             {
-                if (PlayerPrefs.GetInt("HasJinGuBang")==1)
+                if (PlayerPrefs.GetInt("HasJinGuBang") == 1)
                 {
-                    jinGuBang.GetComponent<JinGuBang>().DisableControl();
+                    jinGuBang.GetComponent<JinGuBang>()?.DisableControl();
                 }
             }
         }
@@ -799,17 +802,17 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _playerInput.Enable();
         
         // 只有当金箍棒存在且已初始化时才启用其控制
-        if (jinGuBang != null && jinGuBang.GetComponent<JinGuBang>() != null)
+        if (jinGuBang != null && jinGuBang.activeInHierarchy && jinGuBang.GetComponent<JinGuBang>() != null)
         {
             if (Application.isEditor)
             {
-                jinGuBang.GetComponent<JinGuBang>().EnableControl();
+                jinGuBang.GetComponent<JinGuBang>()?.EnableControl();
             }
             else
             {
-                if (PlayerPrefs.GetInt("HasJinGuBang")==1)
+                if (PlayerPrefs.GetInt("HasJinGuBang") == 1)
                 {
-                    jinGuBang.GetComponent<JinGuBang>().EnableControl();
+                    jinGuBang.GetComponent<JinGuBang>()?.EnableControl();
                 }
             }
         }
@@ -818,6 +821,13 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private void UpdateIsOnJinGuBang()
     {
         isOnJinGuBang = isEquipJinGuBang && !_isGrounded;
+    }
+
+    // 添加这个方法用于兼容性
+    public void Respawn(float respawnTime)
+    {
+        // 调用新的方法
+        RetreatToSafePosition(respawnTime);
     }
 }
 

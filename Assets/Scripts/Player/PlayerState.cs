@@ -14,51 +14,11 @@ public class PlayerSaveData
 public class PlayerState : MonoBehaviour, ISaveable
 {
     public PlayerSaveData playerSaveData;
-    public static PlayerState instance;
 
     private void Awake()
     {
         playerSaveData = new PlayerSaveData();
-
-        if (instance == null)
-        {
-            instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        } 
-    }
-
-    private void Start()
-    {
-        // 移除 Start 方法中的调试代码
-    }
-
-    public void Save(int slotIndex)
-    {
-        // if (Application.isEditor) return;
-        
-        
-        if (PlayController.instance == null) return;
-
-        playerSaveData.currentHp = PlayController.instance.currentHp;
-        playerSaveData.maxHp = PlayController.instance.maxHp;
-        playerSaveData.respawnPointX = transform.position.x;
-        playerSaveData.respawnPointY = transform.position.y;
-
-        string jsonData = JsonUtility.ToJson(playerSaveData);
-        string saveFilePath = SaveManager.GetSavePath(slotIndex, "playerData.json");
-        
-        try
-        {
-            Directory.CreateDirectory(Path.GetDirectoryName(saveFilePath));
-            File.WriteAllText(saveFilePath, jsonData);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"保存玩家数据时出错：{e.Message}");
-        }
+        Debug.Log("[PlayerState] Initialized");
     }
 
     public void Load(int slotIndex)
@@ -67,15 +27,6 @@ public class PlayerState : MonoBehaviour, ISaveable
         if (PlayController.instance == null)
         {
             Debug.LogError("[PlayerState] PlayController.instance is null");
-            return;
-        }
-
-        PlayController.instance.gameObject.SetActive(false);
-
-        if (ChunkManager.Instance == null)
-        {
-            Debug.LogError("[PlayerState] ChunkManager.Instance is null");
-            SetDefaultValues();
             return;
         }
 
@@ -92,21 +43,11 @@ public class PlayerState : MonoBehaviour, ISaveable
 
                 if (playerSaveData != null)
                 {
-                    Debug.Log($"[PlayerState] Loaded position: ({playerSaveData.respawnPointX}, {playerSaveData.respawnPointY})");
-                    PlayController.instance.currentHp = playerSaveData.currentHp;
-                    PlayController.instance.maxHp = playerSaveData.maxHp;
-                    
-                    Vector3 newPosition = new Vector3(playerSaveData.respawnPointX, playerSaveData.respawnPointY, 0);
-                    transform.position = newPosition;
-                    Debug.Log($"[PlayerState] Set player position to: {transform.position}");
-                    
-                    if (CameraController.Instance != null)
-                    {
-                        CameraController.Instance.CameraStartResetPosition(newPosition);
-                    }
-                    
-                    ChunkManager.Instance.InitializeChunks(newPosition);
-                    SaveManager.instance.GetRespawnPosition(transform.position);
+                    Debug.Log($"[PlayerState] Successfully deserialized playerSaveData: " +
+                             $"currentHp={playerSaveData.currentHp}, " +
+                             $"maxHp={playerSaveData.maxHp}, " +
+                             $"position=({playerSaveData.respawnPointX}, {playerSaveData.respawnPointY})");
+                    ApplyLoadedData();
                 }
                 else
                 {
@@ -129,6 +70,45 @@ public class PlayerState : MonoBehaviour, ISaveable
         PlayController.instance.HpChange();
     }
 
+    private void ApplyLoadedData()
+    {
+        Debug.Log($"[PlayerState] Applying loaded position: ({playerSaveData.respawnPointX}, {playerSaveData.respawnPointY})");
+        PlayController.instance.currentHp = playerSaveData.currentHp;
+        PlayController.instance.maxHp = playerSaveData.maxHp;
+        
+        Vector3 newPosition = new Vector3(playerSaveData.respawnPointX, playerSaveData.respawnPointY, 0);
+        PlayController.instance.transform.position = newPosition;
+        Debug.Log($"[PlayerState] Set player position to: {newPosition}");
+        
+        if (CameraController.Instance != null)
+        {
+            CameraController.Instance.CameraStartResetPosition(newPosition);
+        }
+    }
+
+    public void Save(int slotIndex)
+    {
+        if (PlayController.instance == null) return;
+
+        playerSaveData.currentHp = PlayController.instance.currentHp;
+        playerSaveData.maxHp = PlayController.instance.maxHp;
+        playerSaveData.respawnPointX = PlayController.instance.transform.position.x;
+        playerSaveData.respawnPointY = PlayController.instance.transform.position.y;
+
+        string jsonData = JsonUtility.ToJson(playerSaveData);
+        string saveFilePath = SaveManager.GetSavePath(slotIndex, "playerData.json");
+        
+        try
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(saveFilePath));
+            File.WriteAllText(saveFilePath, jsonData);
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"保存玩家数据时出错：{e.Message}");
+        }
+    }
+
     private void SetDefaultValues()
     {
         Debug.Log("[PlayerState] Setting default values");
@@ -137,14 +117,12 @@ public class PlayerState : MonoBehaviour, ISaveable
         
         Debug.Log($"[PlayerState] Default spawn point: {SaveManager.instance.defaultSpawnPoint}");
         
-        transform.position = SaveManager.instance.defaultSpawnPoint;
-        Debug.Log($"[PlayerState] Set player position to default: {transform.position}");
+        PlayController.instance.transform.position = SaveManager.instance.defaultSpawnPoint;
+        Debug.Log($"[PlayerState] Set player position to default: {SaveManager.instance.defaultSpawnPoint}");
         
         if (CameraController.Instance != null)
         {
             CameraController.Instance.CameraStartResetPosition(SaveManager.instance.defaultSpawnPoint);
         }
-        
-        ChunkManager.Instance.InitializeChunks(SaveManager.instance.defaultSpawnPoint);
     }
 }

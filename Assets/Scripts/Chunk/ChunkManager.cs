@@ -92,45 +92,7 @@ public class ChunkManager : MonoBehaviour
 
     private void Start()
     {
-        
-        // 等待PlayerState加载完成后再初始化区块
-        StartCoroutine(WaitForPlayerStateAndInitialize());
-    }
-
-    private IEnumerator WaitForPlayerStateAndInitialize()
-    {
-        // if (Application.isEditor)
-        // {
-        //     // 在编辑模式下等待PlayController实例
-        // while (PlayController.instance == null)
-        // {
-        //     yield return null;
-        // }
-        //
-        // yield return new WaitForEndOfFrame();
-        //
-        // // 使用PlayController的位置
-        // Vector3 playerPosition = PlayController.instance.transform.position;
-        // InitializeChunks(playerPosition);
-        // }
-        // else
-        // {
-        //     // 在发布版本中使用PlayerState的存档数据
-        while (PlayerState.instance == null)
-        {
-            yield return null;
-        }
-        
-        yield return new WaitForEndOfFrame();
-        
-        Vector2 respawnPoint = new Vector2(
-            PlayerState.instance.playerSaveData.respawnPointX,
-            PlayerState.instance.playerSaveData.respawnPointY
-        );
-        
-        InitializeChunks(respawnPoint);
-        // // }
-        
+        // 移除等待 PlayerState 的逻辑，只启动资源清理
         InvokeRepeating(nameof(CleanUpUnusedResources), 60f, 60f);
     }
 
@@ -152,6 +114,7 @@ public class ChunkManager : MonoBehaviour
             // 先卸载所有区块
             UnloadAllChunks();
             
+            // 加载新的区块
             for (int x = -loadDistance; x <= loadDistance; x++)
             {
                 for (int y = -loadDistance; y <= loadDistance; y++)
@@ -166,14 +129,8 @@ public class ChunkManager : MonoBehaviour
             await UpdateVisibleChunksAsync();
             Debug.Log("[ChunkManager] Chunk initialization completed");
             
-            // 确保在完成后触发事件
+            // 只在这里触发一次区块加载完成事件
             OnChunkLoadedEvent?.Invoke();
-            
-            // 在区块加载完成后启用玩家对象
-            if (PlayController.instance != null)
-            {
-                PlayController.instance.gameObject.SetActive(true);
-            }
         }
         catch (Exception e)
         {
@@ -639,7 +596,7 @@ public class ChunkManager : MonoBehaviour
                 positions.Add(globalPos);
             }
 
-            // 批量��除瓦
+            // 批量除瓦
             for (int i = 0; i < positions.Count; i += TILES_TO_CLEAR_PER_FRAME)
             {
                 int endIndex = Mathf.Min(i + TILES_TO_CLEAR_PER_FRAME, positions.Count);
