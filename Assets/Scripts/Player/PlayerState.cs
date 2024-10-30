@@ -28,10 +28,12 @@ public class PlayerState : MonoBehaviour, ISaveable
         {
             Destroy(gameObject);
         } 
-        
-        
     }
 
+    private void Start()
+    {
+        // 移除 Start 方法中的调试代码
+    }
 
     public void Save(int slotIndex)
     {
@@ -61,8 +63,6 @@ public class PlayerState : MonoBehaviour, ISaveable
 
     public void Load(int slotIndex)
     { 
-         // if (Application.isEditor) return;
-        
         if (PlayController.instance == null) return;
 
         string saveFilePath = SaveManager.GetSavePath(slotIndex, "playerData.json");
@@ -79,6 +79,7 @@ public class PlayerState : MonoBehaviour, ISaveable
                     PlayController.instance.currentHp = playerSaveData.currentHp;
                     PlayController.instance.maxHp = playerSaveData.maxHp;
                     transform.position = new Vector2(playerSaveData.respawnPointX, playerSaveData.respawnPointY);
+                    SaveManager.instance.GetRespawnPosition(transform.position);
                 }
                 else
                 {
@@ -103,6 +104,6 @@ public class PlayerState : MonoBehaviour, ISaveable
     {
         PlayController.instance.currentHp = 4;
         PlayController.instance.maxHp = 4;
-        transform.position = Vector2.zero;
+        transform.position = SaveManager.instance.defaultSpawnPoint;
     }
 }

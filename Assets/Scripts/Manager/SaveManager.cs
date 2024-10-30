@@ -15,6 +15,8 @@ public class SaveManager : MonoBehaviour
 
     public static int CurrentSlotIndex { get; set; } = 0; // 新增：当前存档槽索引
 
+    public Vector2 defaultSpawnPoint = new Vector2(0, 0); // 添加默认出生点
+
     private void Awake()
     {
         if (instance == null)
@@ -30,14 +32,14 @@ public class SaveManager : MonoBehaviour
 
     private void Start()
     {
-        // GameStart();//加上mainscene后由mainmenu调用
+        GameStart();
     }
 
     public void GameStart()
     {
-         CurrentSlotIndex=PlayerPrefs.GetInt("CurrentSlotIndex");
-        
-         LoadGame();
+        CurrentSlotIndex = PlayerPrefs.GetInt("CurrentSlotIndex");
+        _respawnPosition = defaultSpawnPoint;
+        LoadGame();
     }
     
     public void SaveGame()
@@ -109,5 +111,10 @@ public class SaveManager : MonoBehaviour
     public void GetRespawnPosition(Vector2 respawnPosition)
     {
         _respawnPosition = respawnPosition;
+    }
+
+    public Vector2 GetCurrentRespawnPosition()
+    {
+        return _respawnPosition;
     }
 }
