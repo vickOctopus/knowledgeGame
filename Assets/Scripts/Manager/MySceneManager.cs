@@ -25,7 +25,7 @@ public class MySceneManager : MonoBehaviour
     private void Start()
     {
         LoadSceneIfNotLoaded("PersistentScene");
-        LoadSceneIfNotLoaded("Room_01");
+        // LoadSceneIfNotLoaded("Room_01");
     }
 
     public void StartGame()
