@@ -162,8 +162,7 @@ GameObject:
   - component: {fileID: 4650737215174445825}
   - component: {fileID: 8180777235450579301}
   - component: {fileID: 55466183749502511}
-  - component: {fileID: 5118223285854536104}
-  - component: {fileID: 5101120405588294420}
+  - component: {fileID: 997562063489165084}
   m_Layer: 3
   m_Name: Player
   m_TagString: Player
@@ -258,23 +257,25 @@ MonoBehaviour:
   isEquipJinGuBang: 0
   isOnJinGuBang: 0
   moveSpeed: 10
-  jumpForce: 47
+  jumpForce: 48
   fallGravityScale: 1.5
   maxFallVelocity: -50
   airControl: 5
   playerData: {fileID: 11400000, guid: a6dac13ee9a8f4cdcb913e0ec7a0a9de, type: 2}
   maxHp: 4
-  groundCheckPoint: {fileID: 7322812226306412845}
-  groundLayer:
-    serializedVersion: 2
-    m_Bits: 64
+  groundCheckOffset: {x: -0.09, y: 0}
   groundCheckSize: {x: 0.74, y: 0.18}
-  rollingCheckPoint: {fileID: 4471296184076241696}
+  rollingCheckOffset: {x: 0, y: 1.15}
   rollingCheckSize: {x: 0.88, y: 0.47}
   canJumpLayer:
     serializedVersion: 2
     m_Bits: 71616
   ladderSpeed: 5
+  ladderCheckOffset: {x: -0.03, y: 0.68}
+  ladderCheckSize: {x: 1.07, y: 1.03}
+  ladderLayer:
+    serializedVersion: 2
+    m_Bits: 262144
   jinGuBangLayer:
     serializedVersion: 2
     m_Bits: 128
@@ -387,20 +388,8 @@ CircleCollider2D:
   m_Offset: {x: -0.024787933, y: 0.24246168}
   serializedVersion: 2
   m_Radius: 0.23829654
---- !u!114 &5118223285854536104
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8576882590039958290}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 36651e87d9a274633ae939f1ef19e9be, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!70 &5101120405588294420
-CapsuleCollider2D:
+--- !u!61 &997562063489165084
+BoxCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -431,6 +420,16 @@ CapsuleCollider2D:
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: -0.0074157715, y: 0.32946014}
-  m_Size: {x: 0.4710846, y: 0.6885834}
-  m_Direction: 0
+  m_Offset: {x: -0.017620087, y: 0.34602165}
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0}
+    oldSize: {x: 2.0625, y: 2}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 1
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  serializedVersion: 2
+  m_Size: {x: 0.47423553, y: 0.6920433}
+  m_EdgeRadius: 0

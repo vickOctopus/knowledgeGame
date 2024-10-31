@@ -70,7 +70,7 @@ public class SaveManager : MonoBehaviour
     private bool isLoadingGame = false;                          // 是否正在加载游戏
     private TaskCompletionSource<bool> loadingComplete;          // 加载完成任务源
 
-    // 玩家加载状态枚举
+    // 玩家加载状态枚
     public enum PlayerLoadState
     {
         NotLoaded,         // 未加载
@@ -123,42 +123,25 @@ public class SaveManager : MonoBehaviour
 
     private void Awake()
     {
-        Debug.Log("[SaveManager] Awake method called");
-        
-        // 检查单例实例
         if (instance != null && instance != this)
         {
-            Debug.Log("[SaveManager] Another SaveManager instance exists, destroying this one");
             Destroy(gameObject);
             return;
         }
         
-        // 设置单例实例并保持对象不被销毁
-        Debug.Log("[SaveManager] No existing instance found, setting this as instance");
         instance = this;
         DontDestroyOnLoad(gameObject);
         
-        // 初始化玩家状态组件
         if (playerState == null)
         {
             playerState = gameObject.AddComponent<PlayerState>();
-            Debug.Log("[SaveManager] Added PlayerState component");
-        }
-        else
-        {
-            Debug.Log("[SaveManager] PlayerState component already exists");
         }
         
-        // 确保游戏物体是激活的
         if (!gameObject.activeInHierarchy)
         {
-            Debug.LogWarning("[SaveManager] GameObject is inactive, activating it");
             gameObject.SetActive(true);
         }
         
-        Debug.Log($"[SaveManager] Initialization complete. GameObject active: {gameObject.activeInHierarchy}");
-        
-        // 直接在 Awake 中开始游戏初始化
         StartCoroutine(InitializeGameDelayed());
     }
 
@@ -167,73 +150,77 @@ public class SaveManager : MonoBehaviour
         if (instance == this)
         {
             instance = null;
-            Debug.Log("[SaveManager] Instance destroyed");
         }
     }
 
     private IEnumerator InitializeGameDelayed()
     {
-        Debug.Log("[SaveManager] Starting delayed game initialization");
-        
-        // 减少等待时间，只等待一帧
         yield return null;
-        Debug.Log("[SaveManager] Frame wait completed");
         
-        // 检查并禁用玩家
+        #if UNITY_EDITOR
         if (PlayController.instance != null)
         {
-            Debug.Log($"[SaveManager] Found PlayController, current active state: {PlayController.instance.gameObject.activeSelf}");
+            Vector3 playerPosition = PlayController.instance.transform.position;
+            PlayController.instance.gameObject.SetActive(true);
+            
+            if (ChunkManager.Instance != null)
+            {
+                ChunkManager.Instance.InitializeChunks(playerPosition);
+            }
+            
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.CameraStartResetPosition(playerPosition);
+            }
+            
+            PlayController.instance.EnableControl();
+            yield break;
+        }
+        #endif
+        
+        if (PlayController.instance != null)
+        {
             PlayController.instance.gameObject.SetActive(false);
-            Debug.Log($"[SaveManager] Disabled PlayController, new active state: {PlayController.instance.gameObject.activeSelf}");
         }
         else
         {
-            Debug.LogError("[SaveManager] PlayController instance not found!");
-            // 等待更短的时间再次尝试
             yield return new WaitForSeconds(0.05f);
-            Debug.Log("[SaveManager] Retrying to find PlayController after delay");
             
             if (PlayController.instance != null)
             {
-                Debug.Log($"[SaveManager] Found PlayController after delay, current active state: {PlayController.instance.gameObject.activeSelf}");
                 PlayController.instance.gameObject.SetActive(false);
-                Debug.Log($"[SaveManager] Disabled PlayController after delay, new active state: {PlayController.instance.gameObject.activeSelf}");
             }
             else
             {
-                Debug.LogError("[SaveManager] PlayController instance still not found after delay!");
                 yield break;
             }
         }
         
-        // 开始游戏加载流程
-        Debug.Log("[SaveManager] Starting GameStart");
         GameStart();
     }
 
     public void GameStart()
     {
-        Debug.Log("[SaveManager] GameStart method called");
         CurrentSlotIndex = PlayerPrefs.GetInt("CurrentSlotIndex");
         _respawnPosition = defaultSpawnPoint;
-        Debug.Log($"[SaveManager] GameStart - CurrentSlotIndex: {CurrentSlotIndex}, Default spawn point: {defaultSpawnPoint}");
         
-        // 检查存档文件是否存在
+        #if UNITY_EDITOR
+        if (PlayController.instance != null)
+        {
+            return;
+        }
+        #endif
+        
         string saveFilePath = GetSavePath(CurrentSlotIndex, "playerData.json");
         bool saveExists = File.Exists(saveFilePath);
-        Debug.Log($"[SaveManager] Save file exists at {saveFilePath}: {saveExists}");
         
         if (saveExists)
         {
             try
             {
-                string jsonContent = File.ReadAllText(saveFilePath);
-                Debug.Log($"[SaveManager] Save file content: {jsonContent}");
+                File.ReadAllText(saveFilePath);
             }
-            catch (Exception e)
-            {
-                Debug.LogError($"[SaveManager] Error reading save file: {e.Message}");
-            }
+            catch (Exception) { }
         }
         
         LoadGame(CurrentSlotIndex);
@@ -241,7 +228,6 @@ public class SaveManager : MonoBehaviour
     
     public void SaveGame()
     {
-        Debug.Log("SaveGame");
         SaveGame(CurrentSlotIndex);
     }
 
@@ -249,29 +235,34 @@ public class SaveManager : MonoBehaviour
     {
         if (slotIndex < 0 || slotIndex >= MaxSaveSlots)
         {
-            Debug.LogError("无效的存档槽索引");
             return;
         }
 
-        // playerData.respawnPoint = _respawnPosition;
-
-        // 保存所有实现了 ISaveable 接口的对象
         ISaveable[] saveableObjects = FindObjectsOfType<MonoBehaviour>().OfType<ISaveable>().ToArray();
         foreach (ISaveable saveable in saveableObjects)
         {
             saveable.Save(slotIndex);
         }
-
-        Debug.Log($"游戏已保存到槽位 {slotIndex}");
     }
 
     public async void LoadGame(int slotIndex)
     {
         if (isLoadingGame)
         {
-            Debug.LogWarning("[SaveManager] Game is already loading, ignoring request");
             return;
         }
+
+        #if UNITY_EDITOR
+        if (PlayController.instance != null)
+        {
+            if (CameraController.Instance != null)
+            {
+                CameraController.Instance.CameraStartResetPosition(PlayController.instance.transform.position);
+            }
+            PlayController.instance.EnableControl();
+            return;
+        }
+        #endif
 
         try
         {

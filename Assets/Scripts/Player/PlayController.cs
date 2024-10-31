@@ -50,7 +50,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private SpriteRenderer _spriteRenderer;
     private bool _isRolling;
     private BoxCollider2D _boxCollider;
-    private CapsuleCollider2D _capsuleCollider;
+    // private CapsuleCollider2D _capsuleCollider;
     private CircleCollider2D _circleCollider;
     private Animator _animator;
     [HideInInspector]public bool isEquipJinGuBang;
@@ -108,16 +108,12 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void Awake()
     {
-        Debug.Log("[PlayController] Awake called");
-        
         if (instance != null && instance != this)
         {
-            Debug.Log("[PlayController] Destroying duplicate instance");
             Destroy(this.gameObject);
         }
         else
         {
-            Debug.Log("[PlayController] Setting up singleton instance");
             instance = this;
         }
         
@@ -126,38 +122,31 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _rg = GetComponent<Rigidbody2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
         _circleCollider = GetComponent<CircleCollider2D>();
-        _capsuleCollider = GetComponent<CapsuleCollider2D>();
+        // _capsuleCollider = GetComponent<CapsuleCollider2D>();
+        _boxCollider = GetComponent<BoxCollider2D>();
         _animator = GetComponent<Animator>();
         _playerInput = new PlayerInput();
         
         currentHp = maxHp;
-        
-        Debug.Log($"[PlayController] Current active state before disable: {gameObject.activeSelf}");
-        // 在 Awake 时就禁用玩家对象
         gameObject.SetActive(false);
-        Debug.Log($"[PlayController] Current active state after disable: {gameObject.activeSelf}");
     }
 
     private void OnEnable()
     {
-        Debug.Log("[PlayController] OnEnable called");
         _playerInput.Enable();
         
         if (_respawnCoroutine == null)
         {
-            Debug.Log("[PlayController] Starting RespawnPositionRecord coroutine");
             _respawnCoroutine = StartCoroutine(RespawnPositionRecord());
         }
     }
 
     private void OnDisable()
     {
-        Debug.Log("[PlayController] OnDisable called");
         _playerInput.Disable();
         
         if (_respawnCoroutine != null)
         {
-            Debug.Log("[PlayController] Stopping RespawnPositionRecord coroutine");
             StopCoroutine(_respawnCoroutine);
             _respawnCoroutine = null;
         }
@@ -165,21 +154,17 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void Start()
     {
-        Debug.Log("[PlayController] Start called");
-        Debug.Log($"[PlayController] Current active state in Start: {gameObject.activeSelf}");
-        
-        // 移除在 Start 中的激活逻辑，让 SaveManager 来控制
         _gravityScale = _rg.gravityScale;
         _respawnPosition = transform.position;
 
-        Physics2D.IgnoreCollision(_capsuleCollider, _circleCollider, true);
+        Physics2D.IgnoreCollision(_boxCollider, _circleCollider, true);
 
         _respawnCoroutine = StartCoroutine(RespawnPositionRecord());
 
         SpawnJinGuBang();
         jinGuBang.SetActive(false);
 
-        _capsuleCollider.enabled = true;
+        // _capsuleCollider.enabled = true;
         _circleCollider.enabled = false;
 
         _groundContactFilter = new ContactFilter2D();
@@ -371,8 +356,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void StartRolling()
     {
-        // _boxCollider.enabled = false;
-        _capsuleCollider.enabled = false;
+        _boxCollider.enabled = false;
+        // _capsuleCollider.enabled = false;
         _circleCollider.enabled = true;
         _isRolling = true;
         _animator.SetBool(_rollHash, _isRolling);
@@ -393,8 +378,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
             return;
         }
 
-        // _boxCollider.enabled = true;
-        _capsuleCollider.enabled = true;
+        _boxCollider.enabled = true;
+        // _capsuleCollider.enabled = true;
         _circleCollider.enabled = false;
         _isRolling = false;
         _animator.SetBool(_rollHash, _isRolling);
@@ -615,8 +600,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private IEnumerator RespawnPositionRecord()
     {
-        Debug.Log("[PlayController] RespawnPositionRecord coroutine started");
-        while (true) //0.2秒更新一次
+        while (true)
         {
             var tem = Physics2D.Raycast(transform.position, Vector2.down, 0.5f, LayerMask.GetMask("Platform"));
 
@@ -624,9 +608,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
             {
                 if (_isGrounded && !_underWater && !tem.collider.CompareTag("Floating Objects") && _canBeDamaged)
                 {
-                    //Debug.DrawRay(transform.position,Vector2.down*1.0f,Color.red,1.0f);
                     _respawnPosition = transform.position;
-                  //  Debug.Log($"[PlayController] Respawn position updated to: {_respawnPosition}");
                 }
             }
             
@@ -636,10 +618,6 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     public void RetreatToSafePosition(float retreatTime)
     {
-        Debug.Log($"[PlayController] Retreating to safe position for {retreatTime} seconds");
-        Debug.Log($"[PlayController] Current position: {transform.position}, Retreat position: {_respawnPosition}");
-        
-        DisableControl();
         _underWater = true;
         isOnJinGuBang = false;
         _animator.SetBool(_underwaterHash,_underWater);
@@ -654,9 +632,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private IEnumerator RetreatTimer(float time)
     {
         yield return new WaitForSeconds(time);
-        transform.position = _respawnPosition;  // 回到最后接触的安全地面位置
-        Debug.Log($"[PlayController] Retreat complete, new position: {transform.position}");
-        EnableControl();
+        transform.position = _respawnPosition;
         _underWater = false;
         _animator.SetBool(_underwaterHash,_underWater);
     }
@@ -701,7 +677,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
             ContactFilter2D filter = new ContactFilter2D();
             filter.SetLayerMask(LayerMask.GetMask("JinGuBang")); // 只检测与金箍棒的重叠
             
-            int count = _capsuleCollider.OverlapCollider(filter, results);
+            int count = _boxCollider.OverlapCollider(filter, results);
             
             if (count == 0) // 如果没有重叠
             {
@@ -759,17 +735,15 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private async Task PlayerDeadCoroutine()
     {
-        // 等待一小段时间确保死亡动画播放
-        await Task.Delay(500); // 0.5秒
+        await Task.Delay(500);
         
-        // 等待重生流程完成
         try 
         {
             await SaveManager.instance.HandlePlayerRespawn();
         }
         catch (Exception e)
         {
-            Debug.LogError($"[PlayController] Error during respawn: {e.Message}");
+            Debug.LogError($"Error during respawn: {e.Message}");
         }
     }
 
@@ -806,7 +780,6 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         _playerInput.Enable();
         
-        // 只有当金箍棒存在且已初始化时才启用其控制
         if (jinGuBang != null && jinGuBang.activeInHierarchy && jinGuBang.GetComponent<JinGuBang>() != null)
         {
             if (Application.isEditor)

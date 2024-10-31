@@ -15,7 +15,7 @@ public class Switch : MonoBehaviour
         }
         else
         {
-            Debug.LogError("[Switch] ChunkManager.Instance is null in Start method");
+            // Debug.LogError("[Switch] ChunkManager.Instance is null in Start method");
         }
     }
 
