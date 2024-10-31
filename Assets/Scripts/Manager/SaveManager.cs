@@ -8,21 +8,23 @@ using System.Threading.Tasks;
 using System.Threading;
 using UnityEngine.SceneManagement;
 
+// 游戏加载状态枚举
 public enum GameLoadState
 {
-    NotStarted,
-    LoadingSaveData,      // 加载存档数据
-    LoadingPlayerState,   // 加载玩家状态
-    LoadingChunks,        // 加载区块
-    WaitingForChunks,     // 等待区块加载完成
-    Complete,             // 加载完成
-    Failed               // 加载失败
+    NotStarted,          // 未开始加载
+    LoadingSaveData,     // 正在加载存档数据
+    LoadingPlayerState,  // 正在加载玩家状态
+    LoadingChunks,       // 正在加载区块
+    WaitingForChunks,    // 等待区块加载完成
+    Complete,            // 加载完成
+    Failed              // 加载失败
 }
 
+// 加载进度类，用于追踪和显示加载状态
 public class LoadingProgress
 {
-    public float Progress { get; private set; }
-    public string CurrentOperation { get; private set; }
+    public float Progress { get; private set; }           // 加载进度（0-1）
+    public string CurrentOperation { get; private set; }  // 当前操作描述
 
     public LoadingProgress(float progress, string operation)
     {
@@ -31,101 +33,88 @@ public class LoadingProgress
     }
 }
 
+// 玩家重生状态枚举
 public enum RespawnState
 {
-    NotStarted,
-    PreparingRespawn,    // 准备重生
-    LoadingData,         // 加载数据
-    SettingPosition,     // 设置位置
-    WaitingForChunks,    // 等待区块加载
-    ResettingState,      // 重置状态
-    Complete,            // 完成
-    Failed              // 失败
+    NotStarted,         // 未开始重生
+    PreparingRespawn,   // 准备重生中
+    LoadingData,        // 加载数据中
+    SettingPosition,    // 设置位置中
+    WaitingForChunks,   // 等待区块加载
+    ResettingState,     // 重置状态中
+    Complete,           // 完成
+    Failed             // 失败
 }
 
 public class SaveManager : MonoBehaviour
 {
+    // 单例实例
     public static SaveManager instance;
-    private PlayerState playerState;  // 添加 PlayerState 引用
+    private PlayerState playerState;  // 玩家状态组件引用
     
-    public PlayerData playerData;
-    private Vector2 _respawnPosition;
-    private const int MaxSaveSlots = 3; // 设置最大存档槽数量
+    public PlayerData playerData;     // 玩家数据
+    private Vector2 _respawnPosition; // 重生位置
+    private const int MaxSaveSlots = 3; // 最大存档槽数量
 
-    public static int CurrentSlotIndex { get; set; } = 0; // 新增：当前存档槽索引
+    // 当前选择的存档槽
+    public static int CurrentSlotIndex { get; set; } = 0;
 
-    public Vector2 defaultSpawnPoint = new Vector2(0, 0); // 添加默认出生点
+    // 默认出生点位置
+    public Vector2 defaultSpawnPoint = new Vector2(0, 0);
 
+    // 当前加载状态和相关事件
     private GameLoadState currentLoadState = GameLoadState.NotStarted;
-    public event Action<GameLoadState> OnLoadStateChanged;
-    public event Action<LoadingProgress> OnLoadProgressChanged;
+    public event Action<GameLoadState> OnLoadStateChanged;        // 加载状态改变事件
+    public event Action<LoadingProgress> OnLoadProgressChanged;   // 加载进度改变事件
 
-    private bool isLoadingGame = false;
-    private TaskCompletionSource<bool> loadingComplete;
+    private bool isLoadingGame = false;                          // 是否正在加载游戏
+    private TaskCompletionSource<bool> loadingComplete;          // 加载完成任务源
 
+    // 玩家加载状态枚举
     public enum PlayerLoadState
     {
-        NotLoaded,        // 未加载
-        LoadingData,      // 加载数据中
-        ResettingState,   // 重置状态中
-        WaitingForChunks, // 等待区块加载
-        Complete,         // 完成
-        Failed           // 失败
+        NotLoaded,         // 未加载
+        LoadingData,       // 加载数据中
+        ResettingState,    // 重置状态中
+        WaitingForChunks,  // 等待区块加载
+        Complete,          // 完成
+        Failed            // 失败
     }
 
     private PlayerLoadState playerLoadState = PlayerLoadState.NotLoaded;
-    public event Action<PlayerLoadState> OnPlayerLoadStateChanged;
+    public event Action<PlayerLoadState> OnPlayerLoadStateChanged;    // 玩家加载状态改变事件
 
+    // 重生状态和相关事件
     private RespawnState currentRespawnState = RespawnState.NotStarted;
-    public event Action<RespawnState> OnRespawnStateChanged;
-    private Vector2 lastValidRespawnPoint;
-
-    public void SetRespawnPoint(Vector2 position)
-    {
-        // 检查位置是否有效（例如：是否在地面上）
-        if (IsValidRespawnPoint(position))
-        {
-            lastValidRespawnPoint = position;
-            Debug.Log($"[SaveManager] Set respawn point to: {position}");
-        }
-    }
-
-    private bool IsValidRespawnPoint(Vector2 position)
-    {
-        // 检查是否在地面上
-        var hit = Physics2D.Raycast(position, Vector2.down, 0.5f, LayerMask.GetMask("Platform"));
-        if (!hit) return false;
-
-        // 检查上方是否有足够空间
-        var headCheck = Physics2D.Raycast(position, Vector2.up, 2f, LayerMask.GetMask("Platform"));
-        if (headCheck) return false;
-
-        return true;
-    }
+    public event Action<RespawnState> OnRespawnStateChanged;         // 重生状态改变事件
+    private Vector2 lastValidRespawnPoint;                          // 最后有效的重生点
 
     private async Task LoadGameAsync(int slotIndex)
     {
         try {
+            // 开始加载存档数据
             currentLoadState = GameLoadState.LoadingSaveData;
             OnLoadStateChanged?.Invoke(currentLoadState);
             
-            // 1. 加载基础存档数据
+            // 1. 异步加载基础存档数据
             await LoadSaveDataAsync(slotIndex);
             
-            // 2. 加载玩家状态
+            // 2. 异步加载玩家状态
             currentLoadState = GameLoadState.LoadingPlayerState;
             OnLoadStateChanged?.Invoke(currentLoadState);
             await LoadPlayerStateAsync();
             
-            // 3. 加载区块
+            // 3. 异步加载区块
             currentLoadState = GameLoadState.LoadingChunks;
             OnLoadStateChanged?.Invoke(currentLoadState);
             await LoadChunksAsync();
             
+            // 加载完成
             currentLoadState = GameLoadState.Complete;
             OnLoadStateChanged?.Invoke(currentLoadState);
         }
         catch (Exception e) {
+            // 处理加载过程中的错误
             Debug.LogError($"Load game failed: {e}");
             currentLoadState = GameLoadState.Failed;
             OnLoadStateChanged?.Invoke(currentLoadState);
@@ -136,7 +125,7 @@ public class SaveManager : MonoBehaviour
     {
         Debug.Log("[SaveManager] Awake method called");
         
-        // 检查是否已经存在实例
+        // 检查单例实例
         if (instance != null && instance != this)
         {
             Debug.Log("[SaveManager] Another SaveManager instance exists, destroying this one");
@@ -144,12 +133,12 @@ public class SaveManager : MonoBehaviour
             return;
         }
         
-        // 设置实例并保持对象
+        // 设置单例实例并保持对象不被销毁
         Debug.Log("[SaveManager] No existing instance found, setting this as instance");
         instance = this;
         DontDestroyOnLoad(gameObject);
         
-        // 创建并初始化 PlayerState
+        // 初始化玩家状态组件
         if (playerState == null)
         {
             playerState = gameObject.AddComponent<PlayerState>();
