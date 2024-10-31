@@ -72,9 +72,9 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: -1
+  m_SortingLayerID: -948219383
+  m_SortingLayer: -1
+  m_SortingOrder: 0
   m_Sprite: {fileID: -58807351, guid: 93603a50454d448e38f425431c450f2e, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -143,5 +143,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 112b5a81320de449bbf65aee31faf879, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerData: {fileID: 11400000, guid: a6dac13ee9a8f4cdcb913e0ec7a0a9de, type: 2}
   ChestOpenedSprite: {fileID: -2115183609, guid: 93603a50454d448e38f425431c450f2e, type: 3}
+  diaryID: 2

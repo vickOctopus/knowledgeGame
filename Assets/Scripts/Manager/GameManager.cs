@@ -31,7 +31,7 @@ public class GameManager : MonoBehaviour
         // ChunkManager.Instance.InitializeChunks(PlayController.instance.transform.position);
         
         
-        PlayerPrefs.DeleteAll();//删除所有playerprefs
+        // PlayerPrefs.DeleteAll();//删除所有playerprefs
     }
 
     public void StartGame()//由mainmenu调用

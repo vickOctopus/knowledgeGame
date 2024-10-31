@@ -1,7 +1,6 @@
 using UnityEngine;
 using DG.Tweening;
 
-
 public class Switch : MonoBehaviour
 {
     [SerializeField] private bool _isRight = true;
@@ -16,13 +15,12 @@ public class Switch : MonoBehaviour
         }
         else
         {
-            // Debug.LogError("ChunkManager.Instance is null in Switch Start method");
+            Debug.LogError("[Switch] ChunkManager.Instance is null in Start method");
         }
     }
 
     public void SwitchChange(bool dir)
     {
-       
         if (dir == _isRight)
         {
             _isRight = !dir;
@@ -40,7 +38,14 @@ public class Switch : MonoBehaviour
 
     private void NotifyChunkManager()
     {
-        ChunkManager.Instance.NotifySwitchChange(chunkCoord);
+        if (ChunkManager.Instance != null)
+        {
+            ChunkManager.Instance.NotifySwitchChange(chunkCoord);
+        }
+        else
+        {
+            Debug.LogError("[Switch] ChunkManager.Instance is null in NotifyChunkManager");
+        }
     }
 
     private void RotateSwitch()

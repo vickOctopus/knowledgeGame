@@ -15,21 +15,27 @@ public class SwitchPlatform : MonoBehaviour
         _tilemap = GetComponent<Tilemap>();
         if (_tilemap == null)
         {
-            Debug.LogError("SwitchPlatform: Tilemap component not found!");
+            Debug.LogError("[SwitchPlatform] Tilemap component not found!");
+            return;
         }
 
         if (trueTile == null || falseTile == null)
         {
-            Debug.LogError("SwitchPlatform: trueTile or falseTile is not set!");
+            Debug.LogError("[SwitchPlatform] trueTile or falseTile is not set!");
+            return;
         }
     }
 
     private void Start()
     {
-        // 订阅 ChunkManager 的事件
+        if (ChunkManager.Instance == null)
+        {
+            Debug.LogError("[SwitchPlatform] ChunkManager.Instance is null!");
+            return;
+        }
+
         ChunkManager.Instance.OnChunkLoaded += OnChunkLoaded;
         ChunkManager.Instance.OnChunkUnloaded += OnChunkUnloaded;
-        // 订阅开关状态改变事件
         ChunkManager.Instance.OnSwitchStateChanged += PlatformChange;
     }
 
@@ -64,11 +70,12 @@ public class SwitchPlatform : MonoBehaviour
         {
             foreach (var position in switchableTiles)
             {
-                if (_tilemap.GetTile(position) == trueTile)
+                TileBase currentTile = _tilemap.GetTile(position);
+                if (currentTile != null && currentTile.name == trueTile.name)
                 {
                     _tilemap.SetTile(position, falseTile);
                 }
-                else if (_tilemap.GetTile(position) == falseTile)
+                else if (currentTile != null && currentTile.name == falseTile.name)
                 {
                     if (HasColliderAtPosition(position))
                     {
@@ -131,7 +138,7 @@ public class SwitchPlatform : MonoBehaviour
             chunkCoord.x * ChunkManager.ChunkWidth - ChunkManager.ChunkWidth / 2,
             chunkCoord.y * ChunkManager.ChunkHeight - ChunkManager.ChunkHeight / 2
         );
-
+        
         // 计算 chunk 的边界
         BoundsInt chunkBounds = new BoundsInt(
             new Vector3Int(chunkWorldPosition.x, chunkWorldPosition.y, 0),
@@ -151,7 +158,8 @@ public class SwitchPlatform : MonoBehaviour
                 if (_tilemap.HasTile(cellPosition))
                 {
                     TileBase tile = _tilemap.GetTile(cellPosition);
-                    if (tile == trueTile || tile == falseTile)
+                    
+                    if (tile != null && (tile.name == trueTile.name || tile.name == falseTile.name))
                     {
                         switchableTiles.Add(cellPosition);
                     }

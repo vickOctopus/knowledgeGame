@@ -67,7 +67,10 @@ public class ChunkManager : MonoBehaviour
 
     public void NotifySwitchChange(Vector2Int chunkCoord)
     {
-        OnSwitchStateChanged?.Invoke(chunkCoord);
+        if (OnSwitchStateChanged != null)
+        {
+            OnSwitchStateChanged.Invoke(chunkCoord);
+        }
     }
 
     private void Awake()
@@ -98,38 +101,25 @@ public class ChunkManager : MonoBehaviour
 
     public async void InitializeChunks(Vector3 playerPosition)
     {
-        Debug.Log($"[ChunkManager] Starting chunk initialization at position: {playerPosition}");
-        if (isInitializing)
-        {
-            Debug.Log("[ChunkManager] Already initializing chunks, skipping");
-            return;
-        }
+        if (isInitializing) return;
         isInitializing = true;
 
         try 
         {
             currentChunk = GetChunkCoordFromWorldPos(playerPosition);
-            Debug.Log($"[ChunkManager] Current chunk coordinates: {currentChunk}");
-
-            // 先卸载所有区块
             UnloadAllChunks();
             
-            // 加载新的区块
             for (int x = -loadDistance; x <= loadDistance; x++)
             {
                 for (int y = -loadDistance; y <= loadDistance; y++)
                 {
                     Vector2Int coord = new Vector2Int(currentChunk.x + x, currentChunk.y + y);
                     bool shouldLoadObjects = Mathf.Abs(x) <= objectLoadDistance && Mathf.Abs(y) <= objectLoadDistance;
-                    Debug.Log($"[ChunkManager] Loading chunk at {coord}, with objects: {shouldLoadObjects}");
                     LoadChunkSync(coord, shouldLoadObjects);
                 }
             }
 
             await UpdateVisibleChunksAsync();
-            Debug.Log("[ChunkManager] Chunk initialization completed");
-            
-            // 只在这里触发一次区块加载完成事件
             OnChunkLoadedEvent?.Invoke();
         }
         catch (Exception e)

@@ -7,6 +7,7 @@ using UnityEngine;
 public class JinGuBang_Chest : MonoBehaviour,ISceneInteraction
 {
     public Sprite ChestOpenedSprite;
+    // public int diaryID;
     
     private BoxCollider2D boxCollider;
     
@@ -47,6 +48,7 @@ public class JinGuBang_Chest : MonoBehaviour,ISceneInteraction
             PlayerPrefs.SetInt(name,1);
             PlayerGetJinGuBang();
             OpenChest();
+            // UIManager.instance.OpenDiary(diaryID);
         }
     }
 
