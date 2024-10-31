@@ -49,3 +49,7 @@ MonoBehaviour:
   initialSpeed: 15
   initialAngle: 136
   respawnDelay: 0.5
+  boundarySize: {x: 47.23, y: 21.42}
+  boundaryOffset: {x: -21, y: 0}
+  showBoundary: 1
+  boundaryColor: {r: 1, g: 1, b: 1, a: 1}

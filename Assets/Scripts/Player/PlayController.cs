@@ -353,6 +353,11 @@ public class PlayController : MonoBehaviour,ITakeDamage
             _currentState = PlayerState.Underwater;
             return;
         }
+        
+        if (_rg.velocity.y<=maxFallVelocity)
+        {
+            _rg.velocity = new Vector2(_rg.velocity.x, maxFallVelocity);
+        }
 
         if (!_isRolling)
         {

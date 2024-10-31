@@ -17,19 +17,17 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
         {
             StartCoroutine(InitializeBlockPoolManager());
         }
-        
     }
 
     private IEnumerator InitializeBlockPoolManager()
     {
-        int maxRetries = 5;  // 最大重试次数
+        int maxRetries = 5;
         int currentRetry = 0;
         
         while (blockPoolManager == null && currentRetry < maxRetries)
         {
-            yield return new WaitForSeconds(0.1f);  // 等待0.1秒后重试
+            yield return new WaitForSeconds(0.1f);
             
-            // 在父级层次结构中查找BlockPoolManager
             Transform current = transform;
             while (current != null)
             {
@@ -47,7 +45,6 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
         if (blockPoolManager == null)
         {
             Debug.LogWarning($"Failed to find BlockPoolManager for {gameObject.name} after {maxRetries} retries");
-            // 输出层级结构以帮助调试
             Transform current = transform;
             string hierarchy = gameObject.name;
             while (current.parent != null)
@@ -70,14 +67,23 @@ public class AdvancedBallPoolManager : BallPoolManager, IButton
 
     public override void ReturnBallToPool(GameObject ball)
     {
+        if (ball.activeSelf)
+        {
+            activeBallCount--;
+        }
+        
         ball.SetActive(false);
         ballPool.Enqueue(ball);
-        activeBallCount--;
         
         if (blockPoolManager != null)
         {
             blockPoolManager.RestoreAllBlocks();
         }
+    }
+
+    protected override IEnumerator RespawnBallWithDelay()
+    {
+        yield break;
     }
 
     public void OnButtonDown()
