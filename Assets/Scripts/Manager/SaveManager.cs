@@ -275,7 +275,6 @@ public class SaveManager : MonoBehaviour
             
             if (PlayController.instance != null)
             {
-                Debug.Log("[SaveManager] Disabling player at start of load");
                 PlayController.instance.gameObject.SetActive(false);
             }
 
@@ -289,18 +288,16 @@ public class SaveManager : MonoBehaviour
                 try
                 {
                     string jsonContent = File.ReadAllText(playerSaveFilePath);
-                    Debug.Log($"[SaveManager] Save file content: {jsonContent}");
                     var saveData = JsonUtility.FromJson<PlayerSaveData>(jsonContent);
                     if (saveData != null)
                     {
                         playerPosition = new Vector3(saveData.respawnPointX, saveData.respawnPointY, 0);
                         hasValidSaveData = true;
-                        Debug.Log($"[SaveManager] Found valid save position: {playerPosition}");
                     }
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[SaveManager] Error reading save file: {e.Message}");
+                    throw;
                 }
             }
 
@@ -310,7 +307,6 @@ public class SaveManager : MonoBehaviour
             
             if (ChunkManager.Instance != null)
             {
-                Debug.Log($"[SaveManager] Loading chunks for position: {playerPosition}");
                 bool chunksLoaded = false;
                 ChunkManager.OnChunkLoadedEvent += OnChunksLoaded;
                 
@@ -331,8 +327,6 @@ public class SaveManager : MonoBehaviour
                 {
                     await Task.Yield();
                 }
-
-                Debug.Log("[SaveManager] Chunks loaded");
             }
 
             // 4. 设置玩家位置和状态
@@ -342,7 +336,6 @@ public class SaveManager : MonoBehaviour
             if (PlayController.instance != null)
             {
                 // 先设置位置
-                Debug.Log($"[SaveManager] Setting player position to: {playerPosition}");
                 PlayController.instance.transform.position = playerPosition;
                 
                 // 加载其他状态
@@ -358,24 +351,20 @@ public class SaveManager : MonoBehaviour
                 }
                 
                 // 最后再激活玩家
-                Debug.Log("[SaveManager] Activating player after all setup is complete");
                 PlayController.instance.gameObject.SetActive(true);
                 PlayController.instance.EnableControl();
-                Debug.Log($"[SaveManager] Player active state after enable: {PlayController.instance.gameObject.activeSelf}");
             }
 
             // 5. 完成加载
             SetLoadState(GameLoadState.Complete);
             UpdateLoadProgress(1.0f, hasValidSaveData ? "存档加载完成" : "使用默认位置加载完成");
         }
-        catch (Exception e)
+        catch (Exception)
         {
-            Debug.LogError($"[SaveManager] Load game failed: {e.Message}\n{e.StackTrace}");
             SetLoadState(GameLoadState.Failed);
             UpdateLoadProgress(0f, "加载失败");
-            
-            // 错误恢复：重置到默认状态
             HandleLoadError();
+            throw;
         }
         finally
         {
@@ -392,13 +381,10 @@ public class SaveManager : MonoBehaviour
     {
         try
         {
-            Debug.Log("[SaveManager] Disabling all controls");
             if (PlayController.instance != null)
             {
-                Debug.Log($"[SaveManager] Player active state before disable: {PlayController.instance.gameObject.activeSelf}");
                 PlayController.instance.DisableControl();
                 PlayController.instance.gameObject.SetActive(false);
-                Debug.Log($"[SaveManager] Player active state after disable: {PlayController.instance.gameObject.activeSelf}");
             }
             else
             {
@@ -415,13 +401,10 @@ public class SaveManager : MonoBehaviour
     {
         try
         {
-            Debug.Log("[SaveManager] Enabling all controls");
             if (PlayController.instance != null)
             {
-                Debug.Log($"[SaveManager] Player active state before enable: {PlayController.instance.gameObject.activeSelf}");
                 PlayController.instance.gameObject.SetActive(true);
                 PlayController.instance.EnableControl();
-                Debug.Log($"[SaveManager] Player active state after enable: {PlayController.instance.gameObject.activeSelf}");
             }
             else
             {
@@ -460,7 +443,6 @@ public class SaveManager : MonoBehaviour
         if (currentLoadState != newState)
         {
             currentLoadState = newState;
-            Debug.Log($"[SaveManager] Load state changed to: {newState}");
             OnLoadStateChanged?.Invoke(currentLoadState);
         }
     }
@@ -468,7 +450,6 @@ public class SaveManager : MonoBehaviour
     private void UpdateLoadProgress(float progress, string operation)
     {
         OnLoadProgressChanged?.Invoke(new LoadingProgress(progress, operation));
-        Debug.Log($"[SaveManager] Loading Progress: {progress:P0} - {operation}");
     }
 
     public bool DoesSaveExist(int slotIndex)
@@ -503,7 +484,6 @@ public class SaveManager : MonoBehaviour
         if (currentRespawnState != newState)
         {
             currentRespawnState = newState;
-            Debug.Log($"[SaveManager] Respawn state changed to: {newState}");
             OnRespawnStateChanged?.Invoke(currentRespawnState);
         }
     }
@@ -537,7 +517,6 @@ public class SaveManager : MonoBehaviour
                     if (saveData != null)
                     {
                         respawnPosition = new Vector2(saveData.respawnPointX, saveData.respawnPointY);
-                        Debug.Log($"[SaveManager] Found respawn position in save: {respawnPosition}");
                     }
                 }
                 catch (Exception e)
@@ -625,7 +604,6 @@ public class SaveManager : MonoBehaviour
         if (playerLoadState != newState)
         {
             playerLoadState = newState;
-            Debug.Log($"[SaveManager] Player load state changed to: {newState}");
             OnPlayerLoadStateChanged?.Invoke(playerLoadState);
         }
     }
@@ -644,12 +622,9 @@ public class SaveManager : MonoBehaviour
             {
                 CameraController.Instance.CameraStartResetPosition(PlayController.instance.transform.position);
             }
-            
-            Debug.Log("[SaveManager] Player state reset successfully");
         }
         catch (Exception e)
         {
-            Debug.LogError($"[SaveManager] Error resetting player state: {e.Message}");
             HandleRespawnError();
         }
     }
@@ -702,8 +677,6 @@ public class SaveManager : MonoBehaviour
                 {
                     CameraController.Instance.CameraStartResetPosition(defaultSpawnPoint);
                 }
-                
-                Debug.Log("[SaveManager] Reset to default state successful");
             }
             catch (Exception e)
             {
@@ -716,8 +689,6 @@ public class SaveManager : MonoBehaviour
     {
         try
         {
-            Debug.Log($"[SaveManager] Loading save data for slot {slotIndex}");
-            // 这里可以添加加载基础存档数据的逻辑
             await Task.CompletedTask;
         }
         catch (Exception e)
@@ -731,8 +702,6 @@ public class SaveManager : MonoBehaviour
     {
         try
         {
-            Debug.Log("[SaveManager] Loading player state");
-            // 这里可以添加加载玩家状态的逻辑
             await Task.CompletedTask;
         }
         catch (Exception e)
@@ -746,8 +715,6 @@ public class SaveManager : MonoBehaviour
     {
         try
         {
-            Debug.Log("[SaveManager] Loading chunks");
-            // 这里可以添加加载区块的逻辑
             await Task.CompletedTask;
         }
         catch (Exception e)

@@ -727,7 +727,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         //playerData.currentHp=currentHp;
     }
 
-    private async void PlayerDead()
+    public async void PlayerDead()
     {
         DisableControl(); // 禁用控制
         await PlayerDeadCoroutine();
