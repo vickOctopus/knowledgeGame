@@ -182,7 +182,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         _verticalMove = _playerInput.GamePLay.Move.ReadValue<Vector2>().y;
 
         // 只在有垂直输入或已经在梯子上时检测
-        if (Mathf.Abs(_verticalMove) > 0)
+        if (Mathf.Abs(_verticalMove) > 0.9)
         {
             _checkingLadder = true;
         }

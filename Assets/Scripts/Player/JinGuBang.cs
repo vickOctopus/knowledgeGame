@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -49,6 +50,13 @@ public class JinGuBang : MonoBehaviour
     // private bool _isGetTargetAngle;
     private bool _hasCallPlayerAboutInsert;
     
+    private bool _isGamepadActive = true;
+    private Vector2 _lastMousePosition;
+
+    private Vector2 _lastValidStickDirection; // 添加这个变量来保存最后的有效方向
+
+    private float _lastValidRotation = float.MinValue;
+
    private void Awake()
    {
        if (instance == null)
@@ -73,7 +81,7 @@ public class JinGuBang : MonoBehaviour
        UpdateCollider();
        _playerInput = new PlayerInput();
        
-       
+       _lastMousePosition = Input.mousePosition;
    }
 
 
@@ -94,6 +102,8 @@ public class JinGuBang : MonoBehaviour
        _anchorMoveAxis = _playerInput.GamePLay.AnchorMove.ReadValue<float>();
        
        TipsCheck();
+       UpdateInputDevice();
+       UpdateCursorVisibility();
 
        
         if (_playerInput.GamePLay.Unload.IsPressed()&&_joint.enabled)
@@ -116,7 +126,36 @@ public class JinGuBang : MonoBehaviour
         {
             Shorten();
         }
-        
+   }
+
+   private void UpdateInputDevice()
+   {
+       // 检查鼠标位置变化
+       Vector2 currentMousePosition = Input.mousePosition;
+       bool hasMouseMovement = Vector2.Distance(currentMousePosition, _lastMousePosition) > 0.1f;
+       _lastMousePosition = currentMousePosition;
+
+       // 检查手柄右摇杆输入
+       bool hasGamepadInput = false;
+       foreach (var device in UnityEngine.InputSystem.InputSystem.devices)
+       {
+           if (device is UnityEngine.InputSystem.Gamepad gamepad)
+           {
+               Vector2 stickValue = gamepad.rightStick.ReadValue();
+               hasGamepadInput = stickValue.magnitude > 0.1f;
+               break;
+           }
+       }
+
+       // 更新输入状态
+       if (hasGamepadInput && !_isGamepadActive)
+       {
+           _isGamepadActive = true; // 切换到手柄模式
+       }
+       else if (hasMouseMovement && _isGamepadActive)
+       {
+           _isGamepadActive = false; // 切换到鼠标模式
+       }
    }
 
    private void FixedUpdate()
@@ -155,22 +194,51 @@ public class JinGuBang : MonoBehaviour
 
    private void RotateJinGuBang()
    {
-       // 获取鼠标界中的位置
-       var mousePosition = Camera.main.ScreenToWorldPoint(_playerInput.GamePLay.JinGuBangDir.ReadValue<Vector2>());
-       mousePosition.z = 0; // 确保z轴为0，以适应2D场景
+       if (_isGamepadActive)
+       {
+           // 手柄输入 - 获取右摇杆输入
+           Vector2 stickValue = Vector2.zero;
+           foreach (var device in UnityEngine.InputSystem.InputSystem.devices)
+           {
+               if (device is UnityEngine.InputSystem.Gamepad gamepad)
+               {
+                   stickValue = gamepad.rightStick.ReadValue();
+                   break;
+               }
+           }
+           
+           if (stickValue.magnitude > 0.1f)
+           {
+               // 根据摇杆的x值决定旋转方向和速度
+               float rotationDirection = -stickValue.x;
+               float rotationAmount = rotationDirection * rotateSpeed * Time.fixedDeltaTime; 
+               
+               // 直接添加旋转角度
+               float newAngle = _rg.rotation + rotationAmount;
+               _rg.MoveRotation(newAngle);
+               _lastValidRotation = newAngle;
+           }
+           else if (_lastValidRotation != float.MinValue)
+           {
+               // 使用 MoveRotation 平滑地保持最后的有效角度
+               var step = rotateSpeed * Time.fixedDeltaTime;
+               var newAngle = Mathf.MoveTowardsAngle(_rg.rotation, _lastValidRotation, step);
+               _rg.MoveRotation(newAngle);
+           }
+       }
+       else
+       {
+           // 鼠标输入 - 使用鼠标位置
+           Vector2 mousePos = _playerInput.GamePLay.JinGuBangDir.ReadValue<Vector2>();
+           var mousePosition = Camera.main.ScreenToWorldPoint(mousePos);
+           mousePosition.z = 0;
+           var direction = (mousePosition - transform.position).normalized;
+           float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 90.0f;
 
-       // 计算方向
-       var direction = (mousePosition - transform.position).normalized;
-
-       // 计算目标旋转
-       var angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg-90.0f;
-
-       // 平滑旋转
-       var step = rotateSpeed * Time.fixedDeltaTime; // 每帧的旋转步长
-       var newAngle = Mathf.MoveTowardsAngle(_rg.rotation, angle, step);
-    
-       // 使用 MoveRotation 方法进行旋转
-       _rg.MoveRotation(newAngle);
+           var step = rotateSpeed * Time.fixedDeltaTime;
+           var newAngle = Mathf.MoveTowardsAngle(_rg.rotation, angle, step);
+           _rg.MoveRotation(newAngle);
+       }
    }
    
 
@@ -247,7 +315,6 @@ public class JinGuBang : MonoBehaviour
        PlayController.instance.UnloadJinGuBangPlayerMove();
        transform.parent = null;
 
-       Cursor.visible = false;
        PlayController.instance.isOnJinGuBang = false;
        PlayController.instance.isTakingJinGuBang = false;
        
@@ -269,16 +336,15 @@ public class JinGuBang : MonoBehaviour
        _joint.anchor = new Vector2(0.0f, 0.3f);
        _joint.connectedAnchor = new Vector2(0f, 0.5f);
        
-      
+       // 初始化最后有效旋转为当前旋转
+       _lastValidRotation = _rg.rotation;
 
-       // 忽略玩家和金箍棒之间的碰撞
-       // Physics2D.IgnoreCollision(_collider, PlayController.instance.GetComponent<Collider2D>(), true);
        Physics2D.IgnoreLayerCollision(LayerMask.NameToLayer("Player"), LayerMask.NameToLayer("JinGuBang"),true);
 
        PlayController.instance.isEquipJinGuBang = true;
        PlayController.instance.isTakingJinGuBang = true;
 
-       Cursor.visible = true;
+       // 移除这里的光标显示控制
    }
 
    private void OnDrawGizmos()
@@ -339,6 +405,15 @@ public class JinGuBang : MonoBehaviour
                    Debug.DrawLine(currentRayStart, hit.point, Color.green, 0.3f);
                }
            }
+       }
+   }
+
+   // 新增方法，统一管理光标显示
+   private void UpdateCursorVisibility()
+   {
+       if (_joint.enabled) // 只在装备金箍棒时控制光标
+       {
+           Cursor.visible = !_isGamepadActive;
        }
    }
 }

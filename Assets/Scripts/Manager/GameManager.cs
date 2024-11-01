@@ -10,6 +10,7 @@ public class GameManager : MonoBehaviour
     public Texture2D cursorTexture;
  
     public static GameManager instance;
+
     private void Awake()
     {
         if (instance == null)
@@ -89,7 +90,7 @@ public class GameManager : MonoBehaviour
     {
         #if UNITY_EDITOR
         if (UnityEditor.EditorUtility.DisplayDialog("删除所有 JSON 文件",
-            "你确定要删除持久化数据路径中的所有 JSON 文件吗？", "是", "��"))
+            "你确定要删除持久化数据路径中的所有 JSON 文件吗？", "是", ""))
         {
             DeleteAllJsonFiles();
         }
