@@ -106,6 +106,10 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private Coroutine _respawnCoroutine;
 
+    [HideInInspector] public bool isVerticalOnJinGuBang = false;  // 标记是否在金箍棒竖直状态
+    private float _originalPlayerMass;
+    private float _originalPlayerGravity;
+
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -129,6 +133,9 @@ public class PlayController : MonoBehaviour,ITakeDamage
         
         currentHp = maxHp;
         gameObject.SetActive(false);
+
+        _originalPlayerMass = _rg.mass;
+        _originalPlayerGravity = _rg.gravityScale;
     }
 
     private void OnEnable()
@@ -798,7 +805,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
 
     private void UpdateIsOnJinGuBang()
     {
-        isOnJinGuBang = isEquipJinGuBang && !_isGrounded;
+        isOnJinGuBang = (isEquipJinGuBang && !_isGrounded) || isVerticalOnJinGuBang;
     }
 
     // 添加这个方法用于兼容性
@@ -806,6 +813,32 @@ public class PlayController : MonoBehaviour,ITakeDamage
     {
         // 调用新的方法
         RetreatToSafePosition(respawnTime);
+    }
+
+    // 新：调整玩家在金箍棒竖直状态时的物理属性
+    public void AdjustForVerticalJinGuBang(bool isVertical)
+    {
+        if (isVertical)
+        {
+            _rg.mass = _originalPlayerMass * 0.05f;       // 保持很小的质量
+            _rg.gravityScale = 0f;                        // 完全禁用重力
+            
+            float currentVelocityY = _rg.velocity.y;
+            float clampedVelocityY = Mathf.Clamp(currentVelocityY, -2f, 0.5f);
+            _rg.velocity = new Vector2(_rg.velocity.x * 0.3f, clampedVelocityY);
+        }
+        else
+        {
+            _rg.mass = _originalPlayerMass;
+            _rg.gravityScale = _originalPlayerGravity;
+        }
+        isVerticalOnJinGuBang = isVertical;
+    }
+
+    // 添加公共方法来调整重力
+    public void SetGravityScale(float scale)
+    {
+        _rg.gravityScale = _originalPlayerGravity * scale;
     }
 }
 

@@ -148,7 +148,7 @@ MonoBehaviour:
   collisionLayer:
     serializedVersion: 2
     m_Bits: 64
-  crushDistance: 1
+  crushDistance: 0.5
   playerLayer:
     serializedVersion: 2
     m_Bits: 8

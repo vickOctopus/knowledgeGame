@@ -10,7 +10,7 @@ using UnityEngine.Serialization;
 public class JinGuBang : MonoBehaviour
 {
     public static JinGuBang instance;
-    
+    public Transform tip;
     public LayerMask hitLayerMask;
     
     public LayerMask platformMask;
@@ -43,12 +43,6 @@ public class JinGuBang : MonoBehaviour
     private Vector2 _formMousePosition;
 
     private bool _isTipsBlock;
-
-    // private bool _isInserted;
-    private float _insertAngle;
-
-    // private bool _isGetTargetAngle;
-    private bool _hasCallPlayerAboutInsert;
     
     private bool _isGamepadActive = true;
     private Vector2 _lastMousePosition;
@@ -56,6 +50,8 @@ public class JinGuBang : MonoBehaviour
     private Vector2 _lastValidStickDirection; // 添加这个变量来保存最后的有效方向
 
     private float _lastValidRotation = float.MinValue;
+
+    private bool _isRotatingToVertical = false; // 新增：标记是否正在旋转到竖直状态
 
    private void Awake()
    {
@@ -93,6 +89,12 @@ public class JinGuBang : MonoBehaviour
 
    private void OnDisable()
    {
+       // 确保在禁用时退出竖直状态
+       if (_isInitialRotation)
+       {
+           ExitVerticalState();
+       }
+       
        _playerInput.Disable();
        PlayController.instance.isEquipJinGuBang = false;
    }
@@ -130,12 +132,12 @@ public class JinGuBang : MonoBehaviour
 
    private void UpdateInputDevice()
    {
-       // 检查鼠标位置变化
+       // 检测鼠标移动
        Vector2 currentMousePosition = Input.mousePosition;
        bool hasMouseMovement = Vector2.Distance(currentMousePosition, _lastMousePosition) > 0.1f;
        _lastMousePosition = currentMousePosition;
 
-       // 检查手柄右摇杆输入
+       // 检测手柄输入
        bool hasGamepadInput = false;
        foreach (var device in UnityEngine.InputSystem.InputSystem.devices)
        {
@@ -147,7 +149,7 @@ public class JinGuBang : MonoBehaviour
            }
        }
 
-       // 更新输入状态
+       // 自动切换输入模式
        if (hasGamepadInput && !_isGamepadActive)
        {
            _isGamepadActive = true; // 切换到手柄模式
@@ -171,15 +173,17 @@ public class JinGuBang : MonoBehaviour
    
    private void ChangeSpeedWithScaleAndAnchorPosition()
    {
-       _moveSpeed=moveSpeed*_colliderHeight/_height;
+       _moveSpeed = moveSpeed * _colliderHeight/_height;
        rotateSpeed = _originalRotationSpeed - _colliderHeight*10.0f;
    }
 
 
    private void AnchorMove()
    {
+       // 移动锚点
        _joint.anchor += new Vector2(0, _anchorMoveAxis * Time.fixedDeltaTime * _moveSpeed);
 
+       // 限制锚点移动范围
        if (Mathf.Abs(_joint.anchor.y) >= _colliderHeight)
        {
            _joint.anchor = new Vector2(0, _colliderHeight);
@@ -188,12 +192,18 @@ public class JinGuBang : MonoBehaviour
        {
            _joint.anchor = new Vector2(0, 0);
        }
-       
    }
 
 
    private void RotateJinGuBang()
    {
+       // 如果在竖直状态，完全禁用玩家的旋转控制
+       if (_isInitialRotation)
+       {
+           return; // 直接返回，不处理任何旋转输入
+       }
+
+       // 正常状态下的旋转控制
        if (_isGamepadActive)
        {
            // 手柄输入 - 获取右摇杆输入
@@ -211,7 +221,7 @@ public class JinGuBang : MonoBehaviour
            {
                // 根据摇杆的x值决定旋转方向和速度
                float rotationDirection = -stickValue.x;
-               float rotationAmount = rotationDirection * rotateSpeed * Time.fixedDeltaTime; 
+               float rotationAmount = rotationDirection * rotateSpeed * Time.fixedDeltaTime;
                
                // 直接添加旋转角度
                float newAngle = _rg.rotation + rotationAmount;
@@ -262,6 +272,15 @@ public class JinGuBang : MonoBehaviour
       
    }
 
+   private const float VERTICAL_ANGLE_THRESHOLD = 15f;     // 减小角度阈值，使判定更严格
+   private const float BALANCE_FORCE = 300f;              // 增加平衡力
+   private const float VERTICAL_MASS_MULTIPLIER = 200f;   // 大幅增加质量，提高稳定性
+   private const float VERTICAL_GRAVITY_MULTIPLIER = 20f; // 增加重力，提供更好的支撑
+   private const float VERTICAL_ROTATION_DAMPING = 30f;   // 增加阻尼，减少晃动
+   private const float INITIAL_ROTATION_SPEED = 800f;     // 增加初始旋转速度，更快进入竖直状态
+
+   private bool _isInitialRotation = false; // 新增：是否在进行初始旋转
+
    private void Elongation()
    {
        var temHeight = _colliderHeight + elongationSpeed * Time.deltaTime;
@@ -273,28 +292,150 @@ public class JinGuBang : MonoBehaviour
 
        float oldHeight = _colliderHeight;
        _colliderHeight += elongationSpeed * Time.deltaTime;
-
-       // 预检测
-       RaycastHit2D hit = Physics2D.Raycast(transform.position + transform.up * oldHeight, transform.up, _colliderHeight - oldHeight + 0.1f, platformMask);
-       if (hit.collider != null)
-       {
-           // 调整伸长距离
-           _colliderHeight = hit.distance + oldHeight - 0.05f; // 留出一点空间
-       }
-
+       
+       ApplyVerticalBalance();
        ApplyElongationForce(oldHeight);
        UpdateCollider();
    }
 
+   /// <summary>
+   /// 检测并处理金箍棒的竖直平衡状态
+   /// 当金箍棒顶部接触地面且角度接近竖直时，会自动调整并维持竖直状态
+   /// </summary>
+   private void ApplyVerticalBalance()
+   {
+       // 如果金箍棒没有装备或者铰链关节未启用，直接退出竖直状态
+       if (!_joint.enabled || !PlayController.instance.isTakingJinGuBang)
+       {
+           ExitVerticalState();
+           return;
+       }
+
+       // 计算当前金箍棒与竖直向下方向的夹角
+       float currentAngle = Mathf.Abs(Vector2.Angle(transform.up, Vector2.down));
+       
+       // 如果夹角在阈值范围内，进入竖直状态处理
+       if (currentAngle < VERTICAL_ANGLE_THRESHOLD)
+       {
+           // 首次进入竖直状态时，快速调整到竖直位置
+           if (!_isInitialRotation)
+           {
+               EnterVerticalState(currentAngle);
+           }
+
+           // 应用竖直状态特殊的物理属性
+           ApplyVerticalPhysics();
+           // 持续维持竖直状态，进行微调
+           MaintainVerticalState(currentAngle);
+       }
+       else
+       {
+           ExitVerticalState();
+       }
+   }
+
+   // 新增：进入竖直状态的方法
+   private void EnterVerticalState(float currentAngle)
+   {
+       _isInitialRotation = true;
+       _isRotatingToVertical = true; // 开始旋转过程
+   }
+
+   // 增：退出竖直状态的方法
+   private void ExitVerticalState()
+   {
+       if (_isInitialRotation)
+       {
+           // 重置所有状态
+           _isRotatingToVertical = false;
+           _isInitialRotation = false;
+           
+           // 重置物理状态
+           PlayController.instance.AdjustForVerticalJinGuBang(false);
+           _rg.mass = _originalMass;
+           _rg.gravityScale = _originalGravity;
+           _rg.freezeRotation = false;
+           _rg.angularVelocity = 0;
+       }
+   }
+
+   private void ApplyVerticalPhysics()
+   {
+       _rg.mass = _originalMass * VERTICAL_MASS_MULTIPLIER;
+       _rg.gravityScale = _originalGravity * VERTICAL_GRAVITY_MULTIPLIER;
+       _rg.velocity = new Vector2(_rg.velocity.x * 0.2f, _rg.velocity.y);
+       PlayController.instance.AdjustForVerticalJinGuBang(true);
+   }
+
+   private void MaintainVerticalState(float currentAngle)
+   {
+       const float targetAngle = 180f;  // 竖直向下
+       float currentRotation = _rg.rotation;
+       
+       // 标准化当前角度到0-360范围
+       while (currentRotation < 0) currentRotation += 360f;
+       currentRotation = currentRotation % 360f;
+       
+       // 计算到目标角度的最短路径
+       float angleDifference = Mathf.DeltaAngle(currentRotation, targetAngle);
+       
+       // 如果正在旋转到竖直状态
+       if (_isRotatingToVertical)
+       {
+           float rotationSpeed = INITIAL_ROTATION_SPEED * 2f;
+           float step = rotationSpeed * Time.fixedDeltaTime;
+           
+           _rg.freezeRotation = false;
+           _rg.angularVelocity = 0;
+           _rg.MoveRotation(Mathf.MoveTowardsAngle(currentRotation, targetAngle, step));
+           
+           // 检查是否已经达到目标角度
+           if (Mathf.Abs(angleDifference) < 0.1f)
+           {
+               _isRotatingToVertical = false;
+               _rg.freezeRotation = true;
+               _rg.rotation = targetAngle;
+           }
+       }
+       else
+       {
+           // 已经完成旋转，保持锁定状态
+           _rg.freezeRotation = true;
+           _rg.rotation = targetAngle;
+           _rg.angularVelocity = 0;
+       }
+   }
+
+   private void ResetPhysicsState()
+   {
+       // 平滑过渡回正常状态
+       _rg.mass = Mathf.Lerp(_rg.mass, _originalMass, Time.fixedDeltaTime * 10f);
+       _rg.gravityScale = Mathf.Lerp(_rg.gravityScale, _originalGravity, Time.fixedDeltaTime * 10f);
+       _rg.freezeRotation = false;
+       PlayController.instance.AdjustForVerticalJinGuBang(false);
+   }
+
+
    private void Shorten()
    {
-       //缩短
        var temHeight = _colliderHeight - elongationSpeed * Time.deltaTime;
 
        if (temHeight > _height)
        {
+           float oldHeight = _colliderHeight;
            _colliderHeight -= elongationSpeed * Time.deltaTime;
+           
+           // 如果处于竖直状态，直接退出竖直状态
+           if (_isInitialRotation)
+           {
+               ExitVerticalState();
+           }
+           
            UpdateCollider();
+       }
+       else if (_isInitialRotation) // 当缩短到原长时退出竖直状态
+       {
+           ExitVerticalState();
        }
    }
 
@@ -305,21 +446,27 @@ public class JinGuBang : MonoBehaviour
        _collider.SetCustomShapes(_shapeGroup);
        Physics2D.SyncTransforms();
        _spriteRenderer.size = new Vector2(_spriteRenderer.size.x, _colliderHeight);
+       tip.localPosition=new Vector2(tip.localPosition.x,_colliderHeight);
    }
 
    private void UnloadJinGuBang()
    {
+       // 先确保退出竖直状态
+       if (_isInitialRotation)
+       {
+           ExitVerticalState();
+       }
+       
+       // 然后再禁用铰链关节和设置其他属性
        _joint.enabled = false;
        _rg.mass = 10.0f;
        _rg.gravityScale = 3.0f;
+       
+       // 处理玩家相关的状态
        PlayController.instance.UnloadJinGuBangPlayerMove();
        transform.parent = null;
-
        PlayController.instance.isOnJinGuBang = false;
        PlayController.instance.isTakingJinGuBang = false;
-       
-       // 移除原有的延迟恢复碰撞代码
-       // StartCoroutine(DelayStartCollisionWithPlayer());
    }
 
    private void EquipJinGuBang()
@@ -371,7 +518,7 @@ public class JinGuBang : MonoBehaviour
    private const float RAY_LENGTH_EXTRA = 0.1f;
    private const float FORCE_MULTIPLIER = 2.0f;
 
-   private readonly RaycastHit2D[] _raycastHits = new RaycastHit2D[5]; // 预分配数组
+   private readonly RaycastHit2D[] _raycastHits = new RaycastHit2D[5]; // 预配数组
 
    private void ApplyElongationForce(float oldHeight)
    {
