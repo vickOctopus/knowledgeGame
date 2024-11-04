@@ -6,7 +6,14 @@ public class RockHead : MonoBehaviour
     [SerializeField] private float moveSpeed = 2f;    // 移动速度
     [SerializeField] private LayerMask collisionLayer;// 碰撞层设置
     [SerializeField] private float crushDistance = 0.5f; // 挤压判定距离
+
+    [Header("检测设置")]
+    [SerializeField] private LayerMask detectionLayer; // 检测层（玩家和金箍棒的组合）
     [SerializeField] private LayerMask playerLayer;   // 玩家层
+    [SerializeField] private LayerMask jinGuBangLayer;    // 金箍棒层
+    [SerializeField] private float angleThreshold = 5f;   // 角度阈值
+
+    private bool isBlockedByJinGuBang = false;  // 是否被金箍棒阻挡
 
     private const float RAY_DISTANCE = 50f;  // 足够大的射线检测距离
     private bool movingUp = true;            // 移动方向
@@ -65,7 +72,29 @@ public class RockHead : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // 检查是否到达边界并改变方向
+        // 检是否到达边界并改变方向
+        CheckBoundaries();
+
+        // 进行统一检测
+        PerformDetection();
+
+        // 如果被金箍棒阻挡，停止移动
+        if (isBlockedByJinGuBang)
+        {
+            rb.velocity = Vector2.zero;
+            return;
+        }
+
+        // 检查挤压条件
+        CheckCrushCondition();
+
+        // 移动
+        Vector2 movement = movingUp ? Vector2.up : Vector2.down;
+        rb.velocity = movement * moveSpeed;
+    }
+
+    private void CheckBoundaries()
+    {
         if (movingUp && transform.position.y >= topLimit)
         {
             movingUp = false;
@@ -76,31 +105,77 @@ public class RockHead : MonoBehaviour
             movingUp = true;
             isTrackingPlayer = false;
         }
+    }
 
-        // 检测上方和下方的玩家
-        Vector2 topCheckStart = (Vector2)transform.position + Vector2.up * (boxCollider.size.y / 2);
-        Vector2 bottomCheckStart = (Vector2)transform.position - Vector2.up * (boxCollider.size.y / 2);
-
-        // 根据移动方向检测玩家
-        Collider2D playerCheck = Physics2D.OverlapBox(
-            movingUp ? topCheckStart + Vector2.up * crushDistance : bottomCheckStart + Vector2.down * crushDistance,
+    private void PerformDetection()
+    {
+        // 获取检测起点
+        Vector2 checkPoint = (Vector2)transform.position + 
+            (movingUp ? Vector2.up : Vector2.down) * (boxCollider.size.y / 2);
+        
+        // 进行统一检测，移除 crushDistance
+        Collider2D[] hits = Physics2D.OverlapBoxAll(
+            checkPoint,
             boxSize,
             0f,
-            playerLayer
+            detectionLayer
         );
 
-        // 更新追踪状态
-        if (playerCheck != null)
-        {
-            isTrackingPlayer = true;
-            playerOnTop = movingUp;
-        }
-        else
-        {
-            isTrackingPlayer = false;
-        }
+        // 重置状态
+        isBlockedByJinGuBang = false;
+        isTrackingPlayer = false;
 
-        // 检查挤压条件
+        // 处理检测结果
+        foreach (Collider2D hit in hits)
+        {
+            // 检查是否是玩家
+            if (((1 << hit.gameObject.layer) & playerLayer) != 0)
+            {
+                isTrackingPlayer = true;
+                playerOnTop = movingUp;
+            }
+            // 检查是否是金箍棒
+            else if (((1 << hit.gameObject.layer) & jinGuBangLayer) != 0)
+            {
+                CheckJinGuBangBlocking(hit);
+            }
+        }
+    }
+
+    private void CheckJinGuBangBlocking(Collider2D jinGuBangCollider)
+    {
+        JinGuBang jinGuBang = jinGuBangCollider.GetComponent<JinGuBang>();
+        if (jinGuBang != null)
+        {
+            // 如果金箍棒处于竖直状态，直接阻挡
+            if (jinGuBang.IsInVerticalState)
+            {
+                isBlockedByJinGuBang = true;
+                return;
+            }
+
+            // 如果不是竖直状态，检查角度和碰撞
+            float angleToUp = Vector2.Angle(jinGuBang.transform.up, Vector2.up);
+            bool isNearVerticalAngle = angleToUp < angleThreshold || 
+                                      Mathf.Abs(angleToUp - 180f) < angleThreshold;
+
+            if (isNearVerticalAngle)
+            {
+                // 检测两端是否接触碰撞体
+                Vector2 jinGuBangTop = (Vector2)jinGuBang.transform.position + 
+                    (Vector2)jinGuBang.transform.up * jinGuBang.GetColliderHeight();
+                Vector2 jinGuBangBottom = (Vector2)jinGuBang.transform.position;
+
+                bool topBlocked = Physics2D.OverlapCircle(jinGuBangTop, 0.2f, collisionLayer);
+                bool bottomBlocked = Physics2D.OverlapCircle(jinGuBangBottom, 0.2f, collisionLayer);
+
+                isBlockedByJinGuBang = topBlocked && bottomBlocked;
+            }
+        }
+    }
+
+    private void CheckCrushCondition()
+    {
         if (isTrackingPlayer)
         {
             float distanceToBoundary = movingUp ? 
@@ -115,10 +190,6 @@ public class RockHead : MonoBehaviour
                 isTrackingPlayer = false;
             }
         }
-
-        // 移动
-        Vector2 movement = movingUp ? Vector2.up : Vector2.down;
-        rb.velocity = movement * moveSpeed;
     }
 
     // 添加用于在编辑器中可视化检测范围的方法
@@ -155,6 +226,49 @@ public class RockHead : MonoBehaviour
         Vector2 arrowStart = transform.position;
         Vector2 arrowEnd = arrowStart + (movingUp ? Vector2.up : Vector2.down) * 1f;
         Gizmos.DrawLine(arrowStart, arrowEnd);
+
+        // 如果在运行时且检测到金箍棒
+        if (Application.isPlaying)
+        {
+            // 遍历场景中的金箍棒
+            foreach (var jinGuBang in FindObjectsOfType<JinGuBang>())
+            {
+                if (jinGuBang != null)
+                {
+                    // 显示金箍棒的检测点
+                    Vector2 jinGuBangTop = (Vector2)jinGuBang.transform.position + 
+                        (Vector2)jinGuBang.transform.up * jinGuBang.GetColliderHeight();
+                    Vector2 jinGuBangBottom = (Vector2)jinGuBang.transform.position;
+
+                    // 增大检测圆圈到0.2f
+                    Gizmos.color = Color.cyan;
+                    Gizmos.DrawWireSphere(jinGuBangTop, 0.2f);
+                    Gizmos.DrawWireSphere(jinGuBangBottom, 0.2f);
+
+                    // 如果检测到碰撞，显示不同颜色，实心球也增大到0.1f
+                    if (Physics2D.OverlapCircle(jinGuBangTop, 0.2f, collisionLayer))
+                    {
+                        Gizmos.color = Color.red;
+                        Gizmos.DrawSphere(jinGuBangTop, 0.1f);
+                    }
+                    if (Physics2D.OverlapCircle(jinGuBangBottom, 0.2f, collisionLayer))
+                    {
+                        Gizmos.color = Color.red;
+                        Gizmos.DrawSphere(jinGuBangBottom, 0.1f);
+                    }
+                }
+            }
+
+            // 如果被金箍棒阻挡，显示更大的标记
+            if (isBlockedByJinGuBang)
+            {
+                Gizmos.color = Color.red;
+                Gizmos.DrawWireSphere(transform.position, 0.8f);
+                // 添加十字线标记
+                Gizmos.DrawLine(transform.position + Vector3.left * 1f, transform.position + Vector3.right * 1f);
+                Gizmos.DrawLine(transform.position + Vector3.up * 1f, transform.position + Vector3.down * 1f);
+            }
+        }
     }
 
     // 添加OnDrawGizmosSelected来显示更多调试信息

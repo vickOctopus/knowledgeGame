@@ -582,7 +582,22 @@ public class PlayController : MonoBehaviour,ITakeDamage
         
         if (hitCount > 0)
         {
-            _isGrounded = !(isEquipJinGuBang && _groundCheckResults[0].gameObject.layer == LayerMask.NameToLayer("JinGuBang"));
+            // 检查是否是金箍棒
+            bool isJinGuBang = isEquipJinGuBang && _groundCheckResults[0].gameObject.layer == LayerMask.NameToLayer("JinGuBang");
+            
+            // 检查是否是OneWayPlatform且正在向上移动
+            bool isOneWayPlatform = _groundCheckResults[0].gameObject.CompareTag("OneWayPlatform");
+            bool isMovingUp = _rg.velocity.y > 0.1f; // 添加一个小的阈值避免浮点数精度问题
+
+            // 如果是OneWayPlatform且正在向上移动，则不视为接地
+            if (isOneWayPlatform && isMovingUp)
+            {
+                _isGrounded = false;
+            }
+            else
+            {
+                _isGrounded = !isJinGuBang;
+            }
         }
         else
         {
@@ -815,7 +830,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         RetreatToSafePosition(respawnTime);
     }
 
-    // 新：调整玩家在金箍棒竖直状态时的物理属性
+    // 新调整玩家在金箍棒竖直状态时的物理属性
     public void AdjustForVerticalJinGuBang(bool isVertical)
     {
         if (isVertical)
@@ -839,6 +854,12 @@ public class PlayController : MonoBehaviour,ITakeDamage
     public void SetGravityScale(float scale)
     {
         _rg.gravityScale = _originalPlayerGravity * scale;
+    }
+
+    // 添加公共方法来获取接地状态
+    public bool IsGrounded()
+    {
+        return _isGrounded;
     }
 }
 
