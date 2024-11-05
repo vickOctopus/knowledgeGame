@@ -104,7 +104,7 @@ public class SaveManager : MonoBehaviour
             OnLoadStateChanged?.Invoke(currentLoadState);
             await LoadPlayerStateAsync();
             
-            // 3. 异步加载区块
+            // 3. 步加载区块
             currentLoadState = GameLoadState.LoadingChunks;
             OnLoadStateChanged?.Invoke(currentLoadState);
             await LoadChunksAsync();
@@ -113,9 +113,9 @@ public class SaveManager : MonoBehaviour
             currentLoadState = GameLoadState.Complete;
             OnLoadStateChanged?.Invoke(currentLoadState);
         }
-        catch (Exception e) {
+        catch (Exception ex) {
             // 处理加载过程中的错误
-            Debug.LogError($"Load game failed: {e}");
+            Debug.LogError($"Load game failed: {ex}");
             currentLoadState = GameLoadState.Failed;
             OnLoadStateChanged?.Invoke(currentLoadState);
         }
@@ -295,7 +295,7 @@ public class SaveManager : MonoBehaviour
                         hasValidSaveData = true;
                     }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
                     throw;
                 }
@@ -357,7 +357,7 @@ public class SaveManager : MonoBehaviour
 
             // 5. 完成加载
             SetLoadState(GameLoadState.Complete);
-            UpdateLoadProgress(1.0f, hasValidSaveData ? "存档加载完成" : "使用默认位置加载完成");
+            UpdateLoadProgress(1.0f, hasValidSaveData ? "存档加载完成" : "��用默认位置加载完成");
         }
         catch (Exception)
         {
@@ -391,9 +391,9 @@ public class SaveManager : MonoBehaviour
                 Debug.LogWarning("[SaveManager] PlayController.instance is null when trying to disable controls");
             }
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Debug.LogError($"[SaveManager] Error disabling controls: {e.Message}");
+            Debug.LogError($"[SaveManager] Error disabling controls: {ex.Message}");
         }
     }
 
@@ -411,9 +411,9 @@ public class SaveManager : MonoBehaviour
                 Debug.LogWarning("[SaveManager] PlayController.instance is null when trying to enable controls");
             }
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Debug.LogError($"[SaveManager] Error enabling controls: {e.Message}");
+            Debug.LogError($"[SaveManager] Error enabling controls: {ex.Message}");
         }
     }
 
@@ -519,9 +519,9 @@ public class SaveManager : MonoBehaviour
                         respawnPosition = new Vector2(saveData.respawnPointX, saveData.respawnPointY);
                     }
                 }
-                catch (Exception e)
+                catch (Exception ex)
                 {
-                    Debug.LogError($"[SaveManager] Error loading save data: {e.Message}");
+                    Debug.LogError($"[SaveManager] Error loading save data: {ex.Message}");
                 }
             }
 
@@ -552,9 +552,9 @@ public class SaveManager : MonoBehaviour
             SetRespawnState(RespawnState.Complete);
             Debug.Log("[SaveManager] Respawn completed");
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Debug.LogError($"[SaveManager] Error during respawn: {e.Message}");
+            Debug.LogError($"[SaveManager] Error during respawn: {ex.Message}");
             SetRespawnState(RespawnState.Failed);
             HandleRespawnError();
         }
@@ -588,9 +588,9 @@ public class SaveManager : MonoBehaviour
                 }
             }
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Debug.LogError($"[SaveManager] Error waiting for chunks: {e.Message}");
+            Debug.LogError($"[SaveManager] Error waiting for chunks: {ex.Message}");
             throw;
         }
         finally
@@ -623,7 +623,7 @@ public class SaveManager : MonoBehaviour
                 CameraController.Instance.CameraStartResetPosition(PlayController.instance.transform.position);
             }
         }
-        catch (Exception e)
+        catch (Exception)
         {
             HandleRespawnError();
         }
@@ -678,9 +678,9 @@ public class SaveManager : MonoBehaviour
                     CameraController.Instance.CameraStartResetPosition(defaultSpawnPoint);
                 }
             }
-            catch (Exception e)
+            catch (Exception ex)
             {
-                Debug.LogError($"[SaveManager] Error during reset to default state: {e.Message}");
+                Debug.LogError($"[SaveManager] Error during reset to default state: {ex.Message}");
             }
         }
     }
@@ -691,9 +691,9 @@ public class SaveManager : MonoBehaviour
         {
             await Task.CompletedTask;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Debug.LogError($"[SaveManager] Error loading save data: {e.Message}");
+            Debug.LogError($"[SaveManager] Error loading save data: {ex.Message}");
             throw;
         }
     }
@@ -704,9 +704,9 @@ public class SaveManager : MonoBehaviour
         {
             await Task.CompletedTask;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Debug.LogError($"[SaveManager] Error loading player state: {e.Message}");
+            Debug.LogError($"[SaveManager] Error loading player state: {ex.Message}");
             throw;
         }
     }
@@ -717,9 +717,9 @@ public class SaveManager : MonoBehaviour
         {
             await Task.CompletedTask;
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            Debug.LogError($"[SaveManager] Error loading chunks: {e.Message}");
+            Debug.LogError($"[SaveManager] Error loading chunks: {ex.Message}");
             throw;
         }
     }

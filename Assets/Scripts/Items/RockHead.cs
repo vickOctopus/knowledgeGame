@@ -147,10 +147,11 @@ public class RockHead : MonoBehaviour
         JinGuBang jinGuBang = jinGuBangCollider.GetComponent<JinGuBang>();
         if (jinGuBang != null)
         {
-            // 如果金箍棒处于竖直状态，直接阻挡
             if (jinGuBang.IsInVerticalState)
             {
+                // 如果金箍棒处于竖直状态，直接阻挡
                 isBlockedByJinGuBang = true;
+                jinGuBang.SetBlockingRockHead(true);
                 return;
             }
 
@@ -170,6 +171,11 @@ public class RockHead : MonoBehaviour
                 bool bottomBlocked = Physics2D.OverlapCircle(jinGuBangBottom, 0.2f, collisionLayer);
 
                 isBlockedByJinGuBang = topBlocked && bottomBlocked;
+                jinGuBang.SetBlockingRockHead(isBlockedByJinGuBang);
+            }
+            else
+            {
+                jinGuBang.SetBlockingRockHead(false);
             }
         }
     }

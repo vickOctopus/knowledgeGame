@@ -36,8 +36,9 @@ public class JinGuBang : MonoBehaviour
 
     #region Constants
     // 竖直状态相关常量
-    private const float VERTICAL_ANGLE_THRESHOLD = 15f;          // 伸长时的角度阈值
-    private const float ANCHOR_VERTICAL_ANGLE_THRESHOLD = 5f;    // 锚点移动时的角度阈值（更严格）
+    private const float ELONGATION_ANGLE_THRESHOLD = 30f;        // 伸长时的角度阈值（更宽松）
+    private const float ANCHOR_VERTICAL_ANGLE_THRESHOLD = 15f;   // 锚点移动时的角度阈值（较严格）
+    private const float MAINTAIN_ANGLE_THRESHOLD = 5f;           // ��竖直状态的角度阈值（最严格）
     private const float BALANCE_FORCE = 300f;                   // 平衡力大小
     private const float VERTICAL_MASS_MULTIPLIER = 200f;        // 竖直状态时的质量倍数
     private const float VERTICAL_GRAVITY_MULTIPLIER = 20f;      // 竖直状态时的重力倍数
@@ -125,6 +126,10 @@ public class JinGuBang : MonoBehaviour
     private float _targetVerticalAngle;
     private Vector2 _lastMousePosition;
     private Vector2 _lastValidStickDirection;
+
+    // 添加字段
+    private bool _isUnloaded = false;
+    private bool _isBlockingRockHead = false;
     #endregion
 
     #region Physics Methods
@@ -146,7 +151,12 @@ public class JinGuBang : MonoBehaviour
     private void ApplyVerticalPhysics()
     {
         ApplyPhysicsParams(_verticalPhysics);
-        PlayController.instance.AdjustForVerticalJinGuBang(true);
+        
+        // 只在未卸载时才修改玩家的物理效果
+        if (!_isUnloaded)
+        {
+            PlayController.instance.AdjustForVerticalJinGuBang(true);
+        }
     }
 
     /// <summary>
@@ -155,7 +165,12 @@ public class JinGuBang : MonoBehaviour
     private void ResetPhysicsState()
     {
         ApplyPhysicsParams(_normalPhysics);
-        PlayController.instance.AdjustForVerticalJinGuBang(false);
+        
+        // 只在未卸载时才修改玩家的物理效果
+        if (!_isUnloaded)
+        {
+            PlayController.instance.AdjustForVerticalJinGuBang(false);
+        }
     }
 
     /// <summary>
@@ -239,6 +254,8 @@ public class JinGuBang : MonoBehaviour
     /// </summary>
     private void EquipJinGuBang()
     {
+        _isUnloaded = false;  // 重置卸载标记
+        
         transform.parent = PlayController.instance.transform;
         rotateSpeed = _originalRotationSpeed;
         _rg.mass = _originalMass;
@@ -263,10 +280,10 @@ public class JinGuBang : MonoBehaviour
     /// </summary>
     private void UnloadJinGuBang()
     {
-        if (_isInitialRotation)
-        {
-            ExitVerticalState();
-        }
+        _isUnloaded = true;  // 置卸载标记
+        
+        // 只恢复家的物理效果
+        PlayController.instance.AdjustForVerticalJinGuBang(false);
         
         _joint.enabled = false;
         _rg.mass = 10.0f;
@@ -298,10 +315,36 @@ public class JinGuBang : MonoBehaviour
         _rg.freezeRotation = false;
     }
 
-    // 修改公共方法，只返回碰撞体高度
+    /// <summary>
+    /// 获取碰撞体高度
+    /// </summary>
     public float GetColliderHeight()
     {
         return _colliderHeight;
+    }
+
+    /// <summary>
+    /// 设置是否正在阻挡 RockHead
+    /// </summary>
+    public void SetBlockingRockHead(bool isBlocking)
+    {
+        _isBlockingRockHead = isBlocking;
+    }
+
+    /// <summary>
+    /// 获取是否处于竖直状态
+    /// </summary>
+    public bool IsInVerticalState => _isInitialRotation;
+
+    /// <summary>
+    /// 从竖直状态跳跃
+    /// </summary>
+    public void JumpFromVerticalState()
+    {
+        if (_isInitialRotation)
+        {
+            UnloadJinGuBang();
+        }
     }
     #endregion
 
@@ -344,6 +387,7 @@ public class JinGuBang : MonoBehaviour
     private void OnEnable()
     {
         _playerInput.Enable();
+        _isBlockingRockHead = false;  // 重置阻挡状态
         EquipJinGuBang();
     }
 
@@ -458,7 +502,7 @@ public class JinGuBang : MonoBehaviour
         // 移动速度随长度增加而增加
         _moveSpeed = moveSpeed * _colliderHeight/_height;
         
-        // 旋转速度随长度增加而减小
+        // 旋转速度随长增加而减小
         rotateSpeed = _originalRotationSpeed - _colliderHeight * 10.0f;
     }
     #endregion
@@ -469,42 +513,66 @@ public class JinGuBang : MonoBehaviour
     /// </summary>
     private void ApplyVerticalBalance()
     {
-        // 状态检查：如果不满足基本条件，退出竖直状态
-        if (!_joint.enabled || !PlayController.instance.isTakingJinGuBang || PlayController.instance.IsGrounded())
-        {
-            ExitVerticalState();
-            return;
-        }
-
         // 计算与竖直方向的角度
         float angleToUp = Mathf.Abs(Vector2.Angle(transform.up, Vector2.up));
         float angleToDown = Mathf.Abs(Vector2.Angle(transform.up, Vector2.down));
-        
-        if (_isInitialRotation)
+
+        // 如果不在竖直状态且不在旋转过程中，使用较宽松的阈值检查是否需进入竖直状态
+        if (!_isInitialRotation && !_isRotatingToVertical)
         {
-            // 已在竖直状态：维持当前状态
-            float currentAngle = (_targetVerticalAngle == 0f) ? angleToUp : angleToDown;
-            
-            if (currentAngle < VERTICAL_ANGLE_THRESHOLD)
-            {
-                ApplyVerticalPhysics();
-                MaintainVerticalState(_targetVerticalAngle);
-            }
-            else
-            {
-                ExitVerticalState();
-            }
-        }
-        else
-        {
-            // 新进入状态：只检查向下的角度
-            if (angleToDown < VERTICAL_ANGLE_THRESHOLD)
+            // 根据当前是否在伸长来使用不同的阈值
+            float threshold = _playerInput.GamePLay.Elongation.IsPressed() ? 
+                ELONGATION_ANGLE_THRESHOLD : ANCHOR_VERTICAL_ANGLE_THRESHOLD;
+
+            // 新进入状态：使用不同的阈值
+            if (angleToDown < threshold)
             {
                 const float targetAngle = 180f;
                 EnterVerticalState(targetAngle);
                 ApplyVerticalPhysics();
                 MaintainVerticalState(targetAngle);
             }
+            return;
+        }
+
+        // 以下代码只在竖直状态时执行
+        // 如果未卸载，才进行这些检查
+        if (!_isUnloaded)
+        {
+            if (!_joint.enabled || !PlayController.instance.isTakingJinGuBang)
+            {
+                ExitVerticalState();
+                return;
+            }
+
+            if (PlayController.instance.IsGrounded())
+            {
+                ExitVerticalState();
+                return;
+            }
+        }
+        
+        // 维持竖直状态时使用更严格的阈值
+        float currentAngle = (_targetVerticalAngle == 0f) ? angleToUp : angleToDown;
+        
+        if (currentAngle < MAINTAIN_ANGLE_THRESHOLD)  // 使用更严格的阈值(5度)
+        {
+            ApplyVerticalPhysics();
+            MaintainVerticalState(_targetVerticalAngle);
+            
+            // 在维持竖直状态时也调整位置
+            if (_targetVerticalAngle == 0f)
+            {
+                AdjustPositionForUpwardVertical();
+            }
+            else
+            {
+                AdjustPositionForDownwardVertical();
+            }
+        }
+        else
+        {
+            ExitVerticalState();
         }
     }
 
@@ -533,19 +601,13 @@ public class JinGuBang : MonoBehaviour
     /// </summary>
     private void MaintainVerticalState(float targetAngle)
     {
-        float currentRotation = NormalizeAngle(_rg.rotation);
-        float angleDifference = Mathf.DeltaAngle(currentRotation, targetAngle);
+        // 直接设置到目标角度 
+        _rg.rotation = targetAngle;
+        _rg.freezeRotation = true;
+        _rg.angularVelocity = 0;
         
-        if (_isRotatingToVertical)
-        {
-            // 旋转到竖直状态的过程
-            RotateTowardsVertical(currentRotation, targetAngle, angleDifference);
-        }
-        else
-        {
-            // 锁定竖直状态
-            LockVerticalRotation(targetAngle);
-        }
+        // 标记旋转完成
+        _isRotatingToVertical = false;
     }
 
     /// <summary>
@@ -591,45 +653,6 @@ public class JinGuBang : MonoBehaviour
             transform.position = groundHit.point - (Vector2)transform.up * _colliderHeight;
         }
     }
-
-    private void RotateTowardsVertical(float currentRotation, float targetAngle, float angleDifference)
-    {
-        _rg.freezeRotation = false;
-        _rg.angularVelocity = 0;
-        
-        float rotationSpeed = Mathf.Lerp(100f, _verticalPhysics.rotationSpeed, 
-            1f - (Mathf.Abs(angleDifference) / 180f));
-        
-        float step = rotationSpeed * Time.fixedDeltaTime;
-        float newRotation = Mathf.MoveTowardsAngle(currentRotation, targetAngle, step);
-        _rg.MoveRotation(newRotation);
-        
-        if (Mathf.Abs(angleDifference) < 0.1f)
-        {
-            CompleteRotation(targetAngle);
-        }
-    }
-
-    private void CompleteRotation(float targetAngle)
-    {
-        _isRotatingToVertical = false;
-        _rg.rotation = targetAngle;
-        _rg.freezeRotation = true;
-        _rg.angularVelocity = 0;
-    }
-
-    private void LockVerticalRotation(float targetAngle)
-    {
-        _rg.freezeRotation = true;
-        _rg.rotation = targetAngle;
-        _rg.angularVelocity = 0;
-    }
-
-    private float NormalizeAngle(float angle)
-    {
-        while (angle < 0) angle += 360f;
-        return angle % 360f;
-    }
     #endregion
     #endregion
 
@@ -639,6 +662,11 @@ public class JinGuBang : MonoBehaviour
     /// </summary>
     private void Elongation()
     {
+        if (_isBlockingRockHead)
+        {
+            return;
+        }
+
         var temHeight = _colliderHeight + elongationSpeed * Time.deltaTime;
 
         if (_isTipsBlock || temHeight >= maxScale)
@@ -652,7 +680,6 @@ public class JinGuBang : MonoBehaviour
         if (_isInitialRotation)
         {
             AdjustPositionDuringScale(oldHeight);
-            ApplyVerticalBalance();
         }
         else
         {
@@ -703,9 +730,26 @@ public class JinGuBang : MonoBehaviour
         }
         else // 向下的竖直状态，保持顶部位置
         {
+            // 先获取当前顶部位置
             Vector2 topPoint = (Vector2)transform.position + (Vector2)transform.up * oldHeight;
+            
+            // 更新碰撞体
             UpdateCollider();
+            
+            // 根据新的高度调整位置，保持顶部位置不变
             transform.position = topPoint - (Vector2)transform.up * _colliderHeight;
+            
+            // 检查顶部是否接触地面，如果是则整位置
+            RaycastHit2D groundHit = Physics2D.Raycast(
+                topPoint, 
+                Vector2.down, 
+                0.2f, 
+                platformMask);
+
+            if (groundHit.collider != null)
+            {
+                transform.position = groundHit.point - (Vector2)transform.up * _colliderHeight;
+            }
         }
     }
 
@@ -760,7 +804,7 @@ public class JinGuBang : MonoBehaviour
     }
 
     /// <summary>
-    /// 调整位置使底部紧贴地面
+    /// 调整位置使底部贴地面
     /// </summary>
     private void AdjustPositionToGround(Vector2 bottomPoint, RaycastHit2D hit, float rayLength)
     {
@@ -866,8 +910,6 @@ public class JinGuBang : MonoBehaviour
         _rg.MoveRotation(newAngle);
     }
     #endregion
-
-    public bool IsInVerticalState => _isInitialRotation;
 }
 
  

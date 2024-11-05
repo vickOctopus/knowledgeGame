@@ -328,6 +328,12 @@ public class PlayController : MonoBehaviour,ITakeDamage
                 new Vector2(Mathf.Min(_rg.velocity.x + moveSpeed * airControl * Time.deltaTime, _horizontalMove * moveSpeed),
                     _rg.velocity.y);
         }
+
+        // 在空中也允许从竖直��态跳跃
+        if (_playerInput.GamePLay.Jump.triggered)
+        {
+            HandleJumpFromVerticalJinGuBang();
+        }
     }
 
     private void HandleRollState()
@@ -486,6 +492,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
         
         else if (_playerInput.GamePLay.Jump.triggered)
         {
+            HandleJumpFromVerticalJinGuBang();
             _currentState = PlayerState.Jumping;
         }
         
@@ -493,8 +500,6 @@ public class PlayController : MonoBehaviour,ITakeDamage
         {
             _currentState = PlayerState.Rolling;
         }
-        
-      
     }
 
 
@@ -860,6 +865,15 @@ public class PlayController : MonoBehaviour,ITakeDamage
     public bool IsGrounded()
     {
         return _isGrounded;
+    }
+
+    private void HandleJumpFromVerticalJinGuBang()
+    {
+        if (JinGuBang.instance != null && JinGuBang.instance.gameObject.activeInHierarchy && JinGuBang.instance.IsInVerticalState)
+        {
+            JinGuBang.instance.JumpFromVerticalState();
+            _currentState = PlayerState.Jumping;
+        }
     }
 }
 
