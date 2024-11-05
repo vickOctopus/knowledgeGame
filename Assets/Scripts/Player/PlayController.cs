@@ -110,6 +110,8 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private float _originalPlayerMass;
     private float _originalPlayerGravity;
 
+    public Rigidbody2D Rb => _rg;
+
     private void Awake()
     {
         if (instance != null && instance != this)
@@ -329,7 +331,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
                     _rg.velocity.y);
         }
 
-        // 在空中也允许从竖直��态跳跃
+        // 在空中也允许从竖直态跳跃
         if (_playerInput.GamePLay.Jump.triggered)
         {
             HandleJumpFromVerticalJinGuBang();

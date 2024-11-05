@@ -1,6 +1,4 @@
-using System;
 using UnityEngine;
-using UnityEngine.Events;
 
 public class NonReboundButton : MonoBehaviour
 {
@@ -9,6 +7,7 @@ public class NonReboundButton : MonoBehaviour
     protected Sprite upSprite;
     public Sprite downSprite;
     protected BoxCollider2D boxCollider;
+    private int _triggerCount = 0;
 
     private void Awake()
     {
@@ -19,34 +18,35 @@ public class NonReboundButton : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
-            spriteRenderer.sprite = downSprite;
-            
-            SendMessageUpwards("OnButtonDown");
-          
+        if (collision.attachedRigidbody != null && !collision.CompareTag("Platform"))
+        {
+            _triggerCount++;
+            if (_triggerCount == 1)
+            {
+                spriteRenderer.sprite = downSprite;
+                SendMessageUpwards("OnButtonDown");
+            }
+        }
     }
 
     private void OnTriggerExit2D(Collider2D collision)
     {
-        if (!IsAnyBodyInTrigger())
+        if (collision.attachedRigidbody != null && !collision.CompareTag("Platform"))
         {
-            spriteRenderer.sprite = upSprite;
-            SendMessageUpwards("OnButtonUp");
+            _triggerCount--;
+            if (_triggerCount <= 0)
+            {
+                _triggerCount = 0;
+                spriteRenderer.sprite = upSprite;
+                SendMessageUpwards("OnButtonUp");
+            }
         }
     }
 
-    // 改为protected以便子类访问
+    [System.Obsolete("This method is kept for compatibility with ChunkButton. Use trigger count system instead.")]
     protected bool IsAnyBodyInTrigger()
     {
-        Collider2D[] colliders = Physics2D.OverlapBoxAll(transform.position, boxCollider.size, 0);
-        foreach (Collider2D collider in colliders)
-        {
-            if (collider.attachedRigidbody != null && collider != boxCollider&&!collider.CompareTag("Platform"))
-            {
-                Debug.Log(collider.name);
-                return true;
-            }
-        }
-        return false;
+        return _triggerCount > 0;
     }
 
     private void OnDrawGizmos()
