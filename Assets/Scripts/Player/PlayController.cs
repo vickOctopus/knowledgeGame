@@ -34,6 +34,7 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private readonly int _velocityXHash = Animator.StringToHash("velocityX");
     private readonly int _velocityYHash = Animator.StringToHash("velocityY");
     private readonly int _onJinGuBangHash = Animator.StringToHash("onJinGuBang");
+    private readonly int _isFloatingHash = Animator.StringToHash("isFloating");
 
     #endregion
     
@@ -111,6 +112,14 @@ public class PlayController : MonoBehaviour,ITakeDamage
     private float _originalPlayerGravity;
 
     public Rigidbody2D Rb => _rg;
+
+    public bool IsOnLadder => _isOnLadder;
+
+    // 添加公共属性来设置isFloating
+    public bool IsFloating
+    {
+        set => _animator.SetBool(_isFloatingHash, value);
+    }
 
     private void Awake()
     {

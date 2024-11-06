@@ -194,10 +194,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 596d90d1004394b1ebdfa4be612ec3bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floatHeight: 4.55
-  detectSize: {x: 1.15, y: 11.6}
-  needButton: 1
+  floatHeight: 12.2
+  detectSize: {x: 1.18, y: 13.6}
+  needButton: 0
   buttonTransform: {fileID: 8069702342320432770}
+  obstacleLayer:
+    serializedVersion: 2
+    m_Bits: 135488
   forceMultiplier: 1.83
   heightTolerance: 0.1
   smoothSpeed: 5
@@ -219,7 +222,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &8069702342320432770
 Transform:
   m_ObjectHideFlags: 0

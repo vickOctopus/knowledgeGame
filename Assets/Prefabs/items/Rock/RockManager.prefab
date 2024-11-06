@@ -28,7 +28,7 @@ Transform:
   m_GameObject: {fileID: 2019504170501805036}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 24.14, y: -4.3, z: 0}
+  m_LocalPosition: {x: -9.18, y: -3.88, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -200,7 +200,7 @@ Transform:
   m_GameObject: {fileID: 4239433343822295103}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 9.35, y: -7.14, z: 0}
+  m_LocalPosition: {x: 7.36, y: -7.14, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -286,12 +286,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   rockPrefab: {fileID: 2653464505743154111, guid: c321dd9f58d0a45fa98e069fd0b06607, type: 3}
-  poolSize: 4
+  poolSize: 5
   spawnInterval: 2
   spawnPoint: {fileID: 3710810855976967605}
   despawnAreaCenter: {fileID: 7158593046510141849}
   despawnAreaSize: {x: 6.91, y: 1.36}
   accelerationAreaCenter: {fileID: 9040737932222835777}
   accelerationAreaSize: {x: 3.46, y: 0.87}
-  accelerationDirection: 3
+  accelerationDirection: 2
   accelerationForce: 30

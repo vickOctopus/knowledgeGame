@@ -149,9 +149,17 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 64
   crushDistance: 0.5
+  detectionLayer:
+    serializedVersion: 2
+    m_Bits: 136
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
+  jinGuBangLayer:
+    serializedVersion: 2
+    m_Bits: 128
+  angleThreshold: 5
+  boundaryStayTime: 0.3
 --- !u!50 &2340799400528287742
 Rigidbody2D:
   serializedVersion: 4

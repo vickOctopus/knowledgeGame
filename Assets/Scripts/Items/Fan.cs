@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class Fan : MonoBehaviour, IButton
 {
@@ -7,6 +8,7 @@ public class Fan : MonoBehaviour, IButton
     [SerializeField] private Vector2 detectSize = new Vector2(2f, 10f); // 检测区域大小
     [SerializeField] private bool needButton = true; // 是否需要按钮控制
     [SerializeField] private Transform buttonTransform; // 按钮的Transform
+    [SerializeField] private LayerMask obstacleLayer; // 障碍物检测层
 
     [Header("力度设置")]
     [SerializeField] private float forceMultiplier = 5f; // 力度系数
@@ -26,11 +28,15 @@ public class Fan : MonoBehaviour, IButton
 
     private LineRenderer _lineRenderer;
 
+    private bool _hasInitialPosition;  // 添加标志来表示是否已记录初始位置
+
+    private float _currentDetectHeight; // 当前检测高度
+    private float _floatHeightRatio; // 漂浮高度与检测区域高度的比值
+
     private void Awake()
     {
         _animator = GetComponent<Animator>();
         _lastPosition = transform.position;
-        _initialPosition = transform.position;
         
         InitializeLineRenderer();
         
@@ -38,18 +44,31 @@ public class Fan : MonoBehaviour, IButton
         {
             buttonTransform.gameObject.SetActive(false);
         }
+
+        // 延迟记录初始位置
+        StartCoroutine(RecordInitialPosition());
+    }
+
+    private IEnumerator RecordInitialPosition()
+    {
+        yield return new WaitForSeconds(0.5f);
+        _initialPosition = transform.position;
+        _hasInitialPosition = true;  // 置标志
     }
 
     private void InitializeLineRenderer()
     {
-        _lineRenderer = gameObject.AddComponent<LineRenderer>();
-        _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
-        _lineRenderer.startColor = Color.cyan;
-        _lineRenderer.endColor = Color.cyan;
-        _lineRenderer.startWidth = 0.1f;
-        _lineRenderer.endWidth = 0.1f;
-        _lineRenderer.positionCount = 5; // 5个点形成一个矩形（首尾相连）
-        _lineRenderer.useWorldSpace = true;
+        if (_lineRenderer == null)
+        {
+            _lineRenderer = gameObject.AddComponent<LineRenderer>();
+            _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
+            _lineRenderer.startColor = Color.cyan;
+            _lineRenderer.endColor = Color.cyan;
+            _lineRenderer.startWidth = 0.1f;
+            _lineRenderer.endWidth = 0.1f;
+            _lineRenderer.positionCount = 5;
+            _lineRenderer.useWorldSpace = true;
+        }
     }
 
     private void OnEnable()
@@ -57,6 +76,12 @@ public class Fan : MonoBehaviour, IButton
         if (ChunkManager.Instance != null)
         {
             ChunkManager.Instance.OnChunkUnloaded += OnChunkUnloaded;
+        }
+        
+        // 确保LineRenderer在启用时正确初始化
+        if (_lineRenderer != null)
+        {
+            _lineRenderer.enabled = _isActive;
         }
     }
 
@@ -70,6 +95,9 @@ public class Fan : MonoBehaviour, IButton
 
     private void OnChunkUnloaded(Vector2Int chunkCoord)
     {
+        // 只有在已记录初始位置后才响应事件
+        if (!_hasInitialPosition) return;
+
         transform.position = _initialPosition;
         _lastPosition = _initialPosition;
         
@@ -83,6 +111,10 @@ public class Fan : MonoBehaviour, IButton
     {
         _isActive = !needButton; // 如果不需要按钮控制，则默认开启
         _animator.SetBool(_onHash, _isActive);
+        
+        // 计算初始比值
+        _floatHeightRatio = floatHeight / detectSize.y;
+        _currentDetectHeight = detectSize.y;
     }
 
     private void Update()
@@ -94,18 +126,20 @@ public class Fan : MonoBehaviour, IButton
         }
 
         _lineRenderer.enabled = true;
-        
-        // 更新检测区域位置和显示
-        Vector2 boxCenter = (Vector2)transform.position + Vector2.up * (detectSize.y * 0.5f);
-        UpdateDetectionArea(boxCenter);
+        UpdateDetectionHeightAndArea();
+        CheckAndUpdatePlayerState();
+    }
 
-        // 使用OverlapBoxAll检测所有碰撞体
-        Collider2D[] hits = Physics2D.OverlapBoxAll(boxCenter, detectSize, 0f);
+    private void CheckAndUpdatePlayerState()
+    {
+        Vector2 currentDetectSize = new Vector2(detectSize.x, _currentDetectHeight);
+        Vector2 boxCenter = (Vector2)transform.position + Vector2.up * (currentDetectSize.y * 0.5f);
+        Collider2D[] hits = Physics2D.OverlapBoxAll(boxCenter, currentDetectSize, 0f);
         
         bool foundPlayer = false;
         foreach (var hit in hits)
         {
-            if (hit.CompareTag("Player"))
+            if (hit.CompareTag("Player") && !PlayController.instance.IsOnLadder)
             {
                 foundPlayer = true;
                 if (!_isAffectingPlayer)
@@ -123,19 +157,43 @@ public class Fan : MonoBehaviour, IButton
         }
     }
 
-    private void UpdateDetectionArea(Vector2 center)
+    private void UpdateDetectionHeightAndArea()
     {
-        Vector2 halfSize = detectSize * 0.5f;
-        Vector2 topLeft = center + new Vector2(-halfSize.x, halfSize.y);
-        Vector2 topRight = center + new Vector2(halfSize.x, halfSize.y);
-        Vector2 bottomRight = center + new Vector2(halfSize.x, -halfSize.y);
-        Vector2 bottomLeft = center + new Vector2(-halfSize.x, -halfSize.y);
+        // 射线检测上方障碍物
+        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.up, detectSize.y, obstacleLayer);
+        
+        // 计算新的检测高度
+        float newDetectHeight = hit.collider != null ? 
+            Mathf.Min(hit.distance, detectSize.y) : detectSize.y;
+        
+        // 如果高度没有变化，直接返回
+        if (Mathf.Approximately(_currentDetectHeight, newDetectHeight))
+        {
+            return;
+        }
+        
+        // 更新检测高度
+        _currentDetectHeight = newDetectHeight;
+        
+        // 更新漂浮高度，保持比例不变
+        floatHeight = _currentDetectHeight * _floatHeightRatio;
+        
+        // 更新检测区域
+        Vector2 currentDetectSize = new Vector2(detectSize.x, _currentDetectHeight);
+        Vector2 boxCenter = (Vector2)transform.position + Vector2.up * (currentDetectSize.y * 0.5f);
+        UpdateDetectionArea(boxCenter, currentDetectSize);
+    }
 
-        _lineRenderer.SetPosition(0, topLeft);
-        _lineRenderer.SetPosition(1, topRight);
-        _lineRenderer.SetPosition(2, bottomRight);
-        _lineRenderer.SetPosition(3, bottomLeft);
-        _lineRenderer.SetPosition(4, topLeft); // 闭合矩形
+    private void UpdateDetectionArea(Vector2 center, Vector2 size)
+    {
+        Vector2 halfSize = size * 0.5f;
+        
+        // 直接更新LineRenderer位置
+        _lineRenderer.SetPosition(0, center + new Vector2(-halfSize.x, halfSize.y));
+        _lineRenderer.SetPosition(1, center + new Vector2(halfSize.x, halfSize.y));
+        _lineRenderer.SetPosition(2, center + new Vector2(halfSize.x, -halfSize.y));
+        _lineRenderer.SetPosition(3, center + new Vector2(-halfSize.x, -halfSize.y));
+        _lineRenderer.SetPosition(4, center + new Vector2(-halfSize.x, halfSize.y));
     }
 
     public void OnButtonDown()
@@ -163,6 +221,7 @@ public class Fan : MonoBehaviour, IButton
         _playerRb.gravityScale = 0f;
         _isAffectingPlayer = true;
         _currentVelocity = _playerRb.velocity.y;
+        PlayController.instance.IsFloating = true;  // 设置浮空动画
     }
 
     private void AdjustPlayerHeight()
@@ -188,6 +247,7 @@ public class Fan : MonoBehaviour, IButton
         if (_playerRb != null)
         {
             _playerRb.gravityScale = _originalGravity;
+            PlayController.instance.IsFloating = false;  // 取消浮空动画
         }
         _isAffectingPlayer = false;
         _playerRb = null;
@@ -206,23 +266,25 @@ public class Fan : MonoBehaviour, IButton
 
     private void DrawDetectionArea()
     {
-        // 只在编辑器模式或者风扇激活时绘制检测区域
         if (!Application.isPlaying || _isActive)
         {
-            // 绘制检测域
-            Gizmos.color = new Color(0, 1, 1, 0.3f); // 半透明青色
-            Vector2 boxCenter = (Vector2)transform.position + Vector2.up * (detectSize.y * 0.5f);
-            Gizmos.DrawCube(boxCenter, detectSize); // 实心区域
+            // 在编辑器模式下使用 detectSize，在运行时使用 _currentDetectHeight
+            Vector2 currentDetectSize = Application.isPlaying ? 
+                new Vector2(detectSize.x, _currentDetectHeight) : detectSize;
+                
+            Vector2 boxCenter = (Vector2)transform.position + Vector2.up * (currentDetectSize.y * 0.5f);
+            
+            Gizmos.color = new Color(0, 1, 1, 0.3f);
+            Gizmos.DrawCube(boxCenter, currentDetectSize);
 
-            Gizmos.color = Color.cyan; // 青色
-            Gizmos.DrawWireCube(boxCenter, detectSize); // 线框
+            Gizmos.color = Color.cyan;
+            Gizmos.DrawWireCube(boxCenter, currentDetectSize);
 
-            // 只在编辑器模式下绘制目标高度线
             if (!Application.isPlaying)
             {
                 Gizmos.color = Color.yellow;
                 Vector3 targetHeightPos = transform.position + Vector3.up * floatHeight;
-                float lineWidth = detectSize.x * 0.5f;
+                float lineWidth = currentDetectSize.x * 0.5f;
                 Gizmos.DrawLine(targetHeightPos - Vector3.right * lineWidth, 
                               targetHeightPos + Vector3.right * lineWidth);
             }
@@ -231,14 +293,25 @@ public class Fan : MonoBehaviour, IButton
 
     private void LateUpdate()
     {
-        // 更新按钮位置
-        if (buttonTransform != null && needButton && transform.position != _lastPosition)
+        // 检查位置是否发生变化
+        if (transform.position != _lastPosition)
         {
-            Vector3 delta = transform.position - _lastPosition;
-            buttonTransform.position -= delta;
+            // 更新按钮位置
+            if (buttonTransform != null && needButton)
+            {
+                Vector3 delta = transform.position - _lastPosition;
+                buttonTransform.position -= delta;
+            }
+            
+            // 如果风扇处于激活状态，更新检测区域
+            if (_isActive && _lineRenderer != null && _lineRenderer.enabled)
+            {
+                Vector2 currentDetectSize = new Vector2(detectSize.x, _currentDetectHeight);
+                Vector2 boxCenter = (Vector2)transform.position + Vector2.up * (currentDetectSize.y * 0.5f);
+                UpdateDetectionArea(boxCenter, currentDetectSize);
+            }
         }
         
-        // 在所有更新完成后再更新上一帧位置
         _lastPosition = transform.position;
     }
 

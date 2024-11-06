@@ -223,6 +223,8 @@ namespace Bundos.WaterSystem
         {
             if (!interactive)
                 return;
+            if(other.CompareTag("Floating Objects"))
+                return;
 
             if (other.gameObject.CompareTag("Player"))
             {

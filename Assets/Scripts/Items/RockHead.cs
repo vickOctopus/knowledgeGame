@@ -27,12 +27,27 @@ public class RockHead : MonoBehaviour
     private bool isTrackingPlayer = false;    // 是否正在追踪玩家
     private bool playerOnTop = false;         // 玩家是否在顶部
 
+    [Header("停留设置")]
+    [SerializeField] private float boundaryStayTime = 0.5f; // 边界停留时间
+    private bool _isStaying = false;
+    private float _stayTimer = 0f;
+
+    private float _gameStartTime;
+
     private void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         boxCollider = GetComponent<BoxCollider2D>();
         InitializeBoxSize();
         InitializeMovementLimits();
+        
+        _gameStartTime = Time.time;
+        _isStaying = false;  // 确保开始时不处于停留状态
+        
+        // 根据初始位置决定初始移动方向
+        float distanceToTop = Mathf.Abs(topLimit - transform.position.y);
+        float distanceToBottom = Mathf.Abs(bottomLimit - transform.position.y);
+        movingUp = distanceToTop > distanceToBottom;
     }
 
     private void InitializeBoxSize()
@@ -46,12 +61,13 @@ public class RockHead : MonoBehaviour
     private void InitializeMovementLimits()
     {
         Vector2 rayStart = (Vector2)transform.position;
+        float halfHeight = boxCollider.size.y / 2;
 
         // 向上检测
         RaycastHit2D upHit = Physics2D.Raycast(rayStart, Vector2.up, RAY_DISTANCE, collisionLayer);
         if (upHit.collider != null)
         {
-            topLimit = upHit.point.y - boxCollider.size.y / 2;
+            topLimit = upHit.point.y - halfHeight;
         }
         else
         {
@@ -62,18 +78,40 @@ public class RockHead : MonoBehaviour
         RaycastHit2D downHit = Physics2D.Raycast(rayStart, Vector2.down, RAY_DISTANCE, collisionLayer);
         if (downHit.collider != null)
         {
-            bottomLimit = downHit.point.y + boxCollider.size.y / 2;
+            bottomLimit = downHit.point.y + halfHeight;
         }
         else
         {
             bottomLimit = transform.position.y - RAY_DISTANCE;
         }
+
+        // 确保边界有效
+        if (topLimit <= bottomLimit)
+        {
+            float center = (topLimit + bottomLimit) / 2;
+            float minDistance = 1f; // 最小边界距离
+            topLimit = center + minDistance;
+            bottomLimit = center - minDistance;
+        }
     }
 
     private void FixedUpdate()
     {
-        // 检是否到达边界并改变方向
+        // 检查是否到达边界并改变方向
         CheckBoundaries();
+
+        // 如果正在停留，处理停留逻辑
+        if (_isStaying)
+        {
+            _stayTimer += Time.fixedDeltaTime;
+            if (_stayTimer >= boundaryStayTime)
+            {
+                _isStaying = false;
+                _stayTimer = 0f;
+            }
+            rb.velocity = Vector2.zero;
+            return;
+        }
 
         // 进行统一检测
         PerformDetection();
@@ -95,16 +133,31 @@ public class RockHead : MonoBehaviour
 
     private void CheckBoundaries()
     {
-        if (movingUp && transform.position.y >= topLimit)
+        if (!_isStaying)
         {
-            movingUp = false;
-            isTrackingPlayer = false;
+            if (movingUp && transform.position.y >= topLimit)
+            {
+                StartStaying();
+                movingUp = false;
+                isTrackingPlayer = false;
+            }
+            else if (!movingUp && transform.position.y <= bottomLimit)
+            {
+                StartStaying();
+                movingUp = true;
+                isTrackingPlayer = false;
+            }
         }
-        else if (!movingUp && transform.position.y <= bottomLimit)
-        {
-            movingUp = true;
-            isTrackingPlayer = false;
-        }
+    }
+
+    private void StartStaying()
+    {
+        // 确保游戏开始1秒后才能进入停留状态
+        if (Time.time - _gameStartTime < 1f) return;
+        
+        _isStaying = true;
+        _stayTimer = 0f;
+        rb.velocity = Vector2.zero;
     }
 
     private void PerformDetection()
@@ -190,8 +243,6 @@ public class RockHead : MonoBehaviour
 
             if (distanceToBoundary <= crushDistance)
             {
-                Debug.Log($"玩家被挤压死亡！移动方向: {(movingUp ? "向上" : "向下")}, " +
-                         $"与边界距离: {distanceToBoundary:F3}");
                 PlayController.instance.PlayerDead();
                 isTrackingPlayer = false;
             }
@@ -309,7 +360,8 @@ public class RockHead : MonoBehaviour
             $"追踪状态: {(isTrackingPlayer ? "追踪中" : "未追踪")}\n" +
             $"玩家位置: {(playerOnTop ? "顶部" : "底部")}\n" +
             $"上边界: {topLimit:F2}\n" +
-            $"下边界: {bottomLimit:F2}");
+            $"下边界: {bottomLimit:F2}\n" +
+            $"停留状态: {(_isStaying ? $"停留中 ({_stayTimer:F2}s)" : "移动中")}");
         #endif
     }
 } 
