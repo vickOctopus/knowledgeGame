@@ -44,10 +44,13 @@ public class RockHead : MonoBehaviour
         _gameStartTime = Time.time;
         _isStaying = false;  // 确保开始时不处于停留状态
         
-        // 根据初始位置决定初始移动方向
-        float distanceToTop = Mathf.Abs(topLimit - transform.position.y);
-        float distanceToBottom = Mathf.Abs(bottomLimit - transform.position.y);
-        movingUp = distanceToTop > distanceToBottom;
+        // 将物体放置在下边界
+        Vector3 startPosition = transform.position;
+        startPosition.y = bottomLimit;
+        transform.position = startPosition;
+        
+        // 设置初始移动方向为向上
+        movingUp = true;
     }
 
     private void InitializeBoxSize()

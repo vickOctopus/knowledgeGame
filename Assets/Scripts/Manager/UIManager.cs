@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
@@ -12,6 +13,9 @@ public class UIManager : MonoBehaviour
    // public GameObject journalUI;
     private int _paperId;
     private PlayerInput _playerInput;
+    [SerializeField] private GameObject rewardPanel;
+    [SerializeField] private RewardItemDisplay rewardItemDisplay;
+    [SerializeField] private float rewardDisplayDuration = 3f;
 
     private void Awake()
     {
@@ -26,6 +30,14 @@ public class UIManager : MonoBehaviour
 
         DontDestroyOnLoad(this);
         _playerInput = new PlayerInput();
+    }
+
+    private void Start()
+    {
+        if (rewardPanel != null)
+        {
+            rewardPanel.SetActive(false);
+        }
     }
 
     private void OnEnable()
@@ -72,5 +84,21 @@ public class UIManager : MonoBehaviour
         Cursor.visible = true;
         PlayController.instance.DisableControl();
         
+    }
+
+    public void ShowReward(Sprite rewardSprite)
+    {
+        if (rewardPanel != null && rewardItemDisplay != null)
+        {
+            rewardPanel.SetActive(true);
+            rewardItemDisplay.DisplayReward(rewardSprite);
+            StartCoroutine(HideRewardAfterDelay());
+        }
+    }
+
+    private IEnumerator HideRewardAfterDelay()
+    {
+        yield return new WaitForSeconds(rewardDisplayDuration);
+        rewardPanel.SetActive(false);
     }
 }
